@@ -1,0 +1,20 @@
+﻿@model string
+
+@{
+    var size = GetMetadata<string>("size");
+    var placeholder = GetMetadata<string>("placeholder");
+}
+
+<select asp-for="@Model"
+        asp-items="@ViewBag.AvailableCategories"
+        asp-placeholder="@placeholder"
+        class="edit-control"
+        attr-class='(size.HasValue(), "form-control-" + size)'
+        data-editor="taxonomy"
+        v-bind:data-select-selected-id="item.value"
+        v-bind:data-select-init-text="item.row.Taxonomy"
+        data-select-url='@Url.Action("GetGoogleCategories", "GoogleMerchantCenter")'
+        data-default-category="@Html.Raw(ViewBag.DefaultCategory)"
+        data-language-seo-code="@ViewBag.LanguageSeoCode">
+    <option v-bind:value="item.value">{{item.value}}</option>
+</select>

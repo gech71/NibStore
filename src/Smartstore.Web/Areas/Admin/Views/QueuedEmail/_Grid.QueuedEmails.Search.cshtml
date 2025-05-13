@@ -1,0 +1,35 @@
+﻿@using Smartstore.Admin.Models.Messages
+
+@model QueuedEmailListModel
+
+<div class="form-group">
+    <smart-label sm-text="@T("Common.CreatedOn")" sm-ignore-hint="true" asp-for="SearchStartDate" />
+    <div class="form-row">
+        <div class="col-6">
+            <editor asp-for="SearchStartDate" placeholder="@T("Common.From")" />
+        </div>
+        <div class="col-6">
+            <editor asp-for="SearchEndDate" placeholder="@T("Common.To")" />
+        </div>
+    </div>
+</div>
+<div class="form-group">
+    <smart-label asp-for="SearchFromEmail" />
+    <editor asp-for="SearchFromEmail" asp-template="SearchExpression" />
+</div>
+<div class="form-group">
+    <smart-label asp-for="SearchToEmail" />
+    <editor asp-for="SearchToEmail" asp-template="SearchExpression" />
+</div>
+<div class="form-group">
+    <smart-label asp-for="SearchSendManually" />
+    <editor asp-for="SearchSendManually" />
+</div>
+<div class="form-group">
+    <smart-label asp-for="SearchMaxSentTries" />
+    <editor asp-for="SearchMaxSentTries" />
+</div>
+<div class="form-group">
+    <smart-label asp-for="SearchLoadNotSent" />
+    <editor asp-for="SearchLoadNotSent" />
+</div>

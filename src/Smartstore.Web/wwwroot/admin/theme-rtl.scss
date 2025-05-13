@@ -1,0 +1,42 @@
+
+/* Theme: Admin (RTL overrides)
+======================================== */
+
+//
+// Head
+// --------------------------------------------------
+
+// Bootstrap functions
+@import "../lib/bootstrap/scss/functions";
+
+// Shared Smartstore functions 
+@import '../shared/functions';
+
+// Shared Bootstrap variables
+@import '../shared/variables-shared-bootstrap';
+
+// Admin theme variables and overrides
+@import "variables";
+
+// Bootstrap head: vars, mixins, maps etc.
+@import "../lib/bootstrap/scss/bootstrap-head";
+
+// Shared Smartstore variables, mixins and :root
+//@import '../shared/variables-shared';
+//@import '../shared/mixins';
+
+
+//
+// Shared styles RTL overrides
+// --------------------------------------------------
+
+@import "../shared/_rtl-bootstrap.scss";
+@import "../shared/_rtl.scss";
+@import "../skinning/_rtl.scss";
+
+
+//
+// Theme specific RTL overrides
+// --------------------------------------------------
+
+@import '_rtl.scss';

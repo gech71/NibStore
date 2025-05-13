@@ -1,0 +1,27 @@
+﻿/* Media query for mobile viewport */
+@include media-breakpoint-down(sm) {
+    .paypal-button-container {
+        width: 100%;
+    }
+}
+
+/* Media query for desktop viewport */
+@include media-breakpoint-up(md) {
+    .paypal-button-container .paypal-buttons {
+        width: 240px !important;
+        .payment-method-page & {
+            width: 100% !important;
+        }
+    }
+}
+
+.addon-buttons {
+    .paypal-button-container .paypal-buttons {
+        width: 100% !important;
+        display: block !important;
+    }
+}
+
+#gpay-button-online-api-id {
+    width: 100% !important;
+}

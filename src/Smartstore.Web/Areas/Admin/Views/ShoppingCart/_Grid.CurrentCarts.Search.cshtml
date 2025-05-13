@@ -1,0 +1,21 @@
+﻿@model CurrentCartListModel
+
+@{
+    var stores = ViewBag.Stores as IList<SelectListItem>;
+}
+
+<div class="form-group">
+    <smart-label sm-text="@T("Common.CreatedOn")" sm-ignore-hint="true" asp-for="StartDate" />
+    <div class="form-row">
+        <div class="col-6">
+            <editor asp-for="StartDate" placeholder="@T("Common.From")" />
+        </div>
+        <div class="col-6">
+            <editor asp-for="EndDate" placeholder="@T("Common.To")" />
+        </div>
+    </div>
+</div>
+<div sm-if="stores.Count > 1" class="form-group">
+    <smart-label asp-for="StoreId" />
+    <select asp-for="StoreId" asp-items="stores" asp-placeholder="@T("Admin.Common.All")"></select>
+</div>

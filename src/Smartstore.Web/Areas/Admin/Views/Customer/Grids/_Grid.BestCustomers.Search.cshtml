@@ -1,0 +1,31 @@
+﻿@model TopCustomersReportModel
+
+<div class="form-group">
+    <smart-label sm-text="@T("Common.CreatedOn")" sm-ignore-hint="true" asp-for="StartDate" />
+    <div class="form-row">
+        <div class="col-6">
+            <editor asp-for="StartDate" placeholder="@T("Common.From")" />
+        </div>
+        <div class="col-6">
+            <editor asp-for="EndDate" placeholder="@T("Common.To")" />
+        </div>
+    </div>
+</div>
+<div class="form-group">
+    <smart-label asp-for="OrderStatusId" />
+    <select asp-for="OrderStatusId" asp-items="ViewBag.AvailableOrderStatuses">
+        <option selected>@T("Admin.Common.All")</option>
+    </select>
+</div>
+<div class="form-group">
+    <smart-label asp-for="PaymentStatusId" />
+    <select asp-for="PaymentStatusId" asp-items="ViewBag.AvailablePaymentStatuses">
+        <option selected>@T("Admin.Common.All")</option>
+    </select>
+</div>
+<div class="form-group">
+    <smart-label asp-for="ShippingStatusId" />
+    <select asp-for="ShippingStatusId" asp-items="ViewBag.AvailableShippingStatuses">
+        <option selected>@T("Admin.Common.All")</option>
+    </select>
+</div>

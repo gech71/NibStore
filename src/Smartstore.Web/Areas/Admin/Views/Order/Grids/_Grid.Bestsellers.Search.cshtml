@@ -1,0 +1,28 @@
+﻿@using Smartstore.Core.Checkout.Payment
+@using Smartstore.Core.Checkout.Shipping
+
+@model BestsellersReportModel
+
+<div class="form-group">
+    <smart-label sm-text="@T("Common.CreatedOn")" sm-ignore-hint="true" asp-for="StartDate" />
+    <div class="form-row">
+        <div class="col-6">
+            <editor asp-for="StartDate" placeholder="@T("Common.From")" />
+        </div>
+        <div class="col-6">
+            <editor asp-for="EndDate" placeholder="@T("Common.To")" />
+        </div>
+    </div>
+</div>
+<div class="form-group">
+    <smart-label asp-for="OrderStatusId" />
+    <select asp-for="OrderStatusId" asp-items="Html.GetLocalizedEnumSelectList(typeof(OrderStatus))" asp-placeholder="@T("Admin.Common.All")"></select>
+</div>
+<div class="form-group">
+    <smart-label asp-for="PaymentStatusId" />
+    <select asp-for="PaymentStatusId" asp-items="Html.GetLocalizedEnumSelectList(typeof(PaymentStatus))" asp-placeholder="@T("Admin.Common.All")"></select>
+</div>
+<div class="form-group">
+    <smart-label asp-for="ShippingStatusId" />
+    <select asp-for="ShippingStatusId" asp-items="Html.GetLocalizedEnumSelectList(typeof(ShippingStatus))" asp-placeholder="@T("Admin.Common.All")"></select>
+</div>

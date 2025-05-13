@@ -1,0 +1,19 @@
+﻿@model RuleListModel
+
+@{
+    ViewBag.Title = Model.ScopeName ?? T("Common.Rules").Value;
+
+    Assets.BodyAttributes.AppendCssClass("spa-layout");
+
+    var gridViewData = new ViewDataDictionary(ViewData);
+    gridViewData["Parent"] = Model;
+}
+
+<div class="section-header">
+    <div class="title">
+        <i class="fa fa-filter"></i>
+        <span>@ViewBag.Title</span>
+    </div>
+</div>
+
+<partial name="_Grid.Rules" model="null" view-data="gridViewData" />

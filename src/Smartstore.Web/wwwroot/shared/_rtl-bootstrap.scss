@@ -1,0 +1,46 @@
+/// <reference path="references.scss" />
+
+// RTL overrides for Bootstrap
+// ==============================================================
+
+[dir=rtl] {
+
+    // Dropdown
+	// ----------------------------------------------
+
+    .dropdown-menu {
+        inset-inline-start: auto;
+    }
+
+
+	// Forms
+	// ----------------------------------------------
+
+    select.form-control {
+        &:not([multiple], [size]:not([size="1"])) {
+            background-position-x: 0.75rem;
+        }
+    }
+
+
+	// Custom controls
+	// ----------------------------------------------
+
+	.custom-select {
+	  &[multiple],
+	  &[size]:not([size="1"]) {
+		padding-left: $custom-select-padding-x;
+		padding-right: 0;
+	  }
+	}
+	
+	.custom-file-label { 
+	  &::after {
+		left: 0;
+		right: initial;
+	
+		border-right: $custom-file-border-width solid $custom-file-border-color;
+		border-left: none;
+	  }
+	}
+}
