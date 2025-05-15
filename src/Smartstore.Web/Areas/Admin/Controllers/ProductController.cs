@@ -229,6 +229,19 @@ namespace Smartstore.Admin.Controllers
                 _db.Products.Add(product);
                 await _db.SaveChangesAsync();
 
+                var currentUser = _workContext.CurrentCustomer;
+
+                var attribute = new GenericAttribute
+                {
+                    EntityId = product.Id,
+                    KeyGroup = "Product",
+                    Key = "CreatedByUserId",
+                    Value = currentUser.Id.ToString()
+                };
+
+                _db.GenericAttributes.Add(attribute);
+                await _db.SaveChangesAsync();
+
                 await UpdateDataOfExistingProductAsync(product, model, false);
 
                 Services.ActivityLogger.LogActivity(KnownActivityLogTypes.AddNewProduct, T("ActivityLog.AddNewProduct"), product.Name);
@@ -639,7 +652,8 @@ namespace Smartstore.Admin.Controllers
                             return T("Admin.Configuration.Measures.Dimensions");
                         default:
                             return null;
-                    };
+                    }
+                    ;
                 })
                 .Where(x => x != null);
 
@@ -1744,7 +1758,7 @@ namespace Smartstore.Admin.Controllers
                 model.AddPictureModel.PictureId = product.MainPictureId ?? 0;
 
                 model.ProductTagNames = product.ProductTags.Select(x => x.Name).ToArray();
-                
+
                 ViewBag.SelectedProductTags = model.ProductTagNames
                     .Select(x => new SelectListItem { Value = x, Text = x, Selected = true })
                     .ToList();
@@ -2362,8 +2376,8 @@ namespace Smartstore.Admin.Controllers
             var canUpdateStockQuantity = true;
             var stockQuantityInDatabase = product.StockQuantity;
 
-            if (product.Id != 0 
-                && product.ManageInventoryMethod == ManageInventoryMethod.ManageStock 
+            if (product.Id != 0
+                && product.ManageInventoryMethod == ManageInventoryMethod.ManageStock
                 && stockQuantityInDatabase != originalStockQuantity)
             {
                 // The stock has changed since the edit page was loaded, e.g. because an order has been placed.

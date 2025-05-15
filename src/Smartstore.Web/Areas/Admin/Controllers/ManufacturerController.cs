@@ -26,6 +26,7 @@ namespace Smartstore.Admin.Controllers
         private readonly IAclService _aclService;
         private readonly ILocalizedEntityService _localizedEntityService;
         private readonly CatalogSettings _catalogSettings;
+        private readonly IWorkContext _workContext;
 
         public ManufacturerController(
             SmartDbContext db,
@@ -34,7 +35,8 @@ namespace Smartstore.Admin.Controllers
             IStoreMappingService storeMappingService,
             IAclService aclService,
             ILocalizedEntityService localizedEntityService,
-            CatalogSettings catalogSettings)
+            CatalogSettings catalogSettings,
+            IWorkContext workContext)
         {
             _db = db;
             _discountService = discountService;
@@ -43,6 +45,7 @@ namespace Smartstore.Admin.Controllers
             _aclService = aclService;
             _localizedEntityService = localizedEntityService;
             _catalogSettings = catalogSettings;
+            _workContext = workContext;
         }
 
         /// <summary>
@@ -53,10 +56,33 @@ namespace Smartstore.Admin.Controllers
         /// <returns>List of all manufacturers as JSON.</returns>
         public async Task<IActionResult> AllManufacturers(string label, int selectedId)
         {
-            var manufacturers = await _db.Manufacturers
-                .AsNoTracking()
-                .ApplyStandardFilter(true)
-                .ToListAsync();
+            var currentUser = _workContext.CurrentCustomer;
+
+            string currentUserCompanyName = currentUser.Company;
+
+            var adminRoleId = await _db.CustomerRoles
+                .Where(r => r.SystemName == "Administrators")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            bool isAdministrator = adminRoleId != 0 &&
+                await _db.CustomerRoleMappings
+                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == adminRoleId);
+
+            if (!isAdministrator && string.IsNullOrEmpty(currentUserCompanyName))
+            {
+                NotifyError("Your account does not have a company name assigned. Please contact support.");
+                return Json(new { success = false, error = "Your account does not have a company name assigned. Please contact support." });
+            }
+
+            IQueryable<Manufacturer> query = _db.Manufacturers.AsNoTracking().ApplyStandardFilter(true);
+
+            if (!isAdministrator)
+            {
+                query = query.Where(m => m.Name == currentUserCompanyName);
+            }
+
+            var manufacturers = await query.ToListAsync();
 
             if (label.HasValue())
             {
@@ -73,37 +99,37 @@ namespace Smartstore.Admin.Controllers
 
             var mainList = list.ToList();
 
-            var mruList = new TrimmedBuffer<string>(
-                Services.WorkContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers,
-                _catalogSettings.MostRecentlyUsedManufacturersMaxSize)
-                .Reverse()
-                .Select(x =>
-                {
-                    var item = manufacturers.FirstOrDefault(m => m.Id.ToString() == x);
-                    if (item != null)
-                    {
-                        return new
-                        {
-                            id = x,
-                            text = item.GetLocalized(y => y.Name).Value,
-                            selected = false
-                        };
-                    }
+            // var mruList = new TrimmedBuffer<string>(
+            //     // Services.WorkContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers,
+            //     _catalogSettings.MostRecentlyUsedManufacturersMaxSize)
+            //     .Reverse()
+            //     .Select(x =>
+            //     {
+            //         var item = manufacturers.FirstOrDefault(m => m.Id.ToString() == x);
+            //         if (item != null)
+            //         {
+            //             return new
+            //             {
+            //                 id = x,
+            //                 text = item.GetLocalized(y => y.Name).Value,
+            //                 selected = false
+            //             };
+            //         }
 
-                    return null;
-                })
-                .Where(x => x != null)
-                .ToList();
+            //         return null;
+            //     })
+            //     .Where(x => x != null)
+            //     .ToList();
 
             object data = mainList;
-            if (mruList.Count > 0)
-            {
-                data = new List<object>
+            // if (mruList.Count > 0)
+            // {
+            data = new List<object>
                 {
-                    new Dictionary<string, object> { ["text"] = T("Common.Mru").Value, ["children"] = mruList },
+                    // new Dictionary<string, object> { ["text"] = T("Common.Mru").Value, ["children"] = mruList },
                     new Dictionary<string, object> { ["text"] = T("Admin.Catalog.Manufacturers").Value, ["children"] = mainList, ["main"] = true }
                 };
-            }
+            // }
 
             return new JsonResult(data);
         }
@@ -168,8 +194,8 @@ namespace Smartstore.Admin.Controllers
                 await _db.SaveChangesAsync();
 
                 Services.ActivityLogger.LogActivity(
-                    KnownActivityLogTypes.DeleteManufacturer, 
-                    T("ActivityLog.DeleteManufacturer"), 
+                    KnownActivityLogTypes.DeleteManufacturer,
+                    T("ActivityLog.DeleteManufacturer"),
                     string.Join(", ", entities.Select(x => x.Name)));
             }
 
