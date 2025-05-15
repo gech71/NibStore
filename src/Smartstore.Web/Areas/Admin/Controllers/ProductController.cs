@@ -28,6 +28,7 @@ using Smartstore.Core.Rules.Filters;
 using Smartstore.Core.Security;
 using Smartstore.Core.Seo;
 using Smartstore.Core.Stores;
+using Smartstore.Core.Web;
 using Smartstore.Events;
 using Smartstore.Web.Models;
 using Smartstore.Web.Models.DataGrid;
@@ -72,6 +73,7 @@ namespace Smartstore.Admin.Controllers
         private readonly SearchSettings _searchSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
         private readonly IEventPublisher _eventPublisher;
+        private readonly IGenericAttributeService _genericAttributeService;
 
         public ProductController(
             SmartDbContext db,
@@ -107,7 +109,8 @@ namespace Smartstore.Admin.Controllers
             MediaSettings mediaSettings,
             SearchSettings searchSettings,
             ShoppingCartSettings shoppingCartSettings,
-            IEventPublisher eventPublisher)
+            IEventPublisher eventPublisher,
+            IGenericAttributeService genericAttributeService)
         {
             _db = db;
             _productService = productService;
@@ -143,6 +146,7 @@ namespace Smartstore.Admin.Controllers
             _searchSettings = searchSettings;
             _shoppingCartSettings = shoppingCartSettings;
             _eventPublisher = eventPublisher;
+            _genericAttributeService = genericAttributeService;
         }
 
         #region Product list / create / edit / delete
@@ -156,7 +160,6 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> List(ProductListModel model)
         {
             await PrepareProductListModelAsync(model);
-
             return View(model);
         }
 
@@ -193,6 +196,7 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.Create)]
         public async Task<IActionResult> Create(ProductModel model, bool continueEditing, IFormCollection form)
         {
+
             if (model.DownloadFileVersion.HasValue() && model.DownloadId != null)
             {
                 try
@@ -227,6 +231,19 @@ namespace Smartstore.Admin.Controllers
                 }
 
                 _db.Products.Add(product);
+                await _db.SaveChangesAsync();
+
+                var currentUser = _workContext.CurrentCustomer;
+
+                var attribute = new GenericAttribute
+                {
+                    EntityId = product.Id,
+                    KeyGroup = "Product",
+                    Key = "CreatedByUserId",
+                    Value = currentUser.Id.ToString()
+                };
+
+                _db.GenericAttributes.Add(attribute);
                 await _db.SaveChangesAsync();
 
                 await UpdateDataOfExistingProductAsync(product, model, false);
@@ -639,7 +656,8 @@ namespace Smartstore.Admin.Controllers
                             return T("Admin.Configuration.Measures.Dimensions");
                         default:
                             return null;
-                    };
+                    }
+                    ;
                 })
                 .Where(x => x != null);
 
@@ -1639,6 +1657,7 @@ namespace Smartstore.Admin.Controllers
 
         private async Task PrepareProductListModelAsync(ProductListModel model)
         {
+
             model.DisplayProductPictures = _adminAreaSettings.DisplayProductPictures;
             model.IsSingleStoreMode = Services.StoreContext.IsSingleStoreMode();
 
@@ -1744,7 +1763,7 @@ namespace Smartstore.Admin.Controllers
                 model.AddPictureModel.PictureId = product.MainPictureId ?? 0;
 
                 model.ProductTagNames = product.ProductTags.Select(x => x.Name).ToArray();
-                
+
                 ViewBag.SelectedProductTags = model.ProductTagNames
                     .Select(x => new SelectListItem { Value = x, Text = x, Selected = true })
                     .ToList();
@@ -2362,8 +2381,8 @@ namespace Smartstore.Admin.Controllers
             var canUpdateStockQuantity = true;
             var stockQuantityInDatabase = product.StockQuantity;
 
-            if (product.Id != 0 
-                && product.ManageInventoryMethod == ManageInventoryMethod.ManageStock 
+            if (product.Id != 0
+                && product.ManageInventoryMethod == ManageInventoryMethod.ManageStock
                 && stockQuantityInDatabase != originalStockQuantity)
             {
                 // The stock has changed since the edit page was loaded, e.g. because an order has been placed.
