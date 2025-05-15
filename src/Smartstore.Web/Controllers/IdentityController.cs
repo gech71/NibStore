@@ -1,7 +1,6 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Smartstore.ComponentModel;
 using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Checkout.Tax;
@@ -12,6 +11,7 @@ using Smartstore.Core.Localization;
 using Smartstore.Core.Localization.Routing;
 using Smartstore.Core.Logging;
 using Smartstore.Core.Messaging;
+using Smartstore.Core.Platform.Identity.Services;
 using Smartstore.Core.Security;
 using Smartstore.Core.Seo.Routing;
 using Smartstore.Core.Stores;
@@ -43,6 +43,7 @@ namespace Smartstore.Web.Controllers
         private readonly LocalizationSettings _localizationSettings;
         private readonly ExternalAuthenticationSettings _externalAuthenticationSettings;
         private readonly RewardPointsSettings _rewardPointsSettings;
+        private  readonly IUserPhoneStore _userPhoneStore;
 
         public IdentityController(
             SmartDbContext db,
@@ -62,7 +63,8 @@ namespace Smartstore.Web.Controllers
             TaxSettings taxSettings,
             LocalizationSettings localizationSettings,
             ExternalAuthenticationSettings externalAuthenticationSettings,
-            RewardPointsSettings rewardPointsSettings)
+            RewardPointsSettings rewardPointsSettings,
+            IUserPhoneStore userPhoneStore)
         {
             _db = db;
             _userManager = userManager;
@@ -82,6 +84,7 @@ namespace Smartstore.Web.Controllers
             _localizationSettings = localizationSettings;
             _externalAuthenticationSettings = externalAuthenticationSettings;
             _rewardPointsSettings = rewardPointsSettings;
+            _userPhoneStore = userPhoneStore;
         }
 
         #region Login / Logout / Register
@@ -94,9 +97,7 @@ namespace Smartstore.Web.Controllers
         {
             var model = new LoginModel
             {
-                CustomerLoginType = _customerSettings.CustomerLoginType,
-                CheckoutAsGuest = checkoutAsGuest.GetValueOrDefault(),
-                DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnLoginPage,
+                CheckoutAsGuest = checkoutAsGuest.GetValueOrDefault()
             };
 
             ViewBag.ReturnUrl = returnUrl ?? Url.Content("~/");
@@ -112,76 +113,36 @@ namespace Smartstore.Web.Controllers
         [LocalizedRoute("/login", Name = "Login")]
         public async Task<IActionResult> Login(LoginModel model, string returnUrl, string captchaError)
         {
-            if (_captchaSettings.ShowOnLoginPage && captchaError.HasValue())
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(string.Empty, captchaError);
+                return View(model);
+            }
+            var phoneNumber = model.PhoneNumber?.Trim();
+
+            var customer = await _userPhoneStore.FindByPhoneNumberAsync(phoneNumber, CancellationToken.None);
+
+            if (customer == null)
+            {
+                ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
+                return View(model);
             }
 
-            ViewBag.ReturnUrl = returnUrl;
+            await _signInManager.SignInAsync(customer, model.RememberMe);
 
-            if (ModelState.IsValid)
+            await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
+            await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
+            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
+      
+            if (string.IsNullOrEmpty(returnUrl) ||
+                returnUrl == "/" ||
+                returnUrl.Contains("/passwordrecovery", StringComparison.OrdinalIgnoreCase) ||
+                returnUrl.Contains("/activation", StringComparison.OrdinalIgnoreCase) ||
+                !Url.IsLocalUrl(returnUrl))
             {
-                Customer customer;
-
-                if (model.CustomerLoginType == CustomerLoginType.Username)
-                {
-                    customer = await _userManager.FindByNameAsync(model.Username.TrimSafe());
-                }
-                else if (model.CustomerLoginType == CustomerLoginType.Email)
-                {
-                    customer = await _userManager.FindByEmailAsync(model.Email.TrimSafe());
-                }
-                else
-                {
-                    customer = await _userManager.FindByEmailAsync(model.UsernameOrEmail.TrimSafe()) ?? await _userManager.FindByNameAsync(model.UsernameOrEmail.TrimSafe());
-                }
-
-                if (customer != null)
-                {
-                    var result = await _signInManager.PasswordSignInAsync(customer, model.Password, model.RememberMe, lockoutOnFailure: false);
-
-                    if (result.Succeeded)
-                    {
-                        await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
-
-                        await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
-
-                        Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
-
-                        if (returnUrl.IsEmpty()
-                            || returnUrl == "/"
-                            || returnUrl.Contains("/passwordrecovery", StringComparison.OrdinalIgnoreCase)
-                            || returnUrl.Contains("/activation", StringComparison.OrdinalIgnoreCase)
-                            || !Url.IsLocalUrl(returnUrl))
-                        {
-                            return RedirectToRoute("Homepage");
-                        }
-
-                        return RedirectToReferrer(returnUrl);
-                    }
-                    else
-                    {
-                        if (_customerSettings.UserRegistrationType == UserRegistrationType.EmailValidation && customer.Active == false)
-                        {
-                            ModelState.AddModelError(string.Empty, T("Account.Login.CheckEmailAccount"));
-                        }
-                        else
-                        {
-                            ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
-                        }
-                    }
-                }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
-                }
+                return RedirectToRoute("Homepage");
             }
 
-            // If we got this far something failed. Redisplay form!
-            model.CustomerLoginType = _customerSettings.CustomerLoginType;
-            model.DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnLoginPage;
-
-            return View(model);
+            return Redirect(returnUrl);
         }
 
         [NeverAuthorize, CheckStoreClosed(false)]
@@ -231,7 +192,6 @@ namespace Smartstore.Web.Controllers
 
             return View(model);
         }
-
         [HttpPost]
         [AllowAnonymous, NeverAuthorize]
         [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnRegistrationPage))]
@@ -239,18 +199,16 @@ namespace Smartstore.Web.Controllers
         [LocalizedRoute("/register", Name = "Register")]
         public async Task<IActionResult> Register(RegisterModel model, string captchaError, string returnUrl = null)
         {
-            // Check whether registration is allowed.
+            // Check whether registration is allowed
             if (_customerSettings.UserRegistrationType == UserRegistrationType.Disabled)
             {
                 return RedirectToRoute("RegisterResult", new { resultId = (int)UserRegistrationType.Disabled });
             }
 
             var customer = Services.WorkContext.CurrentCustomer;
+
             if (customer.IsRegistered())
             {
-                // Already registered customer. 
-                // await _signInManager.SignOutAsync();
-
                 return RedirectToRoute("RegisterResult", new { message = T("Account.Register.Result.AlreadyRegistered").Value });
             }
 
@@ -259,69 +217,63 @@ namespace Smartstore.Web.Controllers
                 ModelState.AddModelError(string.Empty, captchaError);
             }
 
-            foreach (var validator in _userManager.PasswordValidators)
-            {
-                AddModelStateErrors(await validator.ValidateAsync(_userManager, customer, model.Password));
-            }
-
             ViewData["ReturnUrl"] = returnUrl;
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var succeeded = false;
-                var oldUserName = customer.Username;
-                var oldEmail = customer.Email;
-                var oldPasswordFormat = customer.PasswordFormat;
-                var oldActive = customer.Active;
-                var oldCreatedOn = customer.CreatedOnUtc;
-                var oldLastActivityDate = customer.LastActivityDateUtc;
+                await PrepareRegisterModelAsync(model);
+                return View(model);
+            }
 
-                customer.Username = model.Username != null ? model.Username.Trim() : model.Email.Trim();
-                customer.Email = model.Email.Trim();
+            var succeeded = false;
+            var phone = model.Phone?.Trim();
+            var username = model.Username?.Trim();
+
+            // Generate fallback email
+            // Extract only digits from the phone number
+            var digits = new string(phone?.Where(char.IsDigit).ToArray());
+
+            // Take last 9 digits, or less if not available
+            var shortPhone = digits.Length >= 9 ? digits[^9..] : digits;
+
+            var fallbackEmail = $"user_{shortPhone}@local.app";
+
+            try
+            {
+                // Set basic properties
+                customer.Username = username;
+                customer.Email = fallbackEmail; // Replace later if needed
                 customer.PasswordFormat = _customerSettings.DefaultPasswordFormat;
                 customer.Active = _customerSettings.UserRegistrationType == UserRegistrationType.Standard;
                 customer.CreatedOnUtc = DateTime.UtcNow;
                 customer.LastActivityDateUtc = DateTime.UtcNow;
 
-                try
+                // Update customer info
+                var identityResult = await _userManager.UpdateAsync(customer);
+                if (identityResult.Succeeded)
                 {
-                    var identityResult = await _userManager.UpdateAsync(customer);
-                    if (identityResult.Succeeded)
-                    {
-                        var passwordResult = await _userManager.AddPasswordAsync(customer, model.Password);
-                        succeeded = passwordResult.Succeeded;
-                        AddModelStateErrors(passwordResult);
-                    }
-
-                    AddModelStateErrors(identityResult);
+                    succeeded = identityResult.Succeeded;
                 }
-                finally
-                {
-                    if (!succeeded)
-                    {
-                        customer.Username = oldUserName;
-                        customer.Email = oldEmail;
-                        customer.PasswordFormat = oldPasswordFormat;
-                        customer.Active = oldActive;
-                        customer.CreatedOnUtc = oldCreatedOn;
-                        customer.LastActivityDateUtc = oldLastActivityDate;
 
-                        await _db.SaveChangesAsync();
-                    }
-                }
+                AddModelStateErrors(identityResult);
 
                 if (succeeded)
                 {
-                    // Update customer properties.
+                    // Map additional fields from model to customer
                     await MapRegisterModelToCustomerAsync(customer, model);
 
+                    // Finalize registration
                     return await FinalizeCustomerRegistrationAsync(customer, returnUrl);
                 }
             }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+                ModelState.AddModelError(string.Empty, T("Common.Error.Unspecified"));
+            }
 
-            // If we got this far something failed. Redisplay form.
+            // Something failed, restore previous state and redisplay form
             await PrepareRegisterModelAsync(model);
-
             return View(model);
         }
 
@@ -709,31 +661,14 @@ namespace Smartstore.Web.Controllers
 
         private async Task PrepareRegisterModelAsync(RegisterModel model)
         {
-            model.AllowCustomersToSetTimeZone = _dateTimeSettings.AllowCustomersToSetTimeZone;
-            model.DisplayVatNumber = _taxSettings.EuVatEnabled;
-            model.VatRequired = _taxSettings.VatRequired;
 
             MiniMapper.Map(_customerSettings, model);
 
             model.UsernamesEnabled = _customerSettings.CustomerLoginType != CustomerLoginType.Email;
             model.CheckUsernameAvailabilityEnabled = _customerSettings.CheckUsernameAvailabilityEnabled;
-            model.DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnRegistrationPage;
 
             ViewBag.AvailableTimeZones = _dateTimeHelper.GetSystemTimeZones()
                 .ToSelectListItems(_dateTimeHelper.DefaultStoreTimeZone.Id);
-
-            if (_customerSettings.CountryEnabled)
-            {
-                if (_customerSettings.StateProvinceEnabled)
-                {
-                    var stateProvinces = await _db.StateProvinces.GetStateProvincesByCountryIdAsync(model.CountryId);
-
-                    ViewBag.AvailableStates = stateProvinces.ToSelectListItems(model.StateProvinceId ?? 0) ?? new List<SelectListItem>
-                    {
-                        new SelectListItem { Text = T("Address.OtherNonUS"), Value = "0" }
-                    };
-                }
-            }
         }
 
         /// <summary>
@@ -838,112 +773,20 @@ namespace Smartstore.Web.Controllers
 
         private async Task MapRegisterModelToCustomerAsync(Customer customer, RegisterModel model)
         {
-            // Properties
-            if (_dateTimeSettings.AllowCustomersToSetTimeZone)
+            // Set customer number if required and not already set
+            if (_customerSettings.CustomerNumberMethod == CustomerNumberMethod.AutomaticallySet &&
+                string.IsNullOrWhiteSpace(customer.CustomerNumber))
             {
-                customer.TimeZoneId = model.TimeZoneId;
+                customer.CustomerNumber = customer.Id.ToString();
             }
 
-            // VAT number
-            if (_taxSettings.EuVatEnabled)
-            {
-                customer.GenericAttributes.VatNumber = model.VatNumber;
-
-                var vatCheckResult = await _taxService.GetVatNumberStatusAsync(model.VatNumber);
-                customer.VatNumberStatusId = (int)vatCheckResult.Status;
-
-                // Send VAT number admin notification.
-                if (model.VatNumber.HasValue() && _taxSettings.EuVatEmailAdminWhenNewVatSubmitted)
-                {
-                    await _messageFactory.SendNewVatSubmittedStoreOwnerNotificationAsync(customer, model.VatNumber, vatCheckResult.Address, _localizationSettings.DefaultAdminLanguageId);
-                }
-            }
-
-            // Form fields
-            customer.FirstName = model.FirstName;
-            customer.LastName = model.LastName;
-
-            if (_customerSettings.CompanyEnabled)
-            {
-                customer.Company = model.Company;
-            }
-
-            if (_customerSettings.DateOfBirthEnabled && model.DateOfBirth.HasValue)
-            {
-                customer.BirthDate = model.DateOfBirth;
-            }
-
-            if (_customerSettings.CustomerNumberMethod == CustomerNumberMethod.AutomaticallySet && customer.CustomerNumber.IsEmpty())
-            {
-                customer.CustomerNumber = customer.Id.Convert<string>();
-            }
-            if (_customerSettings.GenderEnabled)
-            {
-                customer.Gender = model.Gender;
-            }
-            if (_customerSettings.ZipPostalCodeEnabled)
-            {
-                customer.GenericAttributes.ZipPostalCode = model.ZipPostalCode;
-            }
-            if (_customerSettings.CountryEnabled)
-            {
-                customer.GenericAttributes.CountryId = model.CountryId;
-            }
-            if (_customerSettings.StreetAddressEnabled)
-            {
-                customer.GenericAttributes.StreetAddress = model.StreetAddress;
-            }
-            if (_customerSettings.StreetAddress2Enabled)
-            {
-                customer.GenericAttributes.StreetAddress2 = model.StreetAddress2;
-            }
-            if (_customerSettings.CityEnabled)
-            {
-                customer.GenericAttributes.City = model.City;
-            }
-            if (_customerSettings.CountryEnabled && _customerSettings.StateProvinceEnabled)
-            {
-                customer.GenericAttributes.StateProvinceId = model.StateProvinceId;
-            }
+            // Map phone number if enabled
             if (_customerSettings.PhoneEnabled)
             {
-                customer.GenericAttributes.Phone = model.Phone;
-            }
-            if (_customerSettings.FaxEnabled)
-            {
-                customer.GenericAttributes.Fax = model.Fax;
+                customer.GenericAttributes.Phone = model.Phone?.Trim();
             }
 
-            // Newsletter subscription
-            if (_customerSettings.NewsletterEnabled && model.Newsletter)
-            {
-                var subscription = await _db.NewsletterSubscriptions
-                    .ApplyMailAddressFilter(customer.Email, Services.StoreContext.CurrentStore.Id)
-                    .FirstOrDefaultAsync();
-
-                if (subscription != null)
-                {
-                    subscription.Active = true;
-                }
-                else
-                {
-                    subscription = new NewsletterSubscription
-                    {
-                        NewsletterSubscriptionGuid = Guid.NewGuid(),
-                        Email = customer.Email,
-                        Active = true,
-                        CreatedOnUtc = DateTime.UtcNow,
-                        StoreId = Services.StoreContext.CurrentStore.Id,
-                        WorkingLanguageId = Services.WorkContext.WorkingLanguage.Id
-                    };
-
-                    _db.NewsletterSubscriptions.Add(subscription);
-                }
-
-                await _db.SaveChangesAsync();
-            }
-
-            // Insert default address (if possible).
+            // Try to build a default address from available data
             var defaultAddress = new Address
             {
                 Title = customer.Title,
@@ -951,27 +794,35 @@ namespace Smartstore.Web.Controllers
                 LastName = customer.LastName,
                 Email = customer.Email,
                 Company = customer.Company,
+
                 CountryId = customer.GenericAttributes.CountryId,
-                ZipPostalCode = customer.GenericAttributes.ZipPostalCode,
                 StateProvinceId = customer.GenericAttributes.StateProvinceId,
                 City = customer.GenericAttributes.City,
+                ZipPostalCode = customer.GenericAttributes.ZipPostalCode,
+
                 Address1 = customer.GenericAttributes.StreetAddress,
                 Address2 = customer.GenericAttributes.StreetAddress2,
+
                 PhoneNumber = customer.GenericAttributes.Phone,
                 FaxNumber = customer.GenericAttributes.Fax,
-                CreatedOnUtc = customer.CreatedOnUtc
+
+                CreatedOnUtc = DateTime.UtcNow
             };
 
+            // Validate the address before saving
             if (await _addressService.IsAddressValidAsync(defaultAddress))
             {
-                // Set default addresses.
+                // Add to addresses list
                 customer.Addresses.Add(defaultAddress);
+
+                // Set as default billing and shipping addresses
                 customer.BillingAddress = defaultAddress;
                 customer.ShippingAddress = defaultAddress;
-            }
 
-            _db.TryUpdate(customer);
-            await _db.SaveChangesAsync();
+                // Persist changes
+                _db.TryUpdate(customer);
+                await _db.SaveChangesAsync();
+            }
         }
 
         private async Task AssignCustomerRolesAsync(Customer customer)

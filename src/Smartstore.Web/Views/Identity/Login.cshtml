@@ -28,66 +28,27 @@
 
         <!-- SignIn Form -->
         <form asp-route="Login" asp-route-returnurl="@returnUrl" method="post" autocomplete="off">
-            <input asp-for="CustomerLoginType" type="hidden" />
-            @if (Model.CustomerLoginType == CustomerLoginType.Username)
-            {
-                <div class="form-floating mb-3">
-                    <input asp-for="Username" class="username" autofocus="autofocus" autocomplete="username" placeholder="@Html.DisplayNameFor(x => x.Username)" />
-                    <label asp-for="Username"></label>
-                    <span asp-validation-for="Username"></span>
-                </div>
-            }
-            else if (Model.CustomerLoginType == CustomerLoginType.Email)
-            {
-                <div class="form-floating mb-3">
-                    <input asp-for="Email" class="email" autofocus="autofocus" autocomplete="email" placeholder="@Html.DisplayNameFor(x => x.Email)" />
-                    <label asp-for="Email"></label>
-                    <span asp-validation-for="Email"></span>
-                </div>
-            }
-            else
-            {
-                <div class="form-floating mb-3">
-                    <input asp-for="UsernameOrEmail" class="username" autofocus="autofocus" autocomplete="email username" placeholder="@Html.DisplayNameFor(x => x.UsernameOrEmail)" />
-                    <label asp-for="UsernameOrEmail"></label>
-                    <span asp-validation-for="UsernameOrEmail"></span>
-                </div>
-            }
-
+            <!-- Phone Number Field -->
             <div class="form-floating mb-3">
-                <input asp-for="Password" sm-enable-visibility-toggle="false" class="password" autocomplete="current-password" placeholder="@Html.DisplayNameFor(x => x.Password)" />
-                <button type="button" class="btn-toggle-pwd">
-                    <i class="far fa-fw fa-eye-slash"></i>
-                </button>
-                <label asp-for="Password"></label>
-                <span asp-validation-for="Password"></span>
+                <input asp-for="PhoneNumber" class="form-control" autofocus="autofocus" autocomplete="tel" placeholder="@Html.DisplayNameFor(x => x.PhoneNumber)" />
+                <label asp-for="PhoneNumber"></label>
+                <span asp-validation-for="PhoneNumber"></span>
             </div>
 
-            <div class="form-group d-flex justify-content-between">
+            <!-- Remember Me (optional, can be removed too if not needed) -->
+            <div class="form-group d-flex justify-content-between align-items-center">
                 <input asp-for="RememberMe" sm-switch="false" />
                 <div class="forgot-password">
                     <a asp-route="PasswordRecovery" rel="nofollow">@T("Account.Login.ForgotPassword")</a>
                 </div>
             </div>
 
-            <captcha sm-enabled="Model.DisplayCaptcha" class="form-group" />
-
+            <!-- Submit Button -->
             <div class="form-group">
                 <button type="submit" class="btn btn-primary btn-lg btn-block btn-login btn-prevent-multiclick">
                     @T("Account.Login.LoginButton")
                 </button>
             </div>
-
-            <div sm-suppress-if-empty-zone="external_auth_buttons" class="form-group external-auth-buttons mb-0">
-                <div class="text-center text-uppercase mb-2">
-                    - @T("Common.Or") -
-                </div>
-                <div class="vstack gap-2">
-                    <zone name="external_auth_buttons" />
-                </div>
-            </div>
-
-            <zone name="after_login_buttons" />
         </form>
     }
 
