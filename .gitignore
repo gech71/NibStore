@@ -209,6 +209,7 @@ Kopie von*
 build/artifacts
 build/packages
 src/Smartstore.Web/Modules/*
+src/Smartstore.Web/App_Data/Tenants/Default*
 !src/Smartstore.Web/App_Data/*
 !src/Smartstore.Web/App_Data/EmailTemplates/*
 !src/Smartstore.Web/App_Data/Geo/*

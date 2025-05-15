@@ -15,6 +15,16 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.Read)]
         public async Task<IActionResult> ProductList(GridCommand command, ProductListModel model)
         {
+            var currentUser = _workContext.CurrentCustomer;
+            var merchantRoleId = await _db.CustomerRoles
+                .Where(r => r.SystemName == "Merchant")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            bool isMerchant = merchantRoleId != 0 &&
+                await _db.CustomerRoleMappings
+                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+
             var searchQuery = CreateSearchQuery(command, model, _searchSettings.UseCatalogSearchInBackend);
             IPagedList<Product> products;
 
@@ -26,9 +36,28 @@ namespace Smartstore.Admin.Controllers
             else
             {
                 var query = _catalogSearchService.Value
-                    .PrepareQuery(searchQuery)
-                    .ApplyGridCommand(command, false);
+                    .PrepareQuery(searchQuery);
 
+                if (isMerchant)
+                {
+                    var merchantProductIds = await _db.GenericAttributes
+                        .Where(a => a.KeyGroup == "Product" &&
+                                    a.Key == "CreatedByUserId" &&
+                                    a.Value == currentUser.Id.ToString())
+                        .Select(a => a.EntityId)
+                        .ToListAsync();
+
+                    if (!merchantProductIds.Any())
+                    {
+                        query = query.Where(p => false);
+                    }
+                    else
+                    {
+                        query = query.Where(p => merchantProductIds.Contains(p.Id));
+                    }
+                }
+
+                query = query.ApplyGridCommand(command, false);
                 products = await query.ToPagedList(command).LoadAsync();
             }
 
@@ -144,7 +173,7 @@ namespace Smartstore.Admin.Controllers
                 await _db.SaveChangesAsync();
 
                 Services.ActivityLogger.LogActivity(
-                    KnownActivityLogTypes.DeleteProduct, 
+                    KnownActivityLogTypes.DeleteProduct,
                     T("ActivityLog.DeleteProduct"),
                     string.Join(", ", entities.Select(x => x.Name)));
             }
