@@ -155,7 +155,7 @@ namespace Smartstore.Web.Controllers
             // Prepare the view model
             var model = await _helper.MapProductDetailsPageModelAsync(product, query);
             model.MetaProperties = await model.MapMetaPropertiesAsync();
-
+            
             // Save as recently viewed
             _recentlyViewedProductsService.AddProductToRecentlyViewedList(product.Id);
 
@@ -526,6 +526,8 @@ namespace Smartstore.Web.Controllers
         [GdprConsent]
         public async Task<IActionResult> Reviews(int id)
         {
+           
+
             // INFO: Entitity is being loaded tracked because else navigation properties can't be loaded in PrepareProductReviewsModelAsync.
             var product = await _db.Products
                 .IncludeReviews()

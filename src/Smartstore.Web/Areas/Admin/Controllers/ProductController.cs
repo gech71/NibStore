@@ -181,8 +181,13 @@ namespace Smartstore.Admin.Controllers
 
         [Permission(Permissions.Catalog.Product.Create)]
         public async Task<IActionResult> Create()
-        {
+        { 
             var model = new ProductModel();
+            model.AllowCustomerReviews = true;
+            model.ShowOnHomePage = true;
+            model.Visibility = ProductVisibility.Full;
+            model.DisableBuyButton = false;
+            model.DisableWishlistButton= false;
             await PrepareProductModelAsync(model, null, true, true);
             AddLocales(model.Locales);
 
@@ -220,6 +225,7 @@ namespace Smartstore.Admin.Controllers
                 product.AllowCustomerReviews = true;
                 product.Published = true;
                 product.MaximumCustomerEnteredPrice = 1000;
+               
 
                 if (product.ProductType == ProductType.BundledProduct)
                 {
