@@ -149,8 +149,22 @@ namespace Smartstore.Web.Controllers
             }
 
             // INFO: update email and username requires SaveChangesAttribute to be set to 'false'.
-            var newEmail = model.Email.TrimSafe();
+            
+            var phone = model.Phone?.Trim();
+
+            // Generate fallback email
+            // Extract only digits from the phone number
+            var digits = new string(phone?.Where(char.IsDigit).ToArray());
+
+            // Take last 9 digits, or less if not available
+            var shortPhone = digits.Length >= 9 ? digits[^9..] : digits;
+
+            var fallbackEmail = $"user_{shortPhone}@local.app";
+            
+            var newEmail = fallbackEmail;
             var newUsername = model.Username.TrimSafe();
+            
+            Console.WriteLine($"New email: {newEmail}");
 
             // Email.
             if (ModelState.IsValid && !newEmail.Equals(customer.Email, StringComparison.InvariantCultureIgnoreCase))

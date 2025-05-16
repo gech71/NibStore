@@ -171,10 +171,16 @@ namespace Smartstore.Web.Models.Customers
                     .NotEqual(0)
                     .WithMessage(T("Address.Fields.StateProvince.Required"));
             }
-            if (customerSettings.PhoneRequired && customerSettings.PhoneEnabled)
-            {
-                RuleFor(x => x.Phone).NotEmpty();
-            }
+            RuleFor(x => x.Username)
+                .NotEmpty().WithMessage("Username is required.")
+                .MinimumLength(5).WithMessage("Username must be at least 5 characters long.")
+                .Matches(@"^[A-Za-z][A-Za-z0-9_]*$")
+                .WithMessage("Username must start with a letter and can only contain letters, numbers, and underscores.");
+
+            RuleFor(x => x.Phone)
+                .NotEmpty().WithMessage("Phone number is required.")
+                .Matches(@"^(?:\+251|0)(?:9|7)\d{8}$")
+                .WithMessage("Invalid phone number format.");
             if (customerSettings.FaxRequired && customerSettings.FaxEnabled)
             {
                 RuleFor(x => x.Fax).NotEmpty();
