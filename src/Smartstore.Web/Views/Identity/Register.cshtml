@@ -50,6 +50,24 @@
                             <span asp-validation-for="Phone"></span>
                         </div>
                     </div>
+  <!--tade  -->
+     <!-- Send OTP Button -->
+                    <div class="form-group row">
+                        <div class="col-md-9 offset-md-3">
+                            <button type="button" class="btn btn-outline-secondary" onclick="sendOtp()">Get OTP</button>
+                            <span id="otp-message" class="text-success"></span>
+                        </div>
+                    </div>
+
+                    <!-- OTP Input -->
+                    <div id="otp-section" class="form-group row d-none">
+                          <label class="col-md-3 col-form-label required" for="OtpCode">OTP</label>
+                    <div class="col-md-9">
+                          <input type="text" id="OtpCode" name="OtpCode" class="form-control" placeholder="Enter OTP" required />
+                    <span class="text-danger field-validation-valid" data-valmsg-for="OtpCode" data-valmsg-replace="true"></span>
+                    </div>
+                    </div>
+
                 </fieldset>
 
                 <div class="form-group row">
@@ -71,6 +89,7 @@
 </form>
 
 
+   
 <script sm-target-zone="scripts" data-origin="register">
     $(function () {
         restoreRememberedFormFields("registerVals");
@@ -86,3 +105,70 @@
     });
 </script>
 
+   @section scripts {
+    
+   <script src="/lib/jquery/jquery-3.7.1.js"></script>
+
+   
+
+    <!-- Load jQuery plugin AFTER jQuery -->
+    <script src="/lib/jquery-plugins/megaMenu.js"></script>
+
+    <script>
+    let countdownTimer;
+    const cooldownSeconds = 60; // cooldown duration in seconds
+
+    function sendOtp() {
+        const phoneInput = document.querySelector('[name="Phone"]');
+        const phone = phoneInput.value.trim();
+        const btn = event.target; // the clicked button (Get OTP)
+
+        if (!phone) {
+            alert("Please enter your phone number first.");
+            return;
+        }
+
+        // Disable button and start countdown
+        btn.disabled = true;
+        let remaining = cooldownSeconds;
+        btn.innerText = `Wait ${remaining}s`;
+
+        countdownTimer = setInterval(() => {
+            remaining--;
+            if (remaining > 0) {
+                btn.innerText = `Wait ${remaining}s`;
+            } else {
+                clearInterval(countdownTimer);
+                btn.disabled = false;
+                btn.innerText = "Get OTP";
+            }
+        }, 1000);
+
+        fetch('/otp/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'phoneNumber=' + encodeURIComponent(phone)
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('otp-message').innerText = `${data.message} Your OTP is: ${data.otp}`;
+
+            // Show OTP input field
+            const otpSection = document.getElementById('otp-section');
+            otpSection.classList.remove('d-none');
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Failed to send OTP.');
+
+            // On failure, stop countdown and re-enable button immediately
+            clearInterval(countdownTimer);
+            btn.disabled = false;
+            btn.innerText = "Get OTP";
+        });
+    }
+</script>
+
+}

@@ -36,6 +36,7 @@ using Serilog.Events;
 using Serilog.Extensions.Logging;
 using Serilog.Filters;
 using Smartstore;
+using Smartstore.Services.Otp;
 using Smartstore.Core.Data.Migrations;
 using Smartstore.Core.Logging.Serilog;
 using Smartstore.Core.Platform.Identity.Services;
@@ -77,6 +78,11 @@ var engineStarter = engine.Start(appContext);
 
 // Add services to the container.
 builder.Services.AddScoped<IUserPhoneStore, UserPhoneStore>();
+// ✅ Register your OTP service here
+builder.Services.AddSingleton<IOtpService, OtpService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddControllers();    // Required for MVC controllers
+builder.Services.AddSession(); 
 
 // Configure RequestSizeLimit and RequestFormLimits
 if (appContext.AppConfiguration.MaxRequestBodySize != null)
@@ -103,6 +109,14 @@ builder.Host.ConfigureContainer<ContainerBuilder>(engineStarter.ConfigureContain
 
 // Build the application
 var app = builder.Build();
+//tade
+app.UseSession();         // ✅ Add this line to enable session support
+app.UseRouting();         // ✅ Required for routing
+
+
+//tade
+// ...your existing logic
+
 
 // At this stage we can access IServiceProvider.
 var providerContainer = appContext as IServiceProviderContainer;

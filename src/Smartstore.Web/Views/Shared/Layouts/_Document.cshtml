@@ -38,6 +38,8 @@
 <body class="lyt-cols-1">
     <zone name="start" />
     @RenderBody()
+     
+    
     <zone name="aftercontent" />@* Not available via widgetzones.json. Name colides with content_after and it's unnecassary there.*@
 
     <zone name="scripts">
@@ -46,5 +48,6 @@
         <script src="~/lib/moment/locale/{lang}.js" sm-locale-for="WorkContext.WorkingLanguage"></script>
     </zone>
     <zone name="end" />
+    
 </body>
 </html>

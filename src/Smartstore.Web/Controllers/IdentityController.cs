@@ -20,6 +20,7 @@ using Smartstore.Engine.Modularity;
 using Smartstore.Web.Models.Customers;
 using Smartstore.Web.Models.Identity;
 using Smartstore.Web.Rendering;
+using Smartstore.Services.Otp;
 
 namespace Smartstore.Web.Controllers
 {
@@ -44,7 +45,7 @@ namespace Smartstore.Web.Controllers
         private readonly ExternalAuthenticationSettings _externalAuthenticationSettings;
         private readonly RewardPointsSettings _rewardPointsSettings;
         private  readonly IUserPhoneStore _userPhoneStore;
-
+         private readonly IOtpService _otpService;
         public IdentityController(
             SmartDbContext db,
             UserManager<Customer> userManager,
@@ -64,7 +65,8 @@ namespace Smartstore.Web.Controllers
             LocalizationSettings localizationSettings,
             ExternalAuthenticationSettings externalAuthenticationSettings,
             RewardPointsSettings rewardPointsSettings,
-            IUserPhoneStore userPhoneStore)
+            IUserPhoneStore userPhoneStore,
+            IOtpService otpService)
         {
             _db = db;
             _userManager = userManager;
@@ -85,6 +87,7 @@ namespace Smartstore.Web.Controllers
             _externalAuthenticationSettings = externalAuthenticationSettings;
             _rewardPointsSettings = rewardPointsSettings;
             _userPhoneStore = userPhoneStore;
+               _otpService = otpService;
         }
 
         #region Login / Logout / Register
@@ -111,39 +114,52 @@ namespace Smartstore.Web.Controllers
         [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnLoginPage))]
         [ValidateAntiForgeryToken, CheckStoreClosed(false)]
         [LocalizedRoute("/login", Name = "Login")]
-        public async Task<IActionResult> Login(LoginModel model, string returnUrl, string captchaError)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-            var phoneNumber = model.PhoneNumber?.Trim();
+       public async Task<IActionResult> Login(LoginModel model, string returnUrl, string captchaError)
+{
+    ViewBag.ReturnUrl = returnUrl; // ✅ Preserve returnUrl for redisplaying the form if login fails
 
-            var customer = await _userPhoneStore.FindByPhoneNumberAsync(phoneNumber, CancellationToken.None);
+    if (!ModelState.IsValid)
+    {
+        return View(model);
+    }
 
-            if (customer == null)
-            {
-                ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
-                return View(model);
-            }
+    var phoneNumber = model.PhoneNumber?.Trim();
 
-            await _signInManager.SignInAsync(customer, model.RememberMe);
+    var customer = await _userPhoneStore.FindByPhoneNumberAsync(phoneNumber, CancellationToken.None);
 
-            await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
-            await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
-      
-            if (string.IsNullOrEmpty(returnUrl) ||
-                returnUrl == "/" ||
-                returnUrl.Contains("/passwordrecovery", StringComparison.OrdinalIgnoreCase) ||
-                returnUrl.Contains("/activation", StringComparison.OrdinalIgnoreCase) ||
-                !Url.IsLocalUrl(returnUrl))
-            {
-                return RedirectToRoute("Homepage");
-            }
+    if (customer == null)
+    {
+        ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
+        return View(model);
+    }
+    //tade
+    // ✅ Validate OTP
+    if (!_otpService.ValidateOtp(phoneNumber, model.OtpCode))
+    {
+        ModelState.AddModelError(string.Empty, "Invalid OTP.");
+        return View(model);
+    }
 
-            return Redirect(returnUrl);
-        }
+    await _signInManager.SignInAsync(customer, model.RememberMe);
+
+    await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
+    await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
+    Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
+
+    // ✅ Return to original URL or fallback to homepage
+    if (string.IsNullOrEmpty(returnUrl) ||
+        returnUrl == "/" ||
+        returnUrl.Contains("/passwordrecovery", StringComparison.OrdinalIgnoreCase) ||
+        returnUrl.Contains("/activation", StringComparison.OrdinalIgnoreCase) ||
+        !Url.IsLocalUrl(returnUrl))
+    {
+        return RedirectToRoute("Homepage");
+    }
+
+ return Redirect(returnUrl);
+
+}
+
 
         [NeverAuthorize, CheckStoreClosed(false)]
         [DisallowRobot(true)]
@@ -158,9 +174,9 @@ namespace Smartstore.Web.Controllers
                 // Logout impersonated customer.
                 workContext.CurrentImpersonator.GenericAttributes.ImpersonatedCustomerId = null;
                 await db.SaveChangesAsync();
-
+                   
                 // Redirect back to customer details page (admin area).
-                return RedirectToAction("Edit", "Customer", new { id = workContext.CurrentCustomer.Id, area = "Admin" });
+                 return RedirectToAction("Edit", "Customer", new { id = workContext.CurrentCustomer.Id, area = "Admin" });
             }
             else
             {
@@ -172,6 +188,7 @@ namespace Smartstore.Web.Controllers
 
                 return RedirectToRoute("Homepage");
             }
+            
         }
 
         [HttpGet]
@@ -225,6 +242,15 @@ namespace Smartstore.Web.Controllers
                 return View(model);
             }
 
+            //tade
+                 // ✅ OTP Validation block added here
+            if (!_otpService.ValidateOtp(model.Phone, model.OtpCode))
+         {
+         ModelState.AddModelError(nameof(model.OtpCode), "Invalid or expired OTP.");
+        await PrepareRegisterModelAsync(model);
+        return View(model);
+                      }
+    
             var succeeded = false;
             var phone = model.Phone?.Trim();
             var username = model.Username?.Trim();

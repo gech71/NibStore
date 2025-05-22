@@ -18,10 +18,15 @@ namespace Smartstore.Web.Models.Identity
         [LocalizedDisplay("*Phone")]
         [DataType(DataType.PhoneNumber)]
         public string Phone { get; set; }
-        
+
         [LocalizedDisplay("*Email")]
         [DataType(DataType.EmailAddress)]
         public string Email { get; set; }
+
+        //tade
+         [Required]
+    public string OtpCode { get; set; }
+
     }
 
     public class RegisterModelValidator : SmartValidator<RegisterModel>
