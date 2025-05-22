@@ -1,3 +1,0 @@
-AppVersion: 6.1.0.0
-DataProvider: PostgreSql
-DataConnectionString: Host=localhost;Database=smartstoredb;Username=smartuser;Password=P@$$W0RD;Pooling=True;Minimum Pool Size=1;Maximum Pool Size=1024;Multiplexing=False
