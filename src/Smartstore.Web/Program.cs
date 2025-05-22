@@ -77,6 +77,11 @@ var engineStarter = engine.Start(appContext);
 
 // Add services to the container.
 builder.Services.AddScoped<IUserPhoneStore, UserPhoneStore>();
+builder.Services.AddSingleton<IOtpService, OtpService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddControllers();    // Required for MVC controllers
+builder.Services.AddSession(); 
+
 
 // Configure RequestSizeLimit and RequestFormLimits
 if (appContext.AppConfiguration.MaxRequestBodySize != null)
@@ -103,6 +108,10 @@ builder.Host.ConfigureContainer<ContainerBuilder>(engineStarter.ConfigureContain
 
 // Build the application
 var app = builder.Build();
+
+//tade
+app.UseSession();         // ✅ Add this line to enable session support
+app.UseRouting();   
 
 // At this stage we can access IServiceProvider.
 var providerContainer = appContext as IServiceProviderContainer;

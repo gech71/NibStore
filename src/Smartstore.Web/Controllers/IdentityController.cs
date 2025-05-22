@@ -126,6 +126,13 @@ namespace Smartstore.Web.Controllers
                 ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
                 return View(model);
             }
+            //tade
+            // ✅ Validate OTP
+            if (!_otpService.ValidateOtp(phoneNumber, model.OtpCode))
+            {
+                ModelState.AddModelError(string.Empty, "Invalid OTP.");
+                return View(model);
+            }
 
             await _signInManager.SignInAsync(customer, model.RememberMe);
 
@@ -221,6 +228,14 @@ namespace Smartstore.Web.Controllers
 
             if (!ModelState.IsValid)
             {
+                await PrepareRegisterModelAsync(model);
+                return View(model);
+            }
+            //tade
+                 // ✅ OTP Validation block added here
+            if (!_otpService.ValidateOtp(model.Phone, model.OtpCode))
+            {
+                ModelState.AddModelError(nameof(model.OtpCode), "Invalid or expired OTP.");
                 await PrepareRegisterModelAsync(model);
                 return View(model);
             }
