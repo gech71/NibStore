@@ -1,70 +1,209 @@
-﻿@using Smartstore.Admin.Models.Orders
+@using Smartstore.Admin.Models.Orders
 @using Smartstore.Core.Checkout.Orders
+@using Smartstore.Core.Localization
 
 @model DashboardLatestOrdersModel
+@inject Localizer Localizer
+
+@{
+    // Group orders by status
+    var completedOrders = Model.LatestOrders.Where(x => x.OrderState == OrderStatus.Complete).ToList();
+    var pendingOrders = Model.LatestOrders.Where(x => x.OrderState == OrderStatus.Pending).ToList();
+    var processingOrders = Model.LatestOrders.Where(x => x.OrderState == OrderStatus.Processing).ToList();
+    var otherOrders = Model.LatestOrders.Except(completedOrders).Except(pendingOrders).Except(processingOrders).ToList();
+
+    string GetStatusIcon(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Complete => "fa-check-circle",
+            OrderStatus.Processing => "fa-cog fa-spin",
+            OrderStatus.Pending => "fa-clock",
+            _ => "fa-question-circle"
+        };
+    }
+
+    string GetStatusClass(OrderStatus status)
+    {
+        return status switch
+        {
+            OrderStatus.Complete => "primary",
+            OrderStatus.Processing => "success",
+            OrderStatus.Pending => "warning",
+            _ => "secondary"
+        };
+    }
+}
 
 <div class="report">
     <div class="report-title-row">
         <div class="report-title">@T("Admin.SalesReport.LatestOrders")</div>
     </div>
-    <div class="table-responsive table-dashboard table-hover table-prevent-overflow">
-        <table class="table small">
-            <thead>
-                <tr>
-                    <th class="display-row" style="width: 10%">#</th>
-                    <th class="display-row" style="width: 15%">@T("Account.CustomerOrders.OrderStatus")</th>
-                    <th class="display-row text-center px-3 d-none d-sm-table-cell" style="width: 10%">@T("Admin.Catalog.Categories.Products")</th>
-                    <th class="display-row text-right" style="width: 15%; padding-right: 2rem">@T("Common.Amount")</th>
-                    <th class="display-row d-none d-sm-table-cell" style="width: 20%;">@T("Account.CustomerOrders.OrderDate")</th>
-                    <th class="display-row" style="width: 25%">@T("Admin.Customers.Reports.BestBy.Fields.Customer")</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var x in Model.LatestOrders)
-                {
-                    <tr class="order-row" index="@x.OrderId">
-                        <td class="display-row" title="@x.OrderId">
-                            <a asp-action="Edit" asp-controller="Order" asp-route-id="@x.OrderId">@x.OrderNumber</a>
-                        </td>
-                        @if (x.OrderState == OrderStatus.Pending)
-                        {
-                            <td class="display-row d-flex align-items-center" title="@T("Enums.OrderStatus.Pending")">
-                                <div class="bg-warning indicator"></div>
-                                <a asp-action="Edit" asp-controller="Order" asp-route-id="@x.OrderId" class="pl-2 text-truncate">@T("Enums.OrderStatus.Pending")</a>
-                            </td>
-                        }
-                        else if (x.OrderState == OrderStatus.Processing)
-                        {
-                            <td class="display-row d-flex align-items-center" title="@T("Enums.OrderStatus.Processing")">
-                                <div class="bg-success indicator"></div>
-                                <a asp-action="Edit" asp-controller="Order" asp-route-id="@x.OrderId" class="pl-2 text-truncate">@T("Enums.OrderStatus.Processing")</a>
-                            </td>
-                        }
-                        else if (x.OrderState == OrderStatus.Complete)
-                        {
-                            <td class="display-row d-flex align-items-center" title="@T("Enums.OrderStatus.Complete")">
-                                <div class="bg-primary indicator"></div>
-                                <a asp-action="Edit" asp-controller="Order" asp-route-id="@x.OrderId" class="pl-2 text-truncate">@T("Enums.OrderStatus.Complete")</a>
-                            </td>
-                        }
-                        else if (x.OrderState == OrderStatus.Cancelled)
-                        {
-                            <td class="display-row d-flex align-items-center" title="@T("Enums.OrderStatus.Cancelled")">
-                                <div class="bg-danger indicator"></div>
-                                <a asp-action="Edit" asp-controller="Order" asp-route-id="@x.OrderId" class="pl-2 text-truncate">@T("Enums.OrderStatus.Cancelled")</a>
-                            </td>
-                        }
-
-                        <td class="display-row text-center d-none d-sm-table-cell" title="@x.ProductsTotal">@x.ProductsTotal</td>
-                        <td class="display-row text-right" style="padding-right: 2rem" title="@x.TotalAmount @T("Tax.InclVAT")">@x.TotalAmount</td>
-                        <td class="display-row d-none d-sm-table-cell" title="@x.Created">@x.Created</td>
-
-                        <td class="display-row" title="@x.CustomerDisplayName">
-                            <a asp-action="Edit" asp-controller="Customer" asp-route-id="@x.CustomerId">@x.CustomerDisplayName</a>
-                        </td>
-                    </tr>
+    
+    @* Completed Orders *@
+    @if (completedOrders.Any())
+    {
+        var completedId = "completedOrders";
+        <div class="order-section">
+            <h5 class="text-@GetStatusClass(OrderStatus.Complete)" data-bs-toggle="collapse" data-bs-target="#@completedId" aria-expanded="true" aria-controls="@completedId">
+                <i class="fa @GetStatusIcon(OrderStatus.Complete)"></i>
+                <span>@Localizer("Enums.OrderStatus.Complete") @T("Admin.Orders")</span>
+                <span class="badge badge-@GetStatusClass(OrderStatus.Complete)">@completedOrders.Count</span>
+                <i class="fa fa-chevron-down float-end mt-1 toggle-icon"></i>
+            </h5>
+            <div id="@completedId" class="collapse show">
+                <div class="collapse-content">
+                    @await Html.PartialAsync("~/Areas/Admin/Views/Shared/Components/DashboardLatestOrders/_OrderSectionTable.cshtml", completedOrders)
+                </div>
+            </div>
+        </div>
+    }
+    
+    @* Processing Orders *@
+    @if (processingOrders.Any())
+    {
+        var processingId = "processingOrders";
+        <div class="order-section">
+            <h5 class="text-@GetStatusClass(OrderStatus.Processing)" data-bs-toggle="collapse" data-bs-target="#@processingId" aria-expanded="false" aria-controls="@processingId">
+                <i class="fa @GetStatusIcon(OrderStatus.Processing)"></i>
+                <span>@Localizer("Enums.OrderStatus.Processing") @T("Admin.Orders")</span>
+                <span class="badge badge-@GetStatusClass(OrderStatus.Processing)">@processingOrders.Count</span>
+                <i class="fa fa-chevron-down float-end mt-1 toggle-icon"></i>
+                
+            </h5>
+            <div id="@processingId" class="collapse">
+                <div class="collapse-content">
+                    @await Html.PartialAsync("~/Areas/Admin/Views/Shared/Components/DashboardLatestOrders/_OrderSectionTable.cshtml", processingOrders)
+                </div>
+            </div>
+        </div>
+    }
+    
+    @* Pending Orders *@
+    @if (pendingOrders.Any())
+    {
+        var pendingId = "pendingOrders";
+        <div class="order-section">
+            <h5 class="text-@GetStatusClass(OrderStatus.Pending)" data-bs-toggle="collapse" data-bs-target="#@pendingId" aria-expanded="false" aria-controls="@pendingId">
+                <i class="fa @GetStatusIcon(OrderStatus.Pending)"></i>
+                <span>@Localizer("Enums.OrderStatus.Pending") @T("Admin.Orders")</span>
+                <span class="badge badge-@GetStatusClass(OrderStatus.Pending)">@pendingOrders.Count</span>
+                <i class="fa fa-chevron-down float-end mt-1 toggle-icon"></i>
+            </h5>
+            <div id="@pendingId" class="collapse">
+                <div class="collapse-content">
+                    @await Html.PartialAsync("~/Areas/Admin/Views/Shared/Components/DashboardLatestOrders/_OrderSectionTable.cshtml", pendingOrders)
+                </div>
+            </div>
+        </div>
+    }
+    
+    @* Other Statuses *@
+    @if (otherOrders.Any())
+    {
+        var otherId = "otherOrders";
+        <div class="order-section">
+            <h5 class="text-secondary" data-bs-toggle="collapse" data-bs-target="#@otherId" aria-expanded="false" aria-controls="@otherId">
+                <i class="fa fa-question-circle"></i>
+                <span>@Localizer("Admin.Orders.OtherStatuses")</span>
+                <span class="badge bg-secondary">@otherOrders.Count</span>
+                <i class="fa fa-chevron-down float-end mt-1 toggle-icon"></i>
+            </h5>
+            <div id="@otherId" class="collapse">
+                <div class="collapse-content">
+                    @await Html.PartialAsync("~/Areas/Admin/Views/Shared/Components/DashboardLatestOrders/_OrderSectionTable.cshtml", otherOrders)
+                </div>
+            </div>
+        </div>
+    }
+    
+    @* Add JavaScript for collapsible sections *@
+    <script sm-target-zone="scripts" data-origin="dashboard-collapse">
+        $(function() {
+            // Initialize toggle icons for all sections
+            $('.collapse').each(function() {
+                var $collapse = $(this);
+                var $header = $('[data-bs-target="#' + $collapse.attr('id') + '"]');
+                var $icon = $header.find('.toggle-icon');
+                
+                // Set initial icon based on collapse state
+                if ($collapse.hasClass('show')) {
+                    $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                } else {
+                    $icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
                 }
-            </tbody>
-        </table>
-    </div>
+                
+                // Handle collapse events
+                $collapse.on('show.bs.collapse', function() {
+                    $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                }).on('hide.bs.collapse', function() {
+                    $icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                });
+            });
+            
+            // Handle click on headers
+            $('h5[data-bs-toggle="collapse"]').on('click', function(e) {
+                e.preventDefault();
+                var $header = $(this);
+                var $target = $($header.data('bs-target'));
+                $target.collapse('toggle');
+            });
+        });
+    </script>
+    
+    <style>
+        .order-section {
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
+        }
+        
+        h5[data-bs-toggle="collapse"] {
+            padding: 0.75rem 1.5rem;
+            margin: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            user-select: none;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+            position: relative;
+            padding-right: 2.5rem; /* Add space for the chevron */
+        }
+        
+        h5[data-bs-toggle="collapse"]:hover {
+            background-color: #f1f3f5;
+        }
+        
+        h5[data-bs-toggle="collapse"] .badge {
+            margin-left: auto;
+            margin-right: 2rem; /* Add space between badge and chevron */
+            font-size: 0.85em;
+            padding: 0.35em 0.65em;
+        }
+        
+        .collapse-content {
+            background: #fff;
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .fa {
+            width: 1.25em;
+            text-align: center;
+        }
+        
+        .toggle-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-top: 0;
+            transition: transform 0.2s ease;
+            color: #6c757d; /* Restore chevron color */
+        }
+    </style>
 </div>

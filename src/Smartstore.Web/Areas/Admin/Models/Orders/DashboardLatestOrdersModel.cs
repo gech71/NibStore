@@ -1,4 +1,4 @@
-﻿using Smartstore.Core.Checkout.Orders;
+using Smartstore.Core.Checkout.Orders;
 
 namespace Smartstore.Admin.Models.Orders
 {
@@ -13,6 +13,7 @@ namespace Smartstore.Admin.Models.Orders
         public string CustomerDisplayName { get; set; }
         public string OrderNumber { get; set; }
         public int ProductsTotal { get; set; }
+        public List<string> ProductNames { get; set; } = new();
         public Money TotalAmount { get; set; }
         public string Created { get; set; }
         public OrderStatus OrderState { get; set; }

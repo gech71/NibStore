@@ -1,4 +1,4 @@
-﻿@model OrderOverviewModel
+@model OrderOverviewModel
 
 @{
     var parentModel = ViewData["Parent"] as OrderListModel;
@@ -96,6 +96,15 @@
                 <div class="dg-cell-value">
                     <div class="text-truncate">{{ item.row.CreatedOnString }}</div>
                     <div class="text-muted text-truncate">{{ item.row.FromStore }}</div>
+                </div>
+            </display-template>
+        </column>
+        <column for="PaymentStatus" entity-member="PaymentStatusId" title="@T("Admin.Orders.Fields.PaymentStatus")">
+            <display-template>
+                <div class="dg-cell-value">
+                    <i :class="item.row.PaymentStatusLabelClass" :title="item.row.PaymentStatusString"></i>
+                    <span class="text-truncate">{{ item.row.PaymentStatusString }}</span>
+                    <div v-if="item.row.PaymentMethod" class="text-muted text-truncate">{{ item.row.PaymentMethod }}</div>
                 </div>
             </display-template>
         </column>
