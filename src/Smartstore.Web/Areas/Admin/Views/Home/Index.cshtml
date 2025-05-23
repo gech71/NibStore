@@ -31,7 +31,7 @@
     <div class="report-latest-orders">
         @await Component.InvokeAsync("DashboardLatestOrders")
     </div>
-    <div class="news-feed" style="height: 100vh; overflow: auto; position: sticky; top: 0; right: 0;">
+    <div class="news-feed" style="overflow-y: auto !important; position: sticky; top: 0; right: 0;">
         <partial name="~/Areas/Admin/Views/Store/StoreDashboardReport.cshtml" />
     </div>
 

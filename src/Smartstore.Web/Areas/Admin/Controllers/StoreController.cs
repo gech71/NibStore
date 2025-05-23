@@ -209,116 +209,94 @@ namespace Smartstore.Admin.Controllers
         }
 
         [SaveChanges<SmartDbContext>(false)]
-        [Permission(Permissions.Configuration.Store.ReadStats, false)]
-        public async Task<JsonResult> StoreDashboardReportAsync()
-        {
-            var primaryCurrency = Services.CurrencyService.PrimaryCurrency;
-            var customer = Services.WorkContext.CurrentCustomer;
-            
+[Permission(Permissions.Configuration.Store.ReadStats, false)]
+public async Task<JsonResult> StoreDashboardReportAsync()
+{
+    var primaryCurrency = Services.CurrencyService.PrimaryCurrency;
+    var customer = Services.WorkContext.CurrentCustomer;
+    var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", customer.Id);
 
-            int productsCount = 0, attributesCount = 0, categoriesCount = 0,
-                manufacturersCount = 0, customersCount = 0, ordersCount = 0;
-            decimal sales = 0;
+    // Check if merchant
+    var merchantRole = await _db.CustomerRoles
+        .AsNoTracking()
+        .FirstOrDefaultAsync(x => x.SystemName == "Merchant");
+    bool isMerchant = merchantRole != null &&
+        await _db.CustomerRoleMappings
+            .AnyAsync(m => m.CustomerId == customer.Id && m.CustomerRoleId == merchantRole.Id);
 
-            var merchantRole = await _db.CustomerRoles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.SystemName == "Merchant");
+    int productsCount = 0, attributesCount = 0, categoriesCount = 0, manufacturersCount = 0, customersCount = 0, ordersCount = 0, attributeCombinationsCount = 0;
+    decimal sales = 0;
 
-            bool isMerchant = merchantRole != null &&
-                await _db.CustomerRoleMappings
-                    .AnyAsync(m => m.CustomerId == customer.Id && m.CustomerRoleId == merchantRole.Id);
+    int? mediaCount = 0, onlineCustomersCount = 0;
+    decimal? mediaSize = 0, cartsValue = 0, wishlistsValue = 0;
 
-            List<int> merchantProductIds = new();
+    if (isMerchant)
+    {
+        var merchantProductIds = await _db.GenericAttributes
+            .Where(a => a.KeyGroup == "Product" && a.Key == "CreatedByUserId" && a.Value == customer.Id.ToString())
+            .Select(a => a.EntityId)
+            .ToListAsync();
 
+        productsCount = await _db.Products.Where(p => merchantProductIds.Contains(p.Id)).CountAsync();
+        attributesCount = await _db.ProductVariantAttributes.Where(a => merchantProductIds.Contains(a.ProductId)).CountAsync();
+        attributeCombinationsCount = await _db.ProductVariantAttributeCombinations.Where(ac => merchantProductIds.Contains(ac.ProductId) && ac.IsActive).CountAsync();
+        categoriesCount = await _db.ProductCategories.Where(pc => merchantProductIds.Contains(pc.ProductId)).Select(pc => pc.CategoryId).Distinct().CountAsync();
+        manufacturersCount = await _db.ProductManufacturers.Where(pm => merchantProductIds.Contains(pm.ProductId)).Select(pm => pm.ManufacturerId).Distinct().CountAsync();
+        customersCount = await _db.OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId)).Select(oi => oi.Order.CustomerId).Distinct().CountAsync();
+        ordersCount = await _db.OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId)).Select(oi => oi.OrderId).Distinct().CountAsync();
+        sales = await _db.OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId)).SumAsync(oi => (decimal?)oi.PriceInclTax * oi.Quantity) ?? 0;
+        mediaCount = null;
+        mediaSize = null;
+        onlineCustomersCount = null;
+        cartsValue = null;
+        wishlistsValue = null;
+    }
+    else
+    {
+        productsCount = await _catalogSearchService.PrepareQuery(new CatalogSearchQuery()).CountAsync();
+        attributesCount = await _db.ProductAttributes.CountAsync();
+        attributeCombinationsCount = await _db.ProductVariantAttributeCombinations.CountAsync(x => x.IsActive);
+        categoriesCount = await _db.Categories.CountAsync();
+        manufacturersCount = await _db.Manufacturers.CountAsync();
 
-                    if (isMerchant)
-                    {
-                        merchantProductIds = await _db.GenericAttributes
-                            .Where(a => a.KeyGroup == "Product" &&
-                                        a.Key == "CreatedByUserId" &&
-                                        a.Value == customer.Id.ToString())
-                            .Select(a => a.EntityId)
-                            .ToListAsync();
-                    }
+        var registeredRole = await _db.CustomerRoles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SystemName == SystemCustomerRoleNames.Registered);
 
-            if (isMerchant && merchantProductIds.Count > 0)
-            {
-                // log merchantProductIds
+        var registeredCustomersQuery = _db.Customers
+            .AsNoTracking()
+            .ApplyRolesFilter([registeredRole.Id]);
 
-                productsCount = await _db.Products
-                    .Where(p => merchantProductIds.Contains(p.Id))
-                    .CountAsync();
+        customersCount = await registeredCustomersQuery.CountAsync();
 
-                attributesCount = await _db.ProductVariantAttributes
-                    .Where(a => merchantProductIds.Contains(a.ProductId))
-                    .CountAsync();
+        var ordersQuery = _db.Orders.ApplyCustomerFilter(authorizedStoreIds).AsNoTracking();
+        ordersCount = await ordersQuery.CountAsync();
+        sales = await ordersQuery.SumAsync(x => (decimal?)x.OrderTotal) ?? 0;
 
-                categoriesCount = await _db.ProductCategories
-                    .Where(pc => merchantProductIds.Contains(pc.ProductId))
-                    .Select(pc => pc.CategoryId)
-                    .Distinct()
-                    .CountAsync();
+        mediaCount = await Services.MediaService.CountFilesAsync(new MediaSearchQuery { Deleted = false });
+        mediaSize = await _db.MediaFiles.SumAsync(x => (long)x.Size);
+        onlineCustomersCount = await _db.Customers.ApplyOnlineCustomersFilter(15).CountAsync();
+        cartsValue = await _db.ShoppingCartItems.GetOpenCartTypeSubTotalAsync(ShoppingCartType.ShoppingCart, _shoppingCartSettings.AllowActivatableCartItems ? true : null);
+        wishlistsValue = await _db.ShoppingCartItems.GetOpenCartTypeSubTotalAsync(ShoppingCartType.Wishlist);
+    }
 
-                manufacturersCount = await _db.ProductManufacturers
-                    .Where(pm => merchantProductIds.Contains(pm.ProductId))
-                    .Select(pm => pm.ManufacturerId)
-                    .Distinct()
-                    .CountAsync();
+    var model = new StoreDashboardReportModel
+    {
+        ProductsCount = productsCount.ToString("N0"),
+        CategoriesCount = categoriesCount.ToString("N0"),
+        ManufacturersCount = manufacturersCount.ToString("N0"),
+        AttributesCount = attributesCount.ToString("N0"),
+        AttributeCombinationsCount = attributeCombinationsCount.ToString("N0"),
+        MediaCount = mediaCount != null ? mediaCount.Value.ToString("N0") : null,    MediaSize = mediaSize != null ? Prettifier.HumanizeBytes((long)mediaSize.Value) : null,
+        OrdersCount = ordersCount.ToString("N0"),
+        OnlineCustomersCount = onlineCustomersCount != null ? onlineCustomersCount.Value.ToString("N0") : null,
+        Sales = Services.CurrencyService.CreateMoney(sales, primaryCurrency).ToString(),
+        CartsValue = cartsValue != null ? Services.CurrencyService.CreateMoney(cartsValue.Value, primaryCurrency).ToString() : null,
+        WishlistsValue = wishlistsValue != null ? Services.CurrencyService.CreateMoney(wishlistsValue.Value, primaryCurrency).ToString() : null
+    };
 
-                customersCount = await _db.OrderItems
-                    .Where(oi => merchantProductIds.Contains(oi.ProductId))
-                    .Select(oi => oi.Order.CustomerId)
-                    .Distinct()
-                    .CountAsync();
-
-                ordersCount = await _db.OrderItems
-                    .Where(oi => merchantProductIds.Contains(oi.ProductId))
-                    .Select(oi => oi.OrderId)
-                    .Distinct()
-                    .CountAsync();
-
-                sales = await _db.OrderItems
-                    .Where(oi => merchantProductIds.Contains(oi.ProductId))
-                    .SumAsync(oi => (decimal?)oi.PriceInclTax * oi.Quantity) ?? 0;
-            }
-            else if (isMerchant)
-            {
-                // Merchant with no products
-                productsCount = 0;
-                attributesCount = 0;
-                categoriesCount = 0;
-                manufacturersCount = 0;
-                customersCount = 0;
-                ordersCount = 0;
-                sales = 0;
-            }
-            else
-            {
-                // Admin or other role - show global stats
-                productsCount = await _catalogSearchService.PrepareQuery(new CatalogSearchQuery()).CountAsync();
-                attributesCount = await _db.ProductAttributes.CountAsync();
-                categoriesCount = await _db.Categories.CountAsync();
-                manufacturersCount = await _db.Manufacturers.CountAsync();
-                attributesCount = await _db.ProductAttributes.CountAsync();
-                customersCount = await _db.Customers.CountAsync();
-                ordersCount = await _db.Orders.CountAsync();
-                sales = await _db.OrderItems.SumAsync(oi => (decimal?)oi.PriceInclTax * oi.Quantity) ?? 0;
-            }
-
-            var model = new StoreDashboardReportModel
-            {
-                ProductsCount = productsCount.ToString("N0"),
-                AttributesCount = attributesCount.ToString("N0"),
-                CategoriesCount = categoriesCount.ToString("N0"),
-                ManufacturersCount = manufacturersCount.ToString("N0"),
-                CustomersCount = customersCount.ToString("N0"),
-                OrdersCount = ordersCount.ToString("N0"),
-                Sales = Services.CurrencyService.CreateMoney(sales, primaryCurrency).ToString(),
-                OnlineCustomersCount = (await _db.Customers.ApplyOnlineCustomersFilter(15).CountAsync()).ToString("N0")
-            };
-
-            return new JsonResult(new { model });
-        }
+    return new JsonResult(new { model });
+}
         private async Task PrepareViewBag(Store store)
         {
             var currencies = await _db.Currencies

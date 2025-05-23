@@ -19465,6 +19465,9 @@ a.editable {
 .btn-newsfeed {
   padding: 1.25rem 1.5rem; }
 
+.news-feed {
+  align-self: start; }
+
 input.form-control-plaintext {
   outline: 0;
   -moz-appearance: textfield; }
