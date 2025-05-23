@@ -12,8 +12,6 @@
         },
         new { Part = "CategoriesCount", Label = T("Admin.Catalog.Categories").Value, Title = T("Admin.Catalog.Categories").Value, Icon = "diagram-3" },
         new { Part = "ManufacturersCount", Label = T("Admin.Catalog.Manufacturers").Value, Title = T("Admin.Catalog.Manufacturers").Value, Icon = "building" },
-        new { Part = "MediaCount", Label = T("Admin.Catalog.Products.Pictures").Value, Title = T("Admin.Catalog.Products.Pictures").Value, Icon = "images" },
-        new { Part = "MediaSize", Label = T("Admin.Report.MediaFilesSize").Value, Title = T("Admin.Report.MediaFilesSize").Value, Icon = "hdd" },
         new { Part = "CustomersCount", Label = T("Admin.Customers.Customers").Value, Title = T("Admin.Customers.Reports.RegisteredCustomers").Value, Icon = "people" },
         new { Part = "OrdersCount", Label = T("Admin.Orders").Value, Title = T("Admin.Orders.Overall").Value, Icon = "graph-up-arrow" },
         new
@@ -22,21 +20,6 @@
             Label = T("Admin.SalesReport.Sales").Value,
             Title = T("Admin.SalesReport.Sales.Hint").Value + " " + T("Enums.TaxDisplayType.IncludingTax").Value,
             Icon = "credit-card"
-        },
-        new { Part = "OnlineCustomersCount", Label = T("Admin.Customers.OnlineCustomers").Value, Title = T("Admin.Report.OnlineCustomers").Value, Icon = "box-arrow-in-right" },
-        new
-        {
-            Part = "CartsValue",
-            Label = T("Admin.CurrentCarts.Short").Value,
-            Title = T("Admin.CurrentCarts").Value + " " + T("Enums.TaxDisplayType.IncludingTax").Value,
-            Icon = "cart-check"
-        },
-        new
-        {
-            Part = "WishlistsValue",
-            Label = T("Admin.CurrentWishlists.Short").Value,
-            Title = T("Admin.CurrentWishlists").Value + " " + T("Enums.TaxDisplayType.IncludingTax").Value,
-            Icon = "heart"
         }
     };
 }
@@ -49,7 +32,7 @@
         <div class="row g-2">
             @for (int i = 0; i < arr.Length; i++)
             {
-                <div class="col-6 col-md-4 col-xl-3 col-xxl-4 statistics-col">
+                <div class="col-12  statistics-col">
                     <div class="statistics-content bg-secondary rounded py-2 px-3">
                         <div class="statistics-container-outer text-truncate">
                             <div class="statistics-container-inner text-truncate">
