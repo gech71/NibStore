@@ -1,4 +1,4 @@
-﻿using Smartstore.Admin.Models.Customers;
+using Smartstore.Admin.Models.Customers;
 using Smartstore.Core.Checkout.Orders.Reporting;
 using Smartstore.Core.Security;
 
@@ -22,10 +22,37 @@ namespace Smartstore.Admin.Components
                 return Empty();
             }
 
-            var customer = Services.WorkContext.CurrentCustomer;
-            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", customer.Id);
+            var currentUser = Services.WorkContext.CurrentCustomer;
+            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", currentUser.Id);
             
             var orderQuery = _db.Orders.Where(x => !x.Customer.Deleted).ApplyCustomerFilter(authorizedStoreIds);
+
+            var isMerchant = await _db.CustomerRoleMappings
+                .AnyAsync(m => m.CustomerId == currentUser.Id && 
+                             m.CustomerRole.SystemName == "Merchant");
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                              a.Key == "CreatedByUserId" &&
+                              a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                if (merchantProductIds.Any())
+                {
+                    orderQuery = orderQuery.Where(o => o.OrderItems.Any(oi => merchantProductIds.Contains(oi.ProductId)));
+                }
+                else
+                {
+                    return View(new DashboardTopCustomersModel
+                    {
+                        TopCustomersByQuantity = new List<TopCustomerReportLineModel>(),
+                        TopCustomersByAmount = new List<TopCustomerReportLineModel>()
+                    });
+                }
+            }
 
             var reportByQuantity = await orderQuery
                 .SelectAsTopCustomerReportLine(ReportSorting.ByQuantityDesc)
