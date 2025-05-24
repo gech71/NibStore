@@ -46,7 +46,7 @@
         }
 
         tr > th {
-            border-color: rgba(0,0,0, 0.05);
+            border-color: rgba(0, 0, 0, 0.05);
             border-bottom-width: 3px;
         }
     }
@@ -147,7 +147,7 @@
         font-weight: $font-weight-bold;
         color: $gray-500;
         font-size: 1.5rem;
-        padding-bottom: .1em;
+        padding-bottom: 0.1em;
     }
 
     .incomplete-orders-amount {
@@ -156,7 +156,7 @@
         white-space: nowrap;
         max-width: 50%;
         font-size: 1.25rem;
-        padding-top: .1rem;
+        padding-top: 0.1rem;
         color: $gray-700;
     }
 
@@ -164,7 +164,7 @@
         white-space: nowrap;
 
         .display-row {
-            padding: .75rem 1rem;
+            padding: 0.75rem 1rem;
         }
 
         td.display-row {
@@ -223,8 +223,8 @@
     }
 
     .btn-dashboard {
-        font-size: .75rem;
-        padding: .33rem .66rem;
+        font-size: 0.75rem;
+        padding: 0.33rem 0.66rem;
     }
 
     .canvas-container {
@@ -269,7 +269,7 @@
             display: inline-block;
             height: 11px;
             width: 11px;
-            margin-inline-end: .3rem;
+            margin-inline-end: 0.3rem;
         }
 
         .hidden > .legend {
@@ -599,7 +599,7 @@
 }
 
 .newsfeed-item-title {
-    margin-bottom: .5rem;
+    margin-bottom: 0.5rem;
     font-weight: 600;
 
     & > a {
@@ -644,7 +644,7 @@
 
 .newsfeed-item {
     padding: 0 1rem 1.25rem 1rem;
-    
+
     &.pinned {
         background-color: lighten($blue, 50%) !important;
     }
@@ -672,4 +672,7 @@
 
 .btn-newsfeed {
     padding: 1.25rem 1.5rem;
+}
+.news-feed {
+    align-self: start;
 }

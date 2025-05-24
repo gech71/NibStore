@@ -24,8 +24,12 @@ namespace Smartstore.Admin.Components
             }
 
             var primaryCurrency = Services.CurrencyService.PrimaryCurrency;
-            var customer = Services.WorkContext.CurrentCustomer;
-            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", customer.Id);
+            var currentUser = Services.WorkContext.CurrentCustomer;
+            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", currentUser.Id);
+
+            var isMerchant = await _db.CustomerRoleMappings
+                .AnyAsync(m => m.CustomerId == currentUser.Id &&
+                             m.CustomerRole.SystemName == "Merchant");
 
             var model = new List<DashboardIncompleteOrdersModel>
             {
@@ -38,12 +42,34 @@ namespace Smartstore.Admin.Components
                 // Index 3: this year.
                 new()
             };
-            
-            var dataPoints = await _db.Orders
+
+            var orderQuery = _db.Orders
                 .AsNoTracking()
                 .ApplyAuditDateFilter(CreatedFrom, null)
                 .ApplyIncompleteOrdersFilter()
-                .ApplyCustomerFilter(authorizedStoreIds)
+                .ApplyCustomerFilter(authorizedStoreIds);
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                              a.Key == "CreatedByUserId" &&
+                              a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                if (merchantProductIds.Any())
+                {
+                    orderQuery = orderQuery.Where(o => o.OrderItems.Any(oi => merchantProductIds.Contains(oi.ProductId)));
+                }
+                else
+                {
+                    // Return empty model if merchant has no products
+                    return View(model);
+                }
+            }
+
+            var dataPoints = await orderQuery
                 .Select(x => new OrderDataPoint
                 {
                     CreatedOn = x.CreatedOnUtc,

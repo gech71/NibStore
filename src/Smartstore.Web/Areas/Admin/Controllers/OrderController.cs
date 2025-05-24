@@ -68,6 +68,7 @@ namespace Smartstore.Admin.Controllers
         private readonly MediaSettings _mediaSettings;
         private readonly AdminAreaSettings _adminAreaSettings;
         private readonly Currency _primaryCurrency;
+        private readonly IWorkContext _workContext;
 
         public OrderController(
             SmartDbContext db,
@@ -94,7 +95,8 @@ namespace Smartstore.Admin.Controllers
             SearchSettings searchSettings,
             ShoppingCartSettings shoppingCartSettings,
             MediaSettings mediaSettings,
-            AdminAreaSettings adminAreaSettings)
+            AdminAreaSettings adminAreaSettings,
+            IWorkContext workContext)
         {
             _db = db;
             _orderService = orderService;
@@ -121,6 +123,7 @@ namespace Smartstore.Admin.Controllers
             _mediaSettings = mediaSettings;
             _adminAreaSettings = adminAreaSettings;
             _primaryCurrency = currencyService.PrimaryCurrency;
+            _workContext = workContext;
         }
 
         public IActionResult Index()
@@ -170,6 +173,16 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Read)]
         public async Task<IActionResult> OrderList(GridCommand command, OrderListModel model, int? productId = null, int? customerId = null)
         {
+            var currentUser = _workContext.CurrentCustomer;
+            var merchantRoleId = await _db.CustomerRoles
+                .Where(r => r.SystemName == "Merchant")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            bool isMerchant = merchantRoleId != 0 &&
+                await _db.CustomerRoleMappings
+                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+
             var dtHelper = Services.DateTimeHelper;
             var viaShippingMethodString = T("Admin.Order.ViaShippingMethod").Value;
             var withPaymentMethodString = T("Admin.Order.WithPaymentMethod").Value;
@@ -177,7 +190,7 @@ namespace Smartstore.Admin.Controllers
             var paymentMethodSystemnames = model.PaymentMethods.SplitSafe(',').ToArray();
             var customer = Services.WorkContext.CurrentCustomer;
             var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", customer.Id);
-            
+
             DateTime? startDateUtc = model.StartDate == null
                 ? null
                 : dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone);
@@ -197,6 +210,18 @@ namespace Smartstore.Admin.Controllers
                 .ApplyStatusFilter(model.OrderStatusIds, model.PaymentStatusIds, model.ShippingStatusIds)
                 .ApplyPaymentFilter(paymentMethodSystemnames)
                 .ApplyCustomerFilter(authorizedStoreIds);
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                                a.Key == "CreatedByUserId" &&
+                                a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                orderQuery = orderQuery.Where(o => o.OrderItems.Any(oi => merchantProductIds.Contains(oi.ProductId)));
+            }
 
             if (productId > 0)
             {
@@ -461,12 +486,12 @@ namespace Smartstore.Admin.Controllers
                                         if (shipment != null)
                                         {
                                             Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), o.GetOrderNumber());
-                                        
+
                                             if (ship && shipment.ShippedDateUtc == null)
                                             {
                                                 await _orderProcessingService.ShipAsync(shipment, true);
                                             }
-                                    
+
                                             ++numSuccess;
                                             succeededOrderNumbers.Add(o.GetOrderNumber());
                                         }
@@ -1699,6 +1724,17 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Read)]
         public async Task<IActionResult> BestsellersReportList(GridCommand command, BestsellersReportModel model)
         {
+            var currentUser = _workContext.CurrentCustomer;
+
+            var merchantRoleId = await _db.CustomerRoles
+                .Where(r => r.SystemName == "Merchant")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            bool isMerchant = merchantRoleId != 0 &&
+                await _db.CustomerRoleMappings
+                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+
             var dtHelper = Services.DateTimeHelper;
             var sorting = ReportSorting.ByAmountDesc;
 
@@ -1737,6 +1773,18 @@ namespace Smartstore.Admin.Controllers
                 .ApplyOrderFilter(0, startDate, endDate, orderStatusId, paymentStatusId, shippingStatusId, countryId)
                 .ApplyProductFilter(null, true);
 
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                                a.Key == "CreatedByUserId" &&
+                                a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                orderItemQuery = orderItemQuery.Where(p => merchantProductIds.Contains(p.ProductId));
+            }
+
             var reportLines = await orderItemQuery
                 .SelectAsBestsellersReportLine(sorting)
                 .ToPagedList(command)
@@ -1762,6 +1810,17 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Read)]
         public async Task<IActionResult> NeverSoldReportList(GridCommand command, NeverSoldReportModel model)
         {
+            var currentUser = _workContext.CurrentCustomer;
+
+            var merchantRoleId = await _db.CustomerRoles
+                .Where(r => r.SystemName == "Merchant")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            bool isMerchant = merchantRoleId != 0 &&
+                await _db.CustomerRoleMappings
+                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+
             var dtHelper = Services.DateTimeHelper;
             var groupedProductId = (int)ProductType.GroupedProduct;
 
@@ -1786,6 +1845,18 @@ namespace Smartstore.Admin.Controllers
                 where !subQuery.Distinct().Contains(p.Id) && p.ProductTypeId != groupedProductId && !p.IsSystemProduct
                 orderby p.Name
                 select p;
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                                a.Key == "CreatedByUserId" &&
+                                a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                productQuery = productQuery.Where(p => merchantProductIds.Contains(p.Id)).OrderBy(p => p.Name);
+            }
 
             var products = await productQuery
                 .ApplyGridCommand(command)

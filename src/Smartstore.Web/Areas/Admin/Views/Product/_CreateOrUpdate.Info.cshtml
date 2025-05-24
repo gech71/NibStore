@@ -1,4 +1,4 @@
-﻿@using Smartstore.Core.Catalog.Products
+﻿﻿@using Smartstore.Core.Catalog.Products
 @using Smartstore.Core.Checkout.GiftCards
 
 @inject ILanguageService languageService
@@ -144,7 +144,7 @@
             <select asp-for="Visibility" asp-items="Html.GetLocalizedEnumSelectList(typeof(ProductVisibility))"></select>
             <span asp-validation-for="Visibility"></span>
         </div>
-    </div>
+    </div>   
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="ProductTypeId" />
@@ -162,7 +162,7 @@
             </div>
             <span asp-validation-for="ProductTypeId"></span>
         </div>
-    </div>
+    </div>  
     <div sm-if="Model.Id > 0 && Model.AssociatedToProductId > 0" class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="AssociatedToProductName" />
@@ -282,7 +282,7 @@
             <input asp-for="ManufacturerPartNumber" />
             <span asp-validation-for="ManufacturerPartNumber"></span>
         </div>
-    </div>
+    </div>  
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="Gtin" />
@@ -291,7 +291,7 @@
             <input asp-for="Gtin" />
             <span asp-validation-for="Gtin"></span>
         </div>
-    </div>
+    </div>  
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="CustomsTariffNumber" />
@@ -300,7 +300,7 @@
             <input asp-for="CustomsTariffNumber" />
             <span asp-validation-for="CustomsTariffNumber"></span>
         </div>
-    </div>
+    </div>  
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="DisplayOrder" />
@@ -327,7 +327,7 @@
             <editor asp-for="CountryOfOriginId" asp-template="Countries" />
             <span asp-validation-for="CountryOfOriginId"></span>
         </div>
-    </div>
+    </div>  
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="AdminComment" />
@@ -371,8 +371,8 @@
         <div class="adminData">
             <input asp-for="AllowCustomerReviews" />
             <span asp-validation-for="AllowCustomerReviews"></span>
-        </div>
-    </div>
+        </div> 
+    </div> 
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="ShowOnHomePage" />
@@ -381,7 +381,7 @@
             <input asp-for="ShowOnHomePage" data-toggler-for="#pnlHomePageDisplayOrder" />
             <span asp-validation-for="ShowOnHomePage"></span>
         </div>
-    </div>
+    </div> 
     <div class="adminRow" id="pnlHomePageDisplayOrder">
         <div class="adminTitle">
             <smart-label asp-for="HomePageDisplayOrder" />
@@ -410,7 +410,6 @@
         </div>
     </div>
 </div>
-
 <div class="adminContent" id="group-required-other-products">
     <div class="adminRow">
         <div class="adminSeparator">
@@ -462,7 +461,7 @@
             </div>
         </div>
     </div>
-</div>
+</div>  
 
 <div class="adminContent" id="group-giftcard">
     <div class="adminRow">

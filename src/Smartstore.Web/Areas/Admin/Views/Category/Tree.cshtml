@@ -1,10 +1,12 @@
 ﻿@model CategoryListModel
-
+@inject Smartstore.Core.Security.IPermissionService permissionService
+@using Smartstore.Core.Security
 @{
     ViewBag.Title = T("Admin.Catalog.Categories.Manage").Value;
 
     var isSingleStoreMode = (bool)ViewBag.IsSingleStoreMode;
     var canEdit = (bool)ViewBag.CanEdit;
+    var canCreate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Create);
 }
 
 @*INFO: please no sticky header here ('nofix'). It blocks the browser from auto scrolling during drag and drop.*@
@@ -13,24 +15,29 @@
         <i class="fa fa-sitemap"></i>
         <span>@ViewBag.Title</span>
         <div class="btn-group ml-2">
-            <a asp-action="List" class="btn btn-outline-secondary btn-sm tooltip-toggle" title="@T("Admin.Catalog.Categories.SwitchToListView")">
+            <a asp-action="List" class="btn btn-outline-secondary btn-sm tooltip-toggle"
+                title="@T("Admin.Catalog.Categories.SwitchToListView")">
                 <i class="fa fa-bars"></i>
             </a>
-            <a class="btn btn-outline-secondary btn-sm tooltip-toggle active" style="cursor:default" href="javascript:;">
+            <a class="btn btn-outline-secondary btn-sm tooltip-toggle active" style="cursor:default"
+                href="javascript:;">
                 <i class="fa fa-sitemap"></i>
             </a>
         </div>
     </div>
-    <div class="options">
-		<zone name="admin_button_toolbar_before" />
+    @if (canCreate)
+    {
+        <div class="options">
+            <zone name="admin_button_toolbar_before" />
 
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="fa fa-plus"></i>
-            <span>@T("Admin.Common.AddNew")…</span>
-        </a>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fa fa-plus"></i>
+                <span>@T("Admin.Common.AddNew")…</span>
+            </a>
 
-		<zone name="admin_button_toolbar_after" />
-    </div>
+            <zone name="admin_button_toolbar_after" />
+        </div>
+    }
 </div>
 
 <div sm-if="!isSingleStoreMode" class="row">
@@ -49,14 +56,14 @@
 <div id="category-tree"></div>
 
 <script sm-target-zone="scripts" sm-minify="true" data-origin="category-tree">
-    $(function() {
+    $(function () {
         var treeUrl = '@Url.Action("CategoryTree")';
 
         // Init category tree.
         initTree(treeUrl);
 
         // Filter by store ID.
-        $('#@Html.IdFor(model => model.SearchStoreId)').on('change', function() {
+        $('#@Html.IdFor(model => model.SearchStoreId)').on('change', function () {
             $('#category-tree').tree('destroy');
 
             initTree(treeUrl + '?searchStoreId=' + $(this).val());

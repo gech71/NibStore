@@ -24,15 +24,19 @@ namespace Smartstore.Admin.Controllers
         private readonly SmartDbContext _db;
         private readonly IProductService _productService;
         private readonly ICustomerService _customerService;
+        private readonly IWorkContext _workContext;
 
         public ProductReviewController(
             SmartDbContext db,
             IProductService productService,
-            ICustomerService customerService)
+            ICustomerService customerService,
+            IWorkContext workContext
+)
         {
             _db = db;
             _productService = productService;
             _customerService = customerService;
+            _workContext = workContext;
         }
 
         public IActionResult Index()
@@ -54,6 +58,12 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.ProductReview.Read)]
         public async Task<IActionResult> ProductReviewList(GridCommand command, ProductReviewListModel model)
         {
+            var currentUser = _workContext.CurrentCustomer;
+
+            var isMerchant = await _db.CustomerRoleMappings
+                .AnyAsync(m => m.CustomerId == currentUser.Id &&
+                              m.CustomerRole.SystemName == "Merchant");
+
             var dtHelper = Services.DateTimeHelper;
 
             DateTime? createdFrom = model.CreatedOnFrom == null
@@ -69,6 +79,18 @@ namespace Smartstore.Admin.Controllers
                 .Include(x => x.Product)
                 .Include(x => x.Customer).ThenInclude(x => x.CustomerRoleMappings).ThenInclude(x => x.CustomerRole)
                 .ApplyAuditDateFilter(createdFrom, createdTo);
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                                a.Key == "CreatedByUserId" &&
+                                a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                query = query.Where(p => merchantProductIds.Contains(p.ProductId));
+            }
 
             if (model.ProductName.HasValue())
             {

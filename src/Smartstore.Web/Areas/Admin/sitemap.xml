@@ -32,8 +32,8 @@
             <siteMapNode id="return-requests" icon="bi:truck" iconClass="flip-h" title="Return requests" resKey="Admin.ReturnRequests" permissionNames="order.returnrequest" controller="ReturnRequest" action="List" area="Admin" />
             <siteMapNode id="gift-cards" icon="bi:gift" title="Gift cards" resKey="Admin.GiftCards" permissionNames="order.giftcard" controller="GiftCard" action="List" area="Admin" />
             <siteMapNode id="sales-sep-1" isGroupHeader="true" title="[SKIP]" />
-            <siteMapNode id="shopping-carts" icon="bi:cart-check" title="Current shopping carts" resKey="Admin.CurrentCarts" permissionNames="order" controller="ShoppingCart" action="CurrentCarts" area="Admin" />
-            <siteMapNode id="wishlists" icon="bi:heart" title="Current wishlists" resKey="Admin.CurrentWishlists" permissionNames="order" controller="ShoppingCart" action="CurrentWishlists" area="Admin" />
+            <siteMapNode id="shopping-carts" icon="bi:cart-check" title="Current shopping carts" resKey="Admin.CurrentCarts" permissionNames="customer" controller="ShoppingCart" action="CurrentCarts" area="Admin" />
+            <siteMapNode id="wishlists" icon="bi:heart" title="Current wishlists" resKey="Admin.CurrentWishlists" permissionNames="customer" controller="ShoppingCart" action="CurrentWishlists" area="Admin" />
             <siteMapNode id="system-sep-2" isGroupHeader="true" title="[SKIP]" />
             <siteMapNode id="bestsellers" icon="bi:hand-thumbs-up" title="Bestsellers" resKey="Admin.SalesReport.Bestsellers" permissionNames="order" controller="Order" action="BestsellersReport" area="Admin" />
             <siteMapNode id="flopsellers" icon="bi:hand-thumbs-down" title="Products never purchased" resKey="Admin.SalesReport.NeverSold" permissionNames="order" controller="Order" action="NeverSoldReport" area="Admin" />
@@ -95,9 +95,9 @@
                 <siteMapNode id="countries" xicon="globe" title="Countries" resKey="Admin.Configuration.Countries" permissionNames="configuration.country" controller="Country" action="List" area="Admin" />
                 <siteMapNode id="languages" xicon="flag-alt" title="Languages" resKey="Admin.Configuration.Languages" permissionNames="configuration.language" controller="Language" action="List" area="Admin" />
                 <siteMapNode id="currencies" xicon="money" title="Currencies" resKey="Admin.Configuration.Currencies" permissionNames="configuration.currency" controller="Currency" action="List" area="Admin" />
-                <siteMapNode id="shipping-header" isGroupHeader="true" title="Shipping" resKey="Admin.Configuration.Shipping" permissionNames="configuration.shipping" />
+                <siteMapNode id="shipping-header" isGroupHeader="true" title="Shipping" resKey="Admin.Configuration.Shipping" permissionNames="configuration.setting" />
                 <siteMapNode id="shipping-methods" title="Shipping methods" resKey="Admin.Configuration.Shipping.Methods" permissionNames="configuration.shipping" controller="Shipping" action="Methods" area="Admin" />
-                <siteMapNode id="shipping-providers" title="Shipping providers" resKey="Admin.Configuration.Shipping.Providers" permissionNames="configuration.shipping" controller="Shipping" action="Providers" area="Admin" />
+                <siteMapNode id="shipping-providers" title="Shipping providers" resKey="Admin.Configuration.Shipping.Providers" permissionNames="configuration.setting" controller="Shipping" action="Providers" area="Admin" />
                 <siteMapNode id="tax-header" isGroupHeader="true" title="Tax" resKey="Admin.Configuration.Tax" permissionNames="configuration.tax" />
                 <siteMapNode id="tax-providers" title="Tax providers" resKey="Admin.Configuration.Tax.Providers" permissionNames="configuration.tax" controller="Tax" action="Providers" area="Admin" />
                 <siteMapNode id="tax-categories" title="Tax categories" resKey="Admin.Configuration.Tax.Categories" permissionNames="configuration.tax" controller="Tax" action="List" area="Admin" />

@@ -72,6 +72,7 @@ namespace Smartstore.Admin.Controllers
         private readonly SearchSettings _searchSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
         private readonly IEventPublisher _eventPublisher;
+        private readonly IGenericAttributeService _genericAttributeService;
 
         public ProductController(
             SmartDbContext db,
@@ -107,7 +108,9 @@ namespace Smartstore.Admin.Controllers
             MediaSettings mediaSettings,
             SearchSettings searchSettings,
             ShoppingCartSettings shoppingCartSettings,
-            IEventPublisher eventPublisher)
+            IEventPublisher eventPublisher,
+            IGenericAttributeService genericAttributeService)
+
         {
             _db = db;
             _productService = productService;
@@ -143,6 +146,7 @@ namespace Smartstore.Admin.Controllers
             _searchSettings = searchSettings;
             _shoppingCartSettings = shoppingCartSettings;
             _eventPublisher = eventPublisher;
+            _genericAttributeService = genericAttributeService;
         }
 
         #region Product list / create / edit / delete

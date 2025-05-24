@@ -16,14 +16,9 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> ProductList(GridCommand command, ProductListModel model)
         {
             var currentUser = _workContext.CurrentCustomer;
-            var merchantRoleId = await _db.CustomerRoles
-                .Where(r => r.SystemName == "Merchant")
-                .Select(r => r.Id)
-                .FirstOrDefaultAsync();
-
-            bool isMerchant = merchantRoleId != 0 &&
-                await _db.CustomerRoleMappings
-                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+            var isMerchant = await _db.CustomerRoleMappings
+                .AnyAsync(m => m.CustomerId == currentUser.Id &&
+                              m.CustomerRole.SystemName == "Merchant");
 
             var searchQuery = CreateSearchQuery(command, model, _searchSettings.UseCatalogSearchInBackend);
             IPagedList<Product> products;
