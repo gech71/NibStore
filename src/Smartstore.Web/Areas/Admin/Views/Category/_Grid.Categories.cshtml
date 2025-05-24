@@ -1,17 +1,17 @@
 ﻿@model CategoryModel
-
+@inject Smartstore.Core.Security.IPermissionService permissionService
+@using Smartstore.Core.Security
 @{
     var parentModel = ViewData["Parent"] as CategoryListModel;
     var isSingleStoreMode = (bool)ViewBag.IsSingleStoreMode;
     var hasToolbarZoneWidgets = await Display.ZoneHasWidgetsAsync("datagrid_toolbar_omega");
+    var canCreate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Create);
+    var canUpdate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Update);
 }
 
-<datagrid id="categories-grid"
-          allow-resize="true"
-          allow-row-selection="hasToolbarZoneWidgets"
-          preserve-grid-state="true" preserve-command-state="true"
-          allow-column-reordering="true"
-          onrowclass="categoriesGrid_onRowClass">
+<datagrid id="categories-grid" allow-resize="true" allow-row-selection="hasToolbarZoneWidgets"
+    preserve-grid-state="true" preserve-command-state="true" allow-column-reordering="true"
+    onrowclass="categoriesGrid_onRowClass">
     <datasource read="@Url.Action("CategoryList")" />
     <paging position="Bottom" page-index="1" show-size-chooser="true" />
     <sorting allow-unsort="true" allow-multisort="false">
@@ -23,12 +23,16 @@
                 <i class="fa fa-fw fa-filter"></i>
             </button>
         </toolbar-group>
-        <toolbar-group>
-            <a asp-action="Create" class="btn btn-primary btn-flat">
-                <i class="fa fa-plus"></i>
-                <span>@T("Admin.Common.AddNew")…</span>
-            </a>
-        </toolbar-group>
+        @if (canCreate)
+        {
+            <toolbar-group>
+                <a asp-action="Create" class="btn btn-primary btn-flat">
+                    <i class="fa fa-plus"></i>
+                    <span>@T("Admin.Common.AddNew")…</span>
+                </a>
+            </toolbar-group>
+        }
+
         <zone name="datagrid_toolbar_omega"></zone>
     </toolbar>
     <search-panel>
@@ -39,8 +43,23 @@
         <column for="Name" hideable="false" width="2fr">
             <display-template>
                 <div class="dg-cell-value">
-                    <div class="text-truncate"><a :href="item.row.EditUrl" class="text-truncate">{{ item.value }}</a></div>
-                    <div v-if="item.row.ParentCategoryId > 0" class="text-muted text-truncate" v-html="item.row.Breadcrumb"></div>
+                    @if (canUpdate)
+                    {
+
+                        <div class="text-truncate">
+                            <a :href="item.row.EditUrl" class="text-truncate">{{ item.value }}</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-truncate">
+                            <span class="text-truncate">{{ item.value }}</span>
+                        </div>
+
+                    }
+
+                    <div v-if="item.row.ParentCategoryId > 0" class="text-muted text-truncate"
+                        v-html="item.row.Breadcrumb"></div>
                 </div>
             </display-template>
         </column>

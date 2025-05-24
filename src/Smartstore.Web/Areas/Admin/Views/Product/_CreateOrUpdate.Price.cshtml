@@ -21,8 +21,9 @@
                         <editor asp-for="ComparePrice" sm-postfix="@Model.PrimaryStoreCurrencyCode" />
                     </div>
                     <div class="col">
-                        
-                        <select asp-for="ComparePriceLabelId" asp-items="ViewBag.PriceLabels" asp-placeholder="@ViewBag.DefaultComparePriceLabelName"></select>
+
+                        <select asp-for="ComparePriceLabelId" asp-items="ViewBag.PriceLabels"
+                            asp-placeholder="@ViewBag.DefaultComparePriceLabelName"></select>
                     </div>
                 </div>
 
@@ -217,40 +218,40 @@
 <script>
     $(function () {
 
-		var fieldBasePriceMeasureUnit = $("#@Html.IdFor(model => model.BasePriceMeasureUnit)");
+        var fieldBasePriceMeasureUnit = $("#@Html.IdFor(model => model.BasePriceMeasureUnit)");
         var fieldBasePriceAmount = $("#@Html.IdFor(model => model.BasePriceAmount)");
         var fieldBasePriceBaseAmount = $("#@Html.IdFor(model => model.BasePriceBaseAmount)");
 
-		fieldBasePriceMeasureUnit.on("change", getCurrentBasePrice);
-		fieldBasePriceAmount.on("blur", getCurrentBasePrice);
-		fieldBasePriceBaseAmount.on("blur", getCurrentBasePrice);
+        fieldBasePriceMeasureUnit.on("change", getCurrentBasePrice);
+        fieldBasePriceAmount.on("blur", getCurrentBasePrice);
+        fieldBasePriceBaseAmount.on("blur", getCurrentBasePrice);
 
-		getCurrentBasePrice();
+        getCurrentBasePrice();
 
-		function getCurrentBasePrice() {
-			var basePriceAmount = Smartstore.globalization.parseFloat(fieldBasePriceAmount.val());
-			var basePriceBaseAmount = Smartstore.globalization.parseInt(fieldBasePriceBaseAmount.val());
-			if (basePriceAmount > 0 && basePriceBaseAmount > 0) {
-				$.ajax({
-					cache: false,
-					global: false,
-					type: "POST",
-					url: "@(Url.Action("GetBasePrice", "Product"))",
-					data: {
-						"productId" : @Model.Id,
-						"basePriceMeasureUnit": fieldBasePriceMeasureUnit.val(),
-						"basePriceAmount": fieldBasePriceAmount.val(),
-						"basePriceBaseAmount": fieldBasePriceBaseAmount.val()
-					},
-					success: function (data) {
-						$("#BasePriceAmountInfo").html(data.BasePrice);
-					},
+        function getCurrentBasePrice() {
+            var basePriceAmount = Smartstore.globalization.parseFloat(fieldBasePriceAmount.val());
+            var basePriceBaseAmount = Smartstore.globalization.parseInt(fieldBasePriceBaseAmount.val());
+            if (basePriceAmount > 0 && basePriceBaseAmount > 0) {
+                $.ajax({
+                    cache: false,
+                    global: false,
+                    type: "POST",
+                    url: "@(Url.Action("GetBasePrice", "Product"))",
+                    data: {
+                        "productId": @Model.Id,
+                        "basePriceMeasureUnit": fieldBasePriceMeasureUnit.val(),
+                        "basePriceAmount": fieldBasePriceAmount.val(),
+                        "basePriceBaseAmount": fieldBasePriceBaseAmount.val()
+                    },
+                    success: function (data) {
+                        $("#BasePriceAmountInfo").html(data.BasePrice);
+                    },
                     error: function (xhr, ajaxOptions, thrownError) {
                         console.log(thrownError);
-					}
-				});
-			}
-			return false;
-		}
-	})
+                    }
+                });
+            }
+            return false;
+        }
+    })
 </script>

@@ -1,15 +1,15 @@
 ﻿@model ProductReviewModel
-
+@inject Smartstore.Core.Security.IPermissionService permissionService
+@using Smartstore.Core.Security
 @{
     var parentModel = ViewData["Parent"] as ProductReviewListModel;
+    var canApprove = await permissionService.AuthorizeAsync(Permissions.Catalog.ProductReview.Approve);
+    var canDelete = await permissionService.AuthorizeAsync(Permissions.Catalog.ProductReview.Delete);
+    var canUpdate = await permissionService.AuthorizeAsync(Permissions.Catalog.ProductReview.Update);
 }
 
-<datagrid id="productreviews-grid"
-          allow-resize="true"
-          preserve-grid-state="true" preserve-command-state="true"
-          allow-column-reordering="true"
-          allow-row-selection="true"
-          onrowclass="productreviewsGrid_onRowClass">
+<datagrid id="productreviews-grid" allow-resize="true" preserve-grid-state="true" preserve-command-state="true"
+    allow-column-reordering="true" allow-row-selection="true" onrowclass="productreviewsGrid_onRowClass">
     <datasource read="@Url.Action("ProductReviewList")" delete="@Url.Action("ProductReviewDelete")" />
     <paging position="Bottom" page-index="1" show-size-chooser="true" />
     <sorting allow-unsort="true" allow-multisort="false">
@@ -21,41 +21,41 @@
                 <i class="fa fa-fw fa-filter"></i>
             </button>
         </toolbar-group>
-        <toolbar-group>
-            <button datagrid-action="DataGridToolAction.ReactToSelection"
-                    type="button"
-                    id="approve-selected"
-                    class="btn btn-warning btn-flat"
-                    data-url="@Url.Action("ApproveSelected")">
-                <i class="fa fa-check"></i>
-                <span>@T("Admin.Catalog.ProductReviews.ApproveSelected")</span>
-            </button>
-            <button datagrid-action="DataGridToolAction.ReactToSelection"
-                    type="button"
-                    id="disapprove-selected"
-                    class="btn btn-secondary btn-to-danger btn-flat"
-                    data-url="@Url.Action("DisapproveSelected")">
-                <i class="fa fa-times"></i>
-                <span>@T("Admin.Catalog.ProductReviews.DisapproveSelected")</span>
-            </button>
-            <button datagrid-action="DataGridToolAction.ReactToSelection"
-                    type="button"
-                    id="verify-selected"
-                    class="btn btn-secondary btn-to-danger btn-flat"
-                    data-url="@Url.Action("VerifySelected")">
-                <i class="fa fa-check"></i>
-                <span>@T("Admin.Catalog.ProductReviews.VerifySelected")</span>
-            </button>
-        </toolbar-group>
+        @if (canApprove)
+        {
+            <toolbar-group>
+                <button datagrid-action="DataGridToolAction.ReactToSelection" type="button" id="approve-selected"
+                    class="btn btn-warning btn-flat" data-url="@Url.Action("ApproveSelected")">
+                    <i class="fa fa-check"></i>
+                    <span>@T("Admin.Catalog.ProductReviews.ApproveSelected")</span>
+                </button>
+                <button datagrid-action="DataGridToolAction.ReactToSelection" type="button" id="disapprove-selected"
+                    class="btn btn-secondary btn-to-danger btn-flat" data-url="@Url.Action("DisapproveSelected")">
+                    <i class="fa fa-times"></i>
+                    <span>@T("Admin.Catalog.ProductReviews.DisapproveSelected")</span>
+                </button>
+                <button datagrid-action="DataGridToolAction.ReactToSelection" type="button" id="verify-selected"
+                    class="btn btn-secondary btn-to-danger btn-flat" data-url="@Url.Action("VerifySelected")">
+                    <i class="fa fa-check"></i>
+                    <span>@T("Admin.Catalog.ProductReviews.VerifySelected")</span>
+                </button>
+            </toolbar-group>
+        }
+
         <zone name="datagrid_toolbar_alpha"></zone>
         <toolbar-group class="omega"></toolbar-group>
         <zone name="datagrid_toolbar_omega"></zone>
-        <toolbar-group>
-            <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button" class="btn btn-danger no-anims btn-flat">
-                <i class="far fa-trash-can"></i>
-                <span>@T("Admin.Common.Delete.Selected")</span>
-            </button>
-        </toolbar-group>
+        @if (canDelete)
+        {
+            <toolbar-group>
+                <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button"
+                    class="btn btn-danger no-anims btn-flat">
+                    <i class="far fa-trash-can"></i>
+                    <span>@T("Admin.Common.Delete.Selected")</span>
+                </button>
+            </toolbar-group>
+        }
+
     </toolbar>
     <search-panel>
         <partial name="_Grid.ProductReviews.Search" model="parentModel" />
@@ -65,7 +65,8 @@
         <column for="ProductId" entity-member="Product.Name" width="1fr">
             <display-template>
                 <div v-if="item.row.ProductEditUrl" class="text-truncate">
-                    @Html.LabeledProductName(urlExpression: "item.row.ProductEditUrl", valueExpression: "item.row.ProductName")
+                    @Html.LabeledProductName(urlExpression: "item.row.ProductEditUrl", valueExpression:
+                    "item.row.ProductName")
                 </div>
                 <div v-if="!item.row.ProductEditUrl" class="text-truncate" v-html="item.row.ProductName"></div>
             </display-template>
@@ -77,7 +78,7 @@
             </display-template>
         </column>
         <column for="ReviewText" encoded="true" wrap="true" width="2fr" />
-        <column for="CustomerId" visible="false" >
+        <column for="CustomerId" visible="false">
             <display-template>
                 <a :href="item.row.CustomerEditUrl" class="text-truncate">{{ item.row.CustomerName }}</a>
             </display-template>
@@ -90,9 +91,16 @@
         <column for="HelpfulYesTotal" halign="center" visible="false" />
         <column for="HelpfulNoTotal" halign="center" visible="false" />
     </columns>
+
     <row-commands>
-        <a datarow-action="DataRowAction.Custom" :href="item.row.EditUrl">@T("Common.Edit")</a>
-        <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
+        @if (canUpdate)
+        {
+            <a datarow-action="DataRowAction.Custom" :href="item.row.EditUrl">@T("Common.Edit")</a>
+        }
+        @if (canDelete)
+        {
+            <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
+        }
     </row-commands>
 </datagrid>
 

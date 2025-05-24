@@ -1,4 +1,4 @@
-﻿@{
+﻿﻿@{
     var arr = new[]
     {
         new { Part = "ProductsCount", Label = T("Admin.Catalog.Products").Value, Title = T("Admin.Catalog.Products").Value, Icon = "boxes" },
@@ -49,7 +49,7 @@
         <div class="row g-2">
             @for (int i = 0; i < arr.Length; i++)
             {
-                <div class="col-6 col-md-4 col-xl-3 col-xxl-4 statistics-col">
+                <div class="col-12  statistics-col">
                     <div class="statistics-content bg-secondary rounded py-2 px-3">
                         <div class="statistics-container-outer text-truncate">
                             <div class="statistics-container-inner text-truncate">
@@ -81,8 +81,14 @@
                 var elements = $('.statistics-value');
                 elements.each(function (i, element) {
                     var part = $(element).data('part');
-                    $(element).html(data.model[part]);
-                    $(element).attr('title', data.model[part]);
+                    var value = data.model[part];
+                    if (value === null || value === undefined) {
+                        // Hide the whole card if value is null/undefined
+                        $(element).closest('.statistics-col').hide();
+                    } else {
+                        $(element).html(value);
+                        $(element).attr('title', value);
+                    }
                 });
             }
         });

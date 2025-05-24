@@ -1,0 +1,46 @@
+@using Smartstore.Admin.Models.Orders
+@using Smartstore.Core.Localization
+
+@model List<DashboardOrderModel>
+@inject Localizer Localizer
+
+<div class="table-responsive table-dashboard table-hover table-prevent-overflow">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th class="display-row" style="width: 10%">#</th>
+                <th class="display-row text-center px-3 d-none d-sm-table-cell" style="width: 10%">
+                    @Localizer("Admin.Catalog.Categories.Products")</th>
+                <th class="display-row text-right" style="width: 15%; padding-right: 2rem">@Localizer("Common.Amount")
+                </th>
+                <th class="display-row d-none d-sm-table-cell" style="width: 20%;">
+                    @Localizer("Account.CustomerOrders.OrderDate")</th>
+                <th class="display-row" style="width: 25%">@Localizer("Admin.Customers.Reports.BestBy.Fields.Customer")
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Count; i++)
+            {
+                var order = Model[i];
+                var orderNumber = i + 1;
+                <tr class="order-row" index="@order.OrderId">
+                    <td class="display-row" title="@T("Admin.Orders.Fields.OrderNumber"): @order.OrderNumber">
+                        <a asp-action="Edit" asp-controller="Order" asp-route-id="@order.OrderId"
+                            data-order-number="@order.OrderNumber">@orderNumber</a>
+                    </td>
+
+                    <td class="display-row text-center d-none d-sm-table-cell" title="@order.ProductsTotal">
+                        @order.ProductsTotal</td>
+                    <td class="display-row text-right" style="padding-right: 2rem"
+                        title="@order.TotalAmount @Localizer("Tax.InclVAT")">@order.TotalAmount</td>
+                    <td class="display-row d-none d-sm-table-cell" title="@order.Created">@order.Created</td>
+                    <td class="display-row" title="@order.CustomerDisplayName">
+                        <a asp-action="Edit" asp-controller="Customer"
+                            asp-route-id="@order.CustomerId">@order.CustomerDisplayName</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -38,6 +38,7 @@ namespace Smartstore.Admin.Controllers
         private readonly Lazy<ITaskStore> _taskStore;
         private readonly Lazy<ITaskScheduler> _taskScheduler;
         private readonly CatalogSettings _catalogSettings;
+        private readonly IPermissionService _permissionService;
 
         public CategoryController(
             SmartDbContext db,
@@ -51,7 +52,8 @@ namespace Smartstore.Admin.Controllers
             IAclService aclService,
             Lazy<ITaskStore> taskStore,
             Lazy<ITaskScheduler> taskScheduler,
-            CatalogSettings catalogSettings)
+            CatalogSettings catalogSettings,
+            IPermissionService permissionService)
         {
             _db = db;
             _productService = productService;
@@ -65,6 +67,7 @@ namespace Smartstore.Admin.Controllers
             _taskStore = taskStore;
             _taskScheduler = taskScheduler;
             _catalogSettings = catalogSettings;
+            _permissionService = permissionService;
         }
 
         /// <summary>
@@ -209,6 +212,7 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Category.Read)]
         public async Task<IActionResult> CategoryTree(int parentId = 0, int searchStoreId = 0)
         {
+            bool userCanEditCategories = await _permissionService.AuthorizeAsync(Permissions.Catalog.Category.Update);
             var tree = await _categoryService.GetCategoryTreeAsync(parentId, searchStoreId == 0, searchStoreId);
 
             var nodes = tree.Children
@@ -223,7 +227,9 @@ namespace Smartstore.Admin.Controllers
                         NumChildrenDeep = x.Flatten(false).Count(),
                         BadgeText = category.Alias,
                         Dimmed = !category.Published,
-                        Url = Url.Action(nameof(Edit), "Category", new { id = category.Id })
+                        Url = userCanEditCategories
+                    ? Url.Action(nameof(Edit), "Category", new { id = category.Id })
+                    : null // 👈 No URL if no permission
                     };
 
                     return new TreeNode<TreeItem>(nodeValue, category.Id);

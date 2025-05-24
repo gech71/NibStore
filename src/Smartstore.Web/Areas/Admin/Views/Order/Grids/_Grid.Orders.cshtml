@@ -7,14 +7,9 @@
     var isOrderListPage = productId == null && customerId == null;
 }
 
-<datagrid id="orders-grid" version="2"
-          attr-class='(!isOrderListPage, "h-100")'
-          allow-resize="true"
-          allow-row-selection="true"
-          border-style="HorizontalBorders"
-          sticky-footer="false"
-          preserve-grid-state="true" preserve-command-state="true"
-          allow-column-reordering="true">
+<datagrid id="orders-grid" version="2" attr-class='(!isOrderListPage, "h-100")' allow-resize="true"
+    allow-row-selection="true" border-style="HorizontalBorders" sticky-footer="false" preserve-grid-state="true"
+    preserve-command-state="true" allow-column-reordering="true">
     <datasource read="@Url.Action("OrderList", "Order", new { productId, customerId })" />
     <paging position="Bottom" show-size-chooser="true" />
     <sorting allow-unsort="true" allow-multisort="false">
@@ -30,15 +25,18 @@
             </toolbar-group>
 
             <toolbar-group class="dropdown">
-                <button type="button" class="btn btn-light btn-flat dropdown-toggle" data-toggle="dropdown" data-boundary="window">
+                <button type="button" class="btn btn-light btn-flat dropdown-toggle" data-toggle="dropdown"
+                    data-boundary="window">
                     @T("Admin.Common.Export.PDF")
                 </button>
                 <div class="dropdown-menu">
-                    <a href="javascript:;" class="dropdown-item process-orders" v-bind:class="{ disabled: !grid.hasSelection }" data-url="@Url.Action("ExportPdf", "Order")">
+                    <a href="javascript:;" class="dropdown-item process-orders"
+                        v-bind:class="{ disabled: !grid.hasSelection }" data-url="@Url.Action("ExportPdf", "Order")">
                         <i class="far fa-fw fa-file-pdf"></i>
                         <span class="order-process-title">@T("Admin.Common.ExportToPdf.Selected")</span>
                     </a>
-                    <a href="javascript:;" class="dropdown-item process-orders all-allowed" data-url="@Url.Action("ExportPdf", "Order")" data-msg="@T("Admin.Common.AskToProceed")">
+                    <a href="javascript:;" class="dropdown-item process-orders all-allowed"
+                        data-url="@Url.Action("ExportPdf", "Order")" data-msg="@T("Admin.Common.AskToProceed")">
                         <i class="far fa-fw fa-file-pdf"></i>
                         <span class="order-process-title">@T("Admin.Common.ExportToPdf.All")</span>
                     </a>
@@ -49,11 +47,14 @@
         <toolbar-group class="omega"></toolbar-group>
         <zone name="datagrid_toolbar_omega"></zone>
         <toolbar-group class="dropdown">
-            <button datagrid-action="DataGridToolAction.ReactToSelection" class="btn btn-light btn-flat dropdown-toggle no-chevron" data-toggle="dropdown" data-boundary="window">
+            <button datagrid-action="DataGridToolAction.ReactToSelection"
+                class="btn btn-light btn-flat dropdown-toggle no-chevron" data-toggle="dropdown" data-boundary="window">
                 <i class="fa fa-fw fa-ellipsis-h"></i>
             </button>
             <div class="dropdown-menu dropdown-menu-right">
-                @{ OrdersGridMenu(false); }
+                @{
+                    OrdersGridMenu(false);
+                }
             </div>
         </toolbar-group>
     </toolbar>
@@ -74,7 +75,8 @@
         <column for="CustomerName" sortable="false" title="@T("Admin.Orders.Fields.Customer")">
             <display-template>
                 <div class="dg-cell-value">
-                    <a v-if="!item.row.CustomerDeleted" :href="item.row.CustomerEditUrl" class="text-truncate">{{ item.row.CustomerName }}</a>
+                    <a v-if="!item.row.CustomerDeleted" :href="item.row.CustomerEditUrl" class="text-truncate">{{
+                        item.row.CustomerName }}</a>
                     <div v-if="item.row.CustomerDeleted" class="text-truncate">{{ item.row.CustomerName }}</div>
                     <div class="text-truncate">{{ item.row.CustomerEmail }}</div>
                 </div>
@@ -86,8 +88,10 @@
                 <div class="dg-cell-value">
                     <i :class="item.row.ShippingStatusLabelClass" :title="item.row.ShippingStatusString"></i>
                     <span v-if="item.row.IsShippable" class="text-truncate">{{ item.row.ShippingAddressString }}</span>
-                    <div v-if="item.row.IsShippable" class="text-muted text-truncate">{{ item.row.ViaShippingMethod }}</div>
-                    <span v-if="!item.row.IsShippable" class="text-muted text-truncate">{{ item.row.ShippingStatusString }}</span>
+                    <div v-if="item.row.IsShippable" class="text-muted text-truncate">{{ item.row.ViaShippingMethod }}
+                    </div>
+                    <span v-if="!item.row.IsShippable" class="text-muted text-truncate">{{ item.row.ShippingStatusString
+                        }}</span>
                 </div>
             </display-template>
         </column>
@@ -99,10 +103,21 @@
                 </div>
             </display-template>
         </column>
+        <column for="PaymentStatus" entity-member="PaymentStatusId" title="@T("Admin.Orders.Fields.PaymentStatus")">
+            <display-template>
+                <div class="dg-cell-value">
+                    <i :class="item.row.PaymentStatusLabelClass" :title="item.row.PaymentStatusString"></i>
+                    <span class="text-truncate">{{ item.row.PaymentStatusString }}</span>
+                    <div v-if="item.row.PaymentMethod" class="text-muted text-truncate">{{ item.row.PaymentMethod }}
+                    </div>
+                </div>
+            </display-template>
+        </column>
         <column for="UpdatedOn" entity-member="UpdatedOnUtc" visible="false" />
         <column for="OrderStatus" entity-member="OrderStatusId" title="@T("Admin.Orders.Fields.OrderStatus")">
             <display-template>
-                <span v-bind:class="item.row.OrderStatusLabelClass" class="text-truncate">{{ item.row.OrderStatusString }}</span>
+                <span v-bind:class="item.row.OrderStatusLabelClass" class="text-truncate">{{ item.row.OrderStatusString
+                    }}</span>
             </display-template>
         </column>
         <column for="OrderTotalString" entity-member="OrderTotal" halign="flex-end">
@@ -112,7 +127,8 @@
                         <big class="fwm">{{ item.row.OrderTotalString }}</big>
                         <i :class="item.row.PaymentStatusLabelClass" :title="item.row.PaymentStatusString"></i>
                     </div>
-                    <div v-if="item.row.HasPaymentMethod" class="pr-2 text-muted text-truncate">{{ item.row.WithPaymentMethod }}</div>
+                    <div v-if="item.row.HasPaymentMethod" class="pr-2 text-muted text-truncate">{{
+                        item.row.WithPaymentMethod }}</div>
                 </div>
             </display-template>
             <footer-template>
@@ -138,7 +154,9 @@
         </column>
     </columns>
     <row-commands>
-        @{ OrdersGridMenu(true); }
+        @{
+            OrdersGridMenu(true);
+        }
     </row-commands>
 </datagrid>
 
@@ -150,11 +168,13 @@
         <div class="dropdown-header h6 text-uppercase">
             @T("Admin.Orders.Fields.OrderStatus")
         </div>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "complete" })"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "complete" })" @Html.Raw(key)>
             <i class="fa fa-fw fa-check"></i>
             <span class="order-process-title">@T("Enums.OrderStatus.Complete")</span>
         </a>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "cancel" })"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "cancel" })" @Html.Raw(key)>
             <i class="fa fa-fw fa-times"></i>
             <span class="order-process-title">@T("Admin.Orders.Fields.OrderStatus.Cancel")</span>
         </a>
@@ -162,11 +182,13 @@
         <div class="dropdown-header h6 text-uppercase">
             @T("Admin.Orders.Fields.ShippingStatus")
         </div>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "ship" })"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "ship" })" @Html.Raw(key)>
             <i class="fa fa-fw fa-truck fa-flip-horizontal"></i>
             <span class="order-process-title">@T("Enums.ShippingStatus.Shipped")</span>
         </a>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "deliver" })"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "deliver" })" @Html.Raw(key)>
             <i class="fa fa-fw"></i>
             <span class="order-process-title">@T("Enums.ShippingStatus.Delivered")</span>
         </a>
@@ -174,33 +196,39 @@
         <div class="dropdown-header h6 text-uppercase">
             @T("Admin.Orders.Fields.PaymentStatus")
         </div>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "markpaid" })" 
-           title="@T("Admin.Orders.Fields.MarkAsPaid.Hint")"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "markpaid" })"
+            title="@T("Admin.Orders.Fields.MarkAsPaid.Hint")" @Html.Raw(key)>
             <i class="fa fa-fw"></i>
             <span class="order-process-title">@T("Admin.Orders.Fields.MarkAsPaid")</span>
         </a>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "capture" })" 
-           title="@T("Admin.Orders.Fields.Capture.Hint")"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "capture" })"
+            title="@T("Admin.Orders.Fields.Capture.Hint")" @Html.Raw(key)>
             <i class="fas fa-fw fa-euro-sign"></i>
             <span class="order-process-title">@T("Admin.Orders.Fields.Capture")</span>
         </a>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "refundoffline" })" 
-           title="@T("Admin.Orders.Fields.RefundOffline.Hint")"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "refundoffline" })"
+            title="@T("Admin.Orders.Fields.RefundOffline.Hint")" @Html.Raw(key)>
             <i class="fa fa-fw"></i>
             <span class="order-process-title">@T("Admin.Orders.Fields.RefundOffline")</span>
         </a>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "refund" })" 
-           title="@T("Admin.Orders.Fields.Refund.Hint")"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "refund" })"
+            title="@T("Admin.Orders.Fields.Refund.Hint")" @Html.Raw(key)>
             <i class="fas fa-fw fa-rotate-left"></i>
             <span class="order-process-title">@T("Admin.Orders.Fields.Refund")</span>
         </a>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "voidoffline" })" 
-           title="@T("Admin.Orders.Fields.VoidOffline.Hint")"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "voidoffline" })"
+            title="@T("Admin.Orders.Fields.VoidOffline.Hint")" @Html.Raw(key)>
             <i class="fa fa-fw"></i>
             <span class="order-process-title">@T("Admin.Orders.Fields.VoidOffline")</span>
         </a>
-        <a href="javascript:;" class="dropdown-item process-orders" data-url="@Url.Action("ProcessOrder", "Order", new { operation = "void" })" 
-           title="@T("Admin.Orders.Fields.Void.Hint")"@Html.Raw(key)>
+        <a href="javascript:;" class="dropdown-item process-orders"
+            data-url="@Url.Action("ProcessOrder", "Order", new { operation = "void" })"
+            title="@T("Admin.Orders.Fields.Void.Hint")" @Html.Raw(key)>
             <i class="fa fa-fw fa-times"></i>
             <span class="order-process-title">@T("Admin.Orders.Fields.Void")</span>
         </a>
@@ -224,7 +252,7 @@
             var allAllowed = link.hasClass('all-allowed');
             var orderId = link.data('key');
             var processWithOrderMsg = @T("Admin.Orders.ProcessWithOrder").JsValue;
-			var processSelectedMsg = @T("Admin.Orders.ProcessSelectedOrders").JsValue;
+            var processSelectedMsg = @T("Admin.Orders.ProcessSelectedOrders").JsValue;
             var processAllMsg = @T("Admin.Common.AskToProceed").JsValue;
             var msg = link.data('msg');
 
@@ -233,11 +261,11 @@
             }
 
             if (!allAllowed && selectedIds.length === 0) {
-				alert2({
-					message: @T("Admin.Orders.NoOrdersSelected").JsValue,
-					icon: { type: 'warning' }
-				});
-				return;
+                alert2({
+                    message: @T("Admin.Orders.NoOrdersSelected").JsValue,
+                    icon: { type: 'warning' }
+                });
+                return;
             }
 
             if (!msg) {

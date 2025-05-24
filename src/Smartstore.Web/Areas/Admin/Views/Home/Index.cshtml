@@ -1,4 +1,4 @@
-﻿@{
+﻿﻿﻿@{
     Layout = "_AdminLayout";
     Assets.BodyAttributes.AppendCssClass("minimal-admin");
 }
@@ -31,11 +31,8 @@
     <div class="report-latest-orders">
         @await Component.InvokeAsync("DashboardLatestOrders")
     </div>
-    <div class="report-store-statistics">
+    <div class="news-feed" style="overflow-y: auto !important; position: sticky; top: 0; right: 0;">
         <partial name="~/Areas/Admin/Views/Store/StoreDashboardReport.cshtml" />
-    </div>
-    <div class="news-feed">
-        @await Component.InvokeAsync("NewsFeed")
     </div>
 
     <zone name="admin_dashboard_bottom"></zone>

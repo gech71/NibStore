@@ -88,7 +88,8 @@ html {
 }
 
 body {
-    background-color: $gray-150;
+    background: #f5f5f5 url('/images/bg.jpg') no-repeat center center fixed;
+    background-size: cover;
 
     &.popup {
         background-color: #fff;
@@ -126,9 +127,22 @@ body {
 }
 
 #header {
-    @include gradient-bg($indigo);
+    @include gradient-bg(#8a4d21);
     grid-column: 1 / -1;
     grid-row: 1 / span 2;
+    color: #fff;
+}
+
+// Make all header text/icons white by default
+#header * {
+    color: #fff !important;
+}
+
+// But dropdown menus inside the header should have black text
+#header .dropdown-menu,
+#header .dropdown-menu * {
+    color: #222 !important;
+    background-color: #fff !important; // optional: ensures dropdown background is white
 }
 
 .sidebar-left {
@@ -1679,4 +1693,34 @@ a.editable {
 
 .ai-dialog-opener-root .fu-remove {
     margin-inline-end: 2.25em;
+}
+
+#header *:hover {
+    color: #feb914 !important; // Bright yellow on hover
+    transition: color 0.2s;
+}
+
+#header .nav-link:hover,
+#header .navbar-tool:hover,
+#header .navbar-label:hover,
+#header .navbar-icon:hover {
+    background-color: #feb914 !important; // Yellow background on hover
+    color: #222 !important;               // Optional: dark text for contrast
+    border-radius: 6px;                   // Rounded corners
+    transition: background 0.2s, color 0.2s;
+}
+
+// Keep dropdown menu text black, even on hover
+#header .dropdown-menu *,
+#header .dropdown-menu *:hover {
+    color: #222 !important;
+    background-color: #fff !important;
+}
+
+#header .dropdown-menu .dropdown-item:hover,
+#header .dropdown-menu .dropdown-item:focus {
+    background-color: #feb914 !important; // Yellow background on hover
+    color: #222 !important;               // Keep text black for contrast
+    border-radius: 6px;                   // Optional: rounded corners
+    transition: background 0.2s, color 0.2s;
 }
