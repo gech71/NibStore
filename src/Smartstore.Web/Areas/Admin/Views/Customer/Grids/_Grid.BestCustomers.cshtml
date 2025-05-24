@@ -1,7 +1,10 @@
 ﻿@model TopCustomerReportLineModel
-
+@inject Smartstore.Core.Security.IPermissionService permissionService
+@using Smartstore.Core.Security
 @{
     var parentModel = ViewData["Parent"] as TopCustomersReportModel;
+    var canCreate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Create);
+
 }
 
 <datagrid id="best-customers-grid" class="h-100" allow-resize="true" allow-column-reordering="true">
@@ -23,11 +26,22 @@
     <columns>
         <column for="CustomerId" sortable="false" halign="center" visible="false" type="string" />
         <column for="Email" hideable="false" sortable="false">
-            <display-template>
-                <a :href="item.row.EditUrl" class="text-truncate">
-                    {{ item.value }}
-                </a>
-            </display-template>
+            @if (canCreate)
+            {
+                <display-template>
+                    <a :href="item.row.EditUrl" class="text-truncate">
+                        {{ item.value }}
+                    </a>
+                </display-template>
+            }
+            else
+            {
+                <display-template>
+                    <span> {{ item.value }}</span>
+
+                </display-template>
+            }
+
         </column>
         @if (ViewBag.UsernamesEnabled)
         {
