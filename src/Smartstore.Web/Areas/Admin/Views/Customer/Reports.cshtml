@@ -1,10 +1,11 @@
 ﻿@model TopCustomersReportModel
-
+@inject Smartstore.Core.Security.IPermissionService permissionService
+@using Smartstore.Core.Security
 @{
     ViewBag.Title = T("Admin.Customers.Reports").Value;
-
     var gridViewData = new ViewDataDictionary(this.ViewData);
     gridViewData["Parent"] = Model;
+    var canCreate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Create);
 }
 
 <div class="section-header">
@@ -20,27 +21,32 @@
     <tab sm-title="@T("Admin.Customers.Reports.BestCustomers")" sm-selected="true" sm-adaptive-height="true">
         <partial name="Grids/_Grid.BestCustomers" model="null" view-data="gridViewData" />
     </tab>
-    <tab sm-title="@T("Admin.Customers.Reports.RegisteredCustomers")">
-        <div class="card shadow-sm mb-4 w-50">
-            <div class="table-responsive">
-                <table class="table table-striped m-0">
-                    <thead>
-                        <tr>
-                            <th class="w-25">@T("Admin.Customers.Reports.RegisteredCustomers.Fields.Period")</th>
-                            <th class="text-center">@T("Admin.Customers.Reports.RegisteredCustomers.Fields.Customers")</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in ViewBag.RegisteredCustomerReportLines as Dictionary<string, int>)
-                        {
+    @if (canCreate)
+    {
+        <tab sm-title="@T("Admin.Customers.Reports.RegisteredCustomers")">
+            <div class="card shadow-sm mb-4 w-50">
+                <div class="table-responsive">
+                    <table class="table table-striped m-0">
+                        <thead>
                             <tr>
-                                <td>@item.Key</td>
-                                <td class="text-center">@item.Value</td>
+                                <th class="w-25">@T("Admin.Customers.Reports.RegisteredCustomers.Fields.Period")</th>
+                                <th class="text-center">@T("Admin.Customers.Reports.RegisteredCustomers.Fields.Customers")
+                                </th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in ViewBag.RegisteredCustomerReportLines as Dictionary<string, int>)
+                            {
+                                <tr>
+                                    <td>@item.Key</td>
+                                    <td class="text-center">@item.Value</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-    </tab>
+        </tab>
+    }
+
 </tabstrip>

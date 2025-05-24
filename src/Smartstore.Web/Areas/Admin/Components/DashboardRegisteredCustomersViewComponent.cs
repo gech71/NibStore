@@ -15,7 +15,7 @@ namespace Smartstore.Admin.Components
 
         public override async Task<IViewComponentResult> InvokeAsync()
         {
-            if (!await Services.Permissions.AuthorizeAsync(Permissions.Customer.Read))
+            if (!await Services.Permissions.AuthorizeAsync(Permissions.Customer.Create))
             {
                 return Empty();
             }

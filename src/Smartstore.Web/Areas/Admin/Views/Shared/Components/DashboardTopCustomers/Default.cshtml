@@ -1,19 +1,28 @@
-﻿@using Smartstore.Admin.Models.Customers 
-
+﻿@using Smartstore.Admin.Models.Customers
 @model DashboardTopCustomersModel
+@inject Smartstore.Core.Security.IPermissionService permissionService
+@using Smartstore.Core.Security
 
+@{
+    var canCreate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Create);
+}
 <div class="report">
     <div class="report-title-row flex-wrap">
         <div class="report-title flex-grow-1 mr-3">@T("Admin.SalesReport.TopCustomers")</div>
         <nav>
             <div class="nav btn-group" role="tablist">
-                <a class="btn btn-secondary btn-dashboard nav-item active" id="customers-quantity-tab" data-toggle="tab" href="#customers-quantity" role="tab" aria-controls="customers-quantity" aria-selected="true">@T("Admin.SalesReport.ByQuantity")</a>
-                <a class="btn btn-secondary btn-dashboard nav-item" id="customers-amount-tab" data-toggle="tab" href="#customers-amount" role="tab" aria-controls="customers-amount" aria-selected="false">@T("Admin.SalesReport.ByAmount")</a>
+                <a class="btn btn-secondary btn-dashboard nav-item active" id="customers-quantity-tab" data-toggle="tab"
+                    href="#customers-quantity" role="tab" aria-controls="customers-quantity"
+                    aria-selected="true">@T("Admin.SalesReport.ByQuantity")</a>
+                <a class="btn btn-secondary btn-dashboard nav-item" id="customers-amount-tab" data-toggle="tab"
+                    href="#customers-amount" role="tab" aria-controls="customers-amount"
+                    aria-selected="false">@T("Admin.SalesReport.ByAmount")</a>
             </div>
         </nav>
     </div>
     <div class="tab-content" id="customers-tabcontent">
-        <div class="tab-pane fade show active" id="customers-quantity" role="tabpanel" aria-labelledby="customers-quantity-tab">
+        <div class="tab-pane fade show active" id="customers-quantity" role="tabpanel"
+            aria-labelledby="customers-quantity-tab">
             <div class="table-responsive table-dashboard table-hover table-prevent-overflow">
                 <table class="table table-3 small">
                     <thead>
@@ -27,11 +36,24 @@
                         @foreach (var customer in Model.TopCustomersByQuantity)
                         {
                             <tr>
-                                <td class="display-row" title="@customer.CustomerDisplayName">
-                                    <a asp-action="Edit" asp-controller="Customer" asp-route-id="@customer.CustomerId">@customer.CustomerDisplayName</a>
-                                </td>
-                                <td class="display-row text-center font-weight-medium" title="@customer.OrderCount">@customer.OrderCount</td>
-                                <td class="display-row text-right" title="@customer.OrderTotal @T("Tax.InclVAT")">@customer.OrderTotal</td>
+                                @if (canCreate)
+                                {
+                                    <td class="display-row" title="@customer.CustomerDisplayName">
+                                        <a asp-action="Edit" asp-controller="Customer"
+                                            asp-route-id="@customer.CustomerId">@customer.CustomerDisplayName</a>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td class="display-row" title="@customer.CustomerDisplayName">
+                                        <span>@customer.CustomerDisplayName</span>
+                                    </td>
+                                }
+
+                                <td class="display-row text-center font-weight-medium" title="@customer.OrderCount">
+                                    @customer.OrderCount</td>
+                                <td class="display-row text-right" title="@customer.OrderTotal @T("Tax.InclVAT")">
+                                    @customer.OrderTotal</td>
                             </tr>
                         }
                     </tbody>
@@ -53,10 +75,12 @@
                         {
                             <tr>
                                 <td class="display-row" title="@customer.CustomerDisplayName">
-                                    <a asp-action="Edit" asp-controller="Customer" asp-route-id="@customer.CustomerId">@customer.CustomerDisplayName</a>
+                                    <a asp-action="Edit" asp-controller="Customer"
+                                        asp-route-id="@customer.CustomerId">@customer.CustomerDisplayName</a>
                                 </td>
                                 <td class="display-row text-center" title="@customer.OrderCount">@customer.OrderCount</td>
-                                <td class="display-row text-right font-weight-medium" title="@customer.OrderTotal @T("Tax.InclVAT")">@customer.OrderTotal</td>
+                                <td class="display-row text-right font-weight-medium"
+                                    title="@customer.OrderTotal @T("Tax.InclVAT")">@customer.OrderTotal</td>
                             </tr>
                         }
                     </tbody>
