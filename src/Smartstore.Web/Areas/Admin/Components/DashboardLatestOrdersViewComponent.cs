@@ -54,25 +54,48 @@ namespace Smartstore.Admin.Components
 
         private async Task<List<Order>> GetOrdersByStatus(OrderStatus status, int count)
         {
-            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", Services.WorkContext.CurrentCustomer.Id);
+            var currentUser = Services.WorkContext.CurrentCustomer;
+            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", currentUser.Id);
             
-            // First get all orders with the required includes
-            var query = Services.DbContext.Orders
+            var isMerchant = await Services.DbContext.CustomerRoleMappings
+                .AnyAsync(m => m.CustomerId == currentUser.Id && 
+                             m.CustomerRole.SystemName == "Merchant");
+
+            IQueryable<Order> query = Services.DbContext.Orders
                 .ApplyCustomerFilter(authorizedStoreIds)
                 .AsNoTracking()
-                .AsSplitQuery()
+                .AsSplitQuery();
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await Services.DbContext.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                              a.Key == "CreatedByUserId" &&
+                              a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                if (!merchantProductIds.Any())
+                {
+                    return new List<Order>();
+                }
+
+                query = query.Where(o => o.OrderItems
+                    .Any(oi => merchantProductIds.Contains(oi.ProductId)));
+            }
+            var orders = await query
                 .Include(x => x.Customer)
                     .ThenInclude(x => x.CustomerRoleMappings)
                     .ThenInclude(x => x.CustomerRole)
-                .Include(x => x.OrderItems);
-                
-            // Execute the query and materialize the results
-            var allOrders = await query.ToListAsync();
-            
-            // Filter by status in memory and take the specified count
-            return allOrders
-                .Where(x => x.OrderStatus == status)
+                .Include(x => x.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                        .ThenInclude(p => p.ProductManufacturers)
+                            .ThenInclude(pm => pm.Manufacturer)
                 .OrderByDescending(x => x.Id)
+                .ToListAsync();
+            
+            return orders
+                .Where(x => x.OrderStatus == status)
                 .Take(count)
                 .ToList();
         }

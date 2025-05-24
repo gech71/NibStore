@@ -1,4 +1,4 @@
-﻿using Smartstore.Admin.Models.Orders;
+using Smartstore.Admin.Models.Orders;
 using Smartstore.Core.Checkout.Orders.Reporting;
 using Smartstore.Core.Security;
 
@@ -20,26 +20,53 @@ namespace Smartstore.Admin.Components
                 return Empty();
             }
 
-            var customer = Services.WorkContext.CurrentCustomer;
-            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", customer.Id);
+            var currentUser = Services.WorkContext.CurrentCustomer;
+            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", currentUser.Id);
 
             const int pageSize = 7;
 
-            // INFO: join tables to ignore soft-deleted products and orders.
-            var orderItemQuery =
-                from oi in _db.OrderItems.AsNoTracking()
-                join o in _db.Orders.ApplyCustomerFilter(authorizedStoreIds).AsNoTracking() on oi.OrderId equals o.Id
-                join p in _db.Products.AsNoTracking() on oi.ProductId equals p.Id
-                where !p.IsSystemProduct
-                select oi;
+            var isMerchant = await _db.CustomerRoleMappings
+                .AnyAsync(m => m.CustomerId == currentUser.Id && 
+                             m.CustomerRole.SystemName == "Merchant");
 
-            var reportByQuantity = await orderItemQuery
+            var orderItemQuery = from oi in _db.OrderItems.AsNoTracking()
+                                join o in _db.Orders.ApplyCustomerFilter(authorizedStoreIds).AsNoTracking() on oi.OrderId equals o.Id
+                                join p in _db.Products.AsNoTracking() on oi.ProductId equals p.Id
+                                where !p.IsSystemProduct
+                                select new { OrderItem = oi, ProductId = p.Id };
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a => a.KeyGroup == "Product" &&
+                              a.Key == "CreatedByUserId" &&
+                              a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                if (merchantProductIds.Any())
+                {
+                    orderItemQuery = orderItemQuery.Where(x => merchantProductIds.Contains(x.ProductId));
+                }
+                else
+                {
+                    return View(new DashboardBestsellersModel
+                    {
+                        BestsellersByQuantity = new List<BestsellersReportLineModel>(),
+                        BestsellersByAmount = new List<BestsellersReportLineModel>()
+                    });
+                }
+            }
+
+            var finalOrderItemQuery = orderItemQuery.Select(x => x.OrderItem);
+
+            var reportByQuantity = await finalOrderItemQuery
                 .AsNoTracking()
                 .SelectAsBestsellersReportLine(ReportSorting.ByQuantityDesc)
                 .Take(pageSize)
                 .ToListAsync();
 
-            var reportByAmount = await orderItemQuery
+            var reportByAmount = await finalOrderItemQuery
                 .AsNoTracking()
                 .SelectAsBestsellersReportLine(ReportSorting.ByAmountDesc)
                 .Take(pageSize)
