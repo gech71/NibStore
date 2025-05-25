@@ -59,6 +59,7 @@ namespace Smartstore.Admin.Controllers
         private readonly IOptions<IdentityOptions> _identityOptions;
         private readonly Lazy<ICookieConsentManager> _cookieManager;
         private readonly PrivacySettings _privacySettings;
+        private readonly IWorkContext _workContext;
 
         public CustomerController(
             SmartDbContext db,
@@ -86,7 +87,9 @@ namespace Smartstore.Admin.Controllers
             Lazy<IConfigureOptions<IdentityOptions>> identityOptionsConfigurer,
             IOptions<IdentityOptions> identityOptions,
             Lazy<ICookieConsentManager> cookieManager,
-            PrivacySettings privacySettings)
+            PrivacySettings privacySettings,
+            IWorkContext workContext
+        )
         {
             _db = db;
             _customerService = customerService;
@@ -114,31 +117,48 @@ namespace Smartstore.Admin.Controllers
             _identityOptions = identityOptions;
             _cookieManager = cookieManager;
             _privacySettings = privacySettings;
+            _workContext = workContext;
         }
 
         #region Utilities
 
-        private async Task<List<CustomerModel.AssociatedExternalAuthModel>> GetAssociatedExternalAuthRecords(Customer customer)
+        private async Task<
+            List<CustomerModel.AssociatedExternalAuthModel>
+        > GetAssociatedExternalAuthRecords(Customer customer)
         {
             Guard.NotNull(customer);
 
             await _db.LoadCollectionAsync(customer, x => x.ExternalAuthenticationRecords);
 
             var authSchemes = await _signInManager.GetExternalAuthenticationSchemesAsync();
-            var authProviders = _providerManager.GetAllProviders<IExternalAuthenticationMethod>()
-                .ToDictionarySafe(x => x.Metadata.SystemName, x => x, StringComparer.OrdinalIgnoreCase);
+            var authProviders = _providerManager
+                .GetAllProviders<IExternalAuthenticationMethod>()
+                .ToDictionarySafe(
+                    x => x.Metadata.SystemName,
+                    x => x,
+                    StringComparer.OrdinalIgnoreCase
+                );
 
-            return customer.ExternalAuthenticationRecords
-                .Select(x =>
+            return customer
+                .ExternalAuthenticationRecords.Select(x =>
                 {
-                    var methodName = authProviders.TryGetValue(x.ProviderSystemName, out var provider)
-                        ? _moduleManager.GetLocalizedFriendlyName(provider.Metadata).NullEmpty() ?? provider.Metadata.FriendlyName.NullEmpty()
+                    var methodName = authProviders.TryGetValue(
+                        x.ProviderSystemName,
+                        out var provider
+                    )
+                        ? _moduleManager.GetLocalizedFriendlyName(provider.Metadata).NullEmpty()
+                            ?? provider.Metadata.FriendlyName.NullEmpty()
                         : null;
 
                     if (methodName == null)
                     {
                         // Method has a system name mapping.
-                        var authScheme = authSchemes.FirstOrDefault(scheme => x.ProviderSystemName.Contains(scheme.Name, StringComparison.OrdinalIgnoreCase));
+                        var authScheme = authSchemes.FirstOrDefault(scheme =>
+                            x.ProviderSystemName.Contains(
+                                scheme.Name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        );
                         methodName = authScheme?.Name;
                     }
 
@@ -147,7 +167,7 @@ namespace Smartstore.Admin.Controllers
                         Id = x.Id,
                         Email = x.Email,
                         ExternalIdentifier = x.ExternalIdentifier,
-                        AuthMethodName = methodName ?? x.ProviderSystemName
+                        AuthMethodName = methodName ?? x.ProviderSystemName,
                     };
                 })
                 .ToList();
@@ -161,16 +181,24 @@ namespace Smartstore.Admin.Controllers
             MiniMapper.Map(_customerSettings, model);
 
             model.AllowCustomersToSetTimeZone = _dateTimeSettings.AllowCustomersToSetTimeZone;
-            model.AllowManagingCustomerRoles = await Services.Permissions.AuthorizeAsync(Permissions.Customer.EditRole);
-            model.CustomerNumberEnabled = _customerSettings.CustomerNumberMethod != CustomerNumberMethod.Disabled;
+            model.AllowManagingCustomerRoles = await Services.Permissions.AuthorizeAsync(
+                Permissions.Customer.EditRole
+            );
+            model.CustomerNumberEnabled =
+                _customerSettings.CustomerNumberMethod != CustomerNumberMethod.Disabled;
             model.UsernamesEnabled = _customerSettings.CustomerLoginType != CustomerLoginType.Email;
-            model.SelectedStoreIds = await _storeMappingService.GetAuthorizedStoreIdsAsync(customer);
+            model.SelectedStoreIds = await _storeMappingService.GetAuthorizedStoreIdsAsync(
+                customer
+            );
 
             if (customer != null)
             {
-                await _db.LoadCollectionAsync(customer, x => x.Addresses, false, q => q
-                    .Include(x => x.Country)
-                    .Include(x => x.StateProvince));
+                await _db.LoadCollectionAsync(
+                    customer,
+                    x => x.Addresses,
+                    false,
+                    q => q.Include(x => x.Country).Include(x => x.StateProvince)
+                );
 
                 model.Id = customer.Id;
                 model.IsGuest = customer.IsGuest();
@@ -201,14 +229,27 @@ namespace Smartstore.Admin.Controllers
                 model.DateOfBirth = customer.BirthDate;
                 model.DisplayVatNumber = _taxSettings.EuVatEnabled;
                 model.DisplayRewardPointsHistory = _rewardPointsSettings.Enabled;
-                model.VatNumberStatusNote = ((VatNumberStatus)customer.VatNumberStatusId).GetLocalizedEnum();
-                model.CreatedOn = dtHelper.ConvertToUserTime(customer.CreatedOnUtc, DateTimeKind.Utc);
-                model.LastActivityDate = dtHelper.ConvertToUserTime(customer.LastActivityDateUtc, DateTimeKind.Utc);
+                model.VatNumberStatusNote = (
+                    (VatNumberStatus)customer.VatNumberStatusId
+                ).GetLocalizedEnum();
+                model.CreatedOn = dtHelper.ConvertToUserTime(
+                    customer.CreatedOnUtc,
+                    DateTimeKind.Utc
+                );
+                model.LastActivityDate = dtHelper.ConvertToUserTime(
+                    customer.LastActivityDateUtc,
+                    DateTimeKind.Utc
+                );
                 model.LastIpAddress = customer.LastIpAddress;
                 model.LastVisitedPage = customer.LastVisitedPage;
                 model.DisplayProfileLink = _customerSettings.AllowViewingProfiles && !model.IsGuest;
-                model.AssociatedExternalAuthRecords = await GetAssociatedExternalAuthRecords(customer);
-                model.PermissionTree = await Services.Permissions.BuildCustomerPermissionTreeAsync(customer, true);
+                model.AssociatedExternalAuthRecords = await GetAssociatedExternalAuthRecords(
+                    customer
+                );
+                model.PermissionTree = await Services.Permissions.BuildCustomerPermissionTreeAsync(
+                    customer,
+                    true
+                );
                 model.HasOrders = await _db.Orders.AnyAsync(x => x.CustomerId == customer.Id);
                 model.LastUserAgent = customer.LastUserAgent.NaIfEmpty();
                 model.LastUserDeviceType = customer.LastUserDeviceType.NaIfEmpty();
@@ -217,28 +258,37 @@ namespace Smartstore.Admin.Controllers
                 model.Addresses = new()
                 {
                     Id = customer.Id,
-                    Addresses = await customer.Addresses.MapAsync(customer, _shoppingCartSettings.QuickCheckoutEnabled)
+                    Addresses = await customer.Addresses.MapAsync(
+                        customer,
+                        _shoppingCartSettings.QuickCheckoutEnabled
+                    ),
                 };
 
-                model.SelectedCustomerRoleIds = customer.CustomerRoleMappings
-                    .Where(x => !x.IsSystemMapping)
+                model.SelectedCustomerRoleIds = customer
+                    .CustomerRoleMappings.Where(x => !x.IsSystemMapping)
                     .Select(x => x.CustomerRoleId)
                     .ToArray();
 
-                var affiliate = await _db.Affiliates
-                    .Include(x => x.Address)
+                var affiliate = await _db
+                    .Affiliates.Include(x => x.Address)
                     .FindByIdAsync(customer.AffiliateId, false);
 
                 model.AffiliateFullName = affiliate?.Address?.GetFullName();
 
                 var cookieConsent = ga.CookieConsent;
-                model.CookieConsent = cookieConsent != null
-                    ? await MapperFactory.MapAsync<ConsentCookie, CookieConsentModel>(cookieConsent)
-                    : new();
+                model.CookieConsent =
+                    cookieConsent != null
+                        ? await MapperFactory.MapAsync<ConsentCookie, CookieConsentModel>(
+                            cookieConsent
+                        )
+                        : new();
 
                 if (cookieConsent?.ConsentedOn != null)
                 {
-                    model.CookieConsent.ConsentOn = dtHelper.ConvertToUserTime(cookieConsent.ConsentedOn.Value, DateTimeKind.Utc);
+                    model.CookieConsent.ConsentOn = dtHelper.ConvertToUserTime(
+                        cookieConsent.ConsentedOn.Value,
+                        DateTimeKind.Utc
+                    );
                 }
             }
             else
@@ -246,9 +296,14 @@ namespace Smartstore.Admin.Controllers
                 // Set default values for creation.
                 model.Active = true;
 
-                if (model.SelectedCustomerRoleIds == null || model.SelectedCustomerRoleIds.Length == 0)
+                if (
+                    model.SelectedCustomerRoleIds == null
+                    || model.SelectedCustomerRoleIds.Length == 0
+                )
                 {
-                    var role = await _customerService.GetRoleBySystemNameAsync(SystemCustomerRoleNames.Registered);
+                    var role = await _customerService.GetRoleBySystemNameAsync(
+                        SystemCustomerRoleNames.Registered
+                    );
                     model.SelectedCustomerRoleIds = [role.Id];
                 }
             }
@@ -256,8 +311,11 @@ namespace Smartstore.Admin.Controllers
             // ViewBag.
             ViewBag.IsSingleStoreMode = Services.StoreContext.IsSingleStoreMode();
 
-            ViewBag.AvailableTimeZones = dtHelper.GetSystemTimeZones()
-                .ToSelectListItems(model.TimeZoneId.NullEmpty() ?? dtHelper.DefaultStoreTimeZone.Id);
+            ViewBag.AvailableTimeZones = dtHelper
+                .GetSystemTimeZones()
+                .ToSelectListItems(
+                    model.TimeZoneId.NullEmpty() ?? dtHelper.DefaultStoreTimeZone.Id
+                );
 
             ViewBag.IsAdmin = customer != null && (customer.IsAdmin() || customer.IsSuperAdmin());
 
@@ -266,18 +324,23 @@ namespace Smartstore.Admin.Controllers
             {
                 if (_customerSettings.StateProvinceEnabled)
                 {
-                    var stateProvinces = await _db.StateProvinces.GetStateProvincesByCountryIdAsync((int)model.CountryId);
-                    ViewBag.AvailableStates = stateProvinces.ToSelectListItems(model.StateProvinceId) ?? new List<SelectListItem>
-                    {
-                        new() { Text = T("Address.OtherNonUS"), Value = "0" }
-                    };
+                    var stateProvinces = await _db.StateProvinces.GetStateProvincesByCountryIdAsync(
+                        (int)model.CountryId
+                    );
+                    ViewBag.AvailableStates =
+                        stateProvinces.ToSelectListItems(model.StateProvinceId)
+                        ?? new List<SelectListItem>
+                        {
+                            new() { Text = T("Address.OtherNonUS"), Value = "0" },
+                        };
                 }
             }
 
             if (_shoppingCartSettings.QuickCheckoutEnabled)
             {
                 var shippingMethods = await _shippingService.Value.GetAllShippingMethodsAsync();
-                var paymentProviders = await _paymentService.Value.LoadActivePaymentProvidersAsync();
+                var paymentProviders =
+                    await _paymentService.Value.LoadActivePaymentProvidersAsync();
                 var preferredShippingMethodId = ga?.PreferredShippingOption?.ShippingMethodId ?? 0;
                 var preferredPaymentMethod = ga?.PreferredPaymentMethod;
 
@@ -286,7 +349,7 @@ namespace Smartstore.Admin.Controllers
                     {
                         Text = x.GetLocalized(y => y.Name),
                         Value = x.Id.ToString(),
-                        Selected = x.Id == preferredShippingMethodId
+                        Selected = x.Id == preferredShippingMethodId,
                     })
                     .ToList();
 
@@ -294,17 +357,21 @@ namespace Smartstore.Admin.Controllers
                     .Select(x => x.Metadata)
                     .Select(x => new SelectListItem
                     {
-                        Text = _moduleManager.GetLocalizedFriendlyName(x) ?? x.FriendlyName.NullEmpty() ?? x.SystemName,
+                        Text =
+                            _moduleManager.GetLocalizedFriendlyName(x)
+                            ?? x.FriendlyName.NullEmpty()
+                            ?? x.SystemName,
                         Value = x.SystemName,
-                        Selected = x.SystemName.EqualsNoCase(preferredPaymentMethod)
+                        Selected = x.SystemName.EqualsNoCase(preferredPaymentMethod),
                     })
                     .ToList();
             }
         }
 
-        private async Task<(List<CustomerRole> NewCustomerRoles, string ErrMessage)> ValidateCustomerRoles(
-            int[] selectedCustomerRoleIds,
-            List<int> allCustomerRoleIds)
+        private async Task<(
+            List<CustomerRole> NewCustomerRoles,
+            string ErrMessage
+        )> ValidateCustomerRoles(int[] selectedCustomerRoleIds, List<int> allCustomerRoleIds)
         {
             Guard.NotNull(allCustomerRoleIds);
 
@@ -324,28 +391,46 @@ namespace Smartstore.Admin.Controllers
 
             if (newCustomerRoleIds.Count > 0)
             {
-                newCustomerRoles = await _db.CustomerRoles
-                    .AsNoTracking()
+                newCustomerRoles = await _db
+                    .CustomerRoles.AsNoTracking()
                     .Where(x => newCustomerRoleIds.Contains(x.Id))
                     .ToListAsync();
             }
 
-            var isInGuestsRole = newCustomerRoles.FirstOrDefault(cr => cr.SystemName == SystemCustomerRoleNames.Guests) != null;
-            var isInRegisteredRole = newCustomerRoles.FirstOrDefault(cr => cr.SystemName == SystemCustomerRoleNames.Registered) != null;
-            var guestRole = await _customerService.GetRoleBySystemNameAsync(SystemCustomerRoleNames.Guests);
-            var registeredRole = await _customerService.GetRoleBySystemNameAsync(SystemCustomerRoleNames.Registered);
+            var isInGuestsRole =
+                newCustomerRoles.FirstOrDefault(cr =>
+                    cr.SystemName == SystemCustomerRoleNames.Guests
+                ) != null;
+            var isInRegisteredRole =
+                newCustomerRoles.FirstOrDefault(cr =>
+                    cr.SystemName == SystemCustomerRoleNames.Registered
+                ) != null;
+            var guestRole = await _customerService.GetRoleBySystemNameAsync(
+                SystemCustomerRoleNames.Guests
+            );
+            var registeredRole = await _customerService.GetRoleBySystemNameAsync(
+                SystemCustomerRoleNames.Registered
+            );
 
             // Ensure a customer is not added to both 'Guests' and 'Registered' customer roles.
             var errMessage = string.Empty;
             if (isInGuestsRole && isInRegisteredRole)
             {
-                errMessage = T("Admin.Customers.CanOnlyBeCustomerOrGuest", guestRole.Name, registeredRole.Name);
+                errMessage = T(
+                    "Admin.Customers.CanOnlyBeCustomerOrGuest",
+                    guestRole.Name,
+                    registeredRole.Name
+                );
             }
 
             // Ensure that a customer is in at least one required role ('Guests' and 'Registered').
             if (!isInGuestsRole && !isInRegisteredRole)
             {
-                errMessage = T("Admin.Customers.MustBeCustomerOrGuest", guestRole.Name, registeredRole.Name);
+                errMessage = T(
+                    "Admin.Customers.MustBeCustomerOrGuest",
+                    guestRole.Name,
+                    registeredRole.Name
+                );
             }
 
             return (newCustomerRoles, errMessage);
@@ -414,8 +499,12 @@ namespace Smartstore.Admin.Controllers
 
             if (_shoppingCartSettings.QuickCheckoutEnabled)
             {
-                to.GenericAttributes.PreferredShippingOption = new() { ShippingMethodId = from.PreferredShippingMethodId ?? 0 };
-                to.GenericAttributes.PreferredPaymentMethod = from.PreferredPaymentMethod.NullEmpty();
+                to.GenericAttributes.PreferredShippingOption = new()
+                {
+                    ShippingMethodId = from.PreferredShippingMethodId ?? 0,
+                };
+                to.GenericAttributes.PreferredPaymentMethod =
+                    from.PreferredPaymentMethod.NullEmpty();
             }
         }
 
@@ -423,16 +512,24 @@ namespace Smartstore.Admin.Controllers
         {
             if (!result.Succeeded)
             {
-                result.Errors
-                    .Select(x => x.Description)
+                result
+                    .Errors.Select(x => x.Description)
                     .Distinct()
                     .Each(x => ModelState.AddModelError(key, x));
             }
         }
 
-        private async Task PrepareAddressModelAsync(CustomerAddressModel model, Customer customer, Address address)
+        private async Task PrepareAddressModelAsync(
+            CustomerAddressModel model,
+            Customer customer,
+            Address address
+        )
         {
-            await address.MapAsync(model.Address, customer, _shoppingCartSettings.QuickCheckoutEnabled);
+            await address.MapAsync(
+                model.Address,
+                customer,
+                _shoppingCartSettings.QuickCheckoutEnabled
+            );
 
             model.CustomerId = customer.Id;
             model.Username = customer.Username;
@@ -451,7 +548,9 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> List()
         {
             // Load registered customers by default.
-            var registeredRole = await _customerService.GetRoleBySystemNameAsync(SystemCustomerRoleNames.Registered);
+            var registeredRole = await _customerService.GetRoleBySystemNameAsync(
+                SystemCustomerRoleNames.Registered
+            );
 
             var listModel = new CustomerListModel
             {
@@ -460,7 +559,7 @@ namespace Smartstore.Admin.Controllers
                 CompanyEnabled = _customerSettings.CompanyEnabled,
                 PhoneEnabled = _customerSettings.PhoneEnabled,
                 ZipPostalCodeEnabled = _customerSettings.ZipPostalCodeEnabled,
-                SearchCustomerRoleIds = new int[] { registeredRole.Id }
+                SearchCustomerRoleIds = new int[] { registeredRole.Id },
             };
 
             return View(listModel);
@@ -471,13 +570,21 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> CustomerList(GridCommand command, CustomerListModel model)
         {
             var dtHelper = Services.DateTimeHelper;
-            var query = _db.Customers
-                .AsNoTracking()
+            var query = _db
+                .Customers.AsNoTracking()
                 .Include(x => x.BillingAddress)
                 .Include(x => x.ShippingAddress)
                 .IncludeCustomerRoles()
-                .ApplyIdentFilter(model.SearchEmail, model.SearchUsername, model.SearchCustomerNumber)
-                .ApplyBirthDateFilter(model.SearchYearOfBirth.ToInt(), model.SearchMonthOfBirth.ToInt(), model.SearchDayOfBirth.ToInt());
+                .ApplyIdentFilter(
+                    model.SearchEmail,
+                    model.SearchUsername,
+                    model.SearchCustomerNumber
+                )
+                .ApplyBirthDateFilter(
+                    model.SearchYearOfBirth.ToInt(),
+                    model.SearchMonthOfBirth.ToInt(),
+                    model.SearchDayOfBirth.ToInt()
+                );
 
             if (model.StartDate != null)
             {
@@ -486,7 +593,9 @@ namespace Smartstore.Admin.Controllers
             }
             if (model.EndDate != null)
             {
-                var dt = dtHelper.ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone).AddDays(1);
+                var dt = dtHelper
+                    .ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone)
+                    .AddDays(1);
                 query = query.Where(x => x.CreatedOnUtc <= dt);
             }
 
@@ -527,7 +636,9 @@ namespace Smartstore.Admin.Controllers
                 .Select(x => new CustomerModel
                 {
                     Id = x.Id,
-                    Email = x.Email.HasValue() ? x.Email : (x.IsGuest() ? guestStr : StringExtensions.NotAvailable),
+                    Email = x.Email.HasValue()
+                        ? x.Email
+                        : (x.IsGuest() ? guestStr : StringExtensions.NotAvailable),
                     Username = x.Username,
                     FullName = x.GetFullName(),
                     Company = x.Company,
@@ -535,23 +646,33 @@ namespace Smartstore.Admin.Controllers
                     ZipPostalCode = x.GenericAttributes.ZipPostalCode,
                     Active = x.Active,
                     Phone = x.GenericAttributes.Phone,
-                    CustomerRoleNames = string.Join(", ", x.CustomerRoleMappings.Select(x => x.CustomerRole).Select(x => x.Name)),
+                    CustomerRoleNames = string.Join(
+                        ", ",
+                        x.CustomerRoleMappings.Select(x => x.CustomerRole).Select(x => x.Name)
+                    ),
                     CreatedOn = dtHelper.ConvertToUserTime(x.CreatedOnUtc, DateTimeKind.Utc),
-                    LastActivityDate = dtHelper.ConvertToUserTime(x.LastActivityDateUtc, DateTimeKind.Utc),
+                    LastActivityDate = dtHelper.ConvertToUserTime(
+                        x.LastActivityDateUtc,
+                        DateTimeKind.Utc
+                    ),
                     EditUrl = Url.Action(nameof(Edit), "Customer", new { id = x.Id }),
                     IsTaxExempt = x.IsTaxExempt,
                     LastIpAddress = x.LastIpAddress,
-                    DateOfBirth = x.BirthDate.HasValue ? dtHelper.ConvertToUserTime(x.BirthDate.Value, DateTimeKind.Utc) : null,
+                    DateOfBirth = x.BirthDate.HasValue
+                        ? dtHelper.ConvertToUserTime(x.BirthDate.Value, DateTimeKind.Utc)
+                        : null,
                     Gender = x.Gender,
-                    VatNumber = x.GenericAttributes.VatNumber
+                    VatNumber = x.GenericAttributes.VatNumber,
                 })
                 .ToList();
 
-            return Json(new GridModel<CustomerModel>
-            {
-                Rows = rows,
-                Total = await customers.GetTotalCountAsync()
-            });
+            return Json(
+                new GridModel<CustomerModel>
+                {
+                    Rows = rows,
+                    Total = await customers.GetTotalCountAsync(),
+                }
+            );
         }
 
         [Permission(Permissions.Customer.Create)]
@@ -568,7 +689,11 @@ namespace Smartstore.Admin.Controllers
         [FormValueRequired("save", "save-continue")]
         [Permission(Permissions.Customer.Create)]
         [SaveChanges<SmartDbContext>(false)]
-        public async Task<IActionResult> Create(CustomerModel model, bool continueEditing, IFormCollection form)
+        public async Task<IActionResult> Create(
+            CustomerModel model,
+            bool continueEditing,
+            IFormCollection form
+        )
         {
             var customer = new Customer
             {
@@ -577,26 +702,41 @@ namespace Smartstore.Admin.Controllers
                 Username = model.Username,
                 PasswordFormat = _customerSettings.DefaultPasswordFormat,
                 CreatedOnUtc = DateTime.UtcNow,
-                LastActivityDateUtc = DateTime.UtcNow
+                LastActivityDateUtc = DateTime.UtcNow,
             };
 
             // Validate customer roles.
             var allCustomerRoleIds = await _db.CustomerRoles.Select(x => x.Id).ToListAsync();
-            var (newCustomerRoles, customerRolesError) = await ValidateCustomerRoles(model.SelectedCustomerRoleIds, allCustomerRoleIds);
+            var (newCustomerRoles, customerRolesError) = await ValidateCustomerRoles(
+                model.SelectedCustomerRoleIds,
+                allCustomerRoleIds
+            );
             if (customerRolesError.HasValue())
             {
                 ModelState.AddModelError(nameof(model.SelectedCustomerRoleIds), customerRolesError);
             }
 
             // Customer number.
-            if (_customerSettings.CustomerNumberMethod == CustomerNumberMethod.AutomaticallySet && model.CustomerNumber.IsEmpty())
+            if (
+                _customerSettings.CustomerNumberMethod == CustomerNumberMethod.AutomaticallySet
+                && model.CustomerNumber.IsEmpty()
+            )
             {
                 // Let any NumberFormatter module handle this.
-                await Services.EventPublisher.PublishAsync(new CustomerRegisteredEvent { Customer = customer });
+                await Services.EventPublisher.PublishAsync(
+                    new CustomerRegisteredEvent { Customer = customer }
+                );
             }
-            else if (_customerSettings.CustomerNumberMethod == CustomerNumberMethod.Enabled && model.CustomerNumber.HasValue())
+            else if (
+                _customerSettings.CustomerNumberMethod == CustomerNumberMethod.Enabled
+                && model.CustomerNumber.HasValue()
+            )
             {
-                if (await _db.Customers.IgnoreQueryFilters().AnyAsync(x => x.CustomerNumber == model.CustomerNumber))
+                if (
+                    await _db
+                        .Customers.IgnoreQueryFilters()
+                        .AnyAsync(x => x.CustomerNumber == model.CustomerNumber)
+                )
                 {
                     NotifyError(T("Common.CustomerNumberAlreadyExists"));
                 }
@@ -616,18 +756,29 @@ namespace Smartstore.Admin.Controllers
                     // Customer roles.
                     newCustomerRoles.Each(x =>
                     {
-                        _db.CustomerRoleMappings.Add(new CustomerRoleMapping
-                        {
-                            CustomerId = customer.Id,
-                            CustomerRoleId = x.Id
-                        });
+                        _db.CustomerRoleMappings.Add(
+                            new CustomerRoleMapping
+                            {
+                                CustomerId = customer.Id,
+                                CustomerRoleId = x.Id,
+                            }
+                        );
                     });
 
-                    await _storeMappingService.ApplyStoreMappingsAsync(customer, model.SelectedStoreIds);
+                    await _storeMappingService.ApplyStoreMappingsAsync(
+                        customer,
+                        model.SelectedStoreIds
+                    );
                     await _db.SaveChangesAsync();
 
-                    await Services.EventPublisher.PublishAsync(new ModelBoundEvent(model, customer, form));
-                    Services.ActivityLogger.LogActivity(KnownActivityLogTypes.AddNewCustomer, T("ActivityLog.AddNewCustomer"), customer.Id);
+                    await Services.EventPublisher.PublishAsync(
+                        new ModelBoundEvent(model, customer, form)
+                    );
+                    Services.ActivityLogger.LogActivity(
+                        KnownActivityLogTypes.AddNewCustomer,
+                        T("ActivityLog.AddNewCustomer"),
+                        customer.Id
+                    );
                     NotifySuccess(T("Admin.Customers.Customers.Added"));
 
                     return continueEditing
@@ -649,8 +800,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Customer.Read)]
         public async Task<IActionResult> Edit(int id)
         {
-            var customer = await _db.Customers
-                .AsSplitQuery()
+            var customer = await _db
+                .Customers.AsSplitQuery()
                 .IncludeCustomerRoles()
                 .Include(x => x.BillingAddress)
                 .Include(x => x.ShippingAddress)
@@ -673,11 +824,13 @@ namespace Smartstore.Admin.Controllers
         [FormValueRequired("save", "save-continue")]
         [Permission(Permissions.Customer.Update)]
         [SaveChanges<SmartDbContext>(false)]
-        public async Task<IActionResult> Edit(CustomerModel model, bool continueEditing, IFormCollection form)
+        public async Task<IActionResult> Edit(
+            CustomerModel model,
+            bool continueEditing,
+            IFormCollection form
+        )
         {
-            var customer = await _db.Customers
-                .IncludeCustomerRoles()
-                .FindByIdAsync(model.Id);
+            var customer = await _db.Customers.IncludeCustomerRoles().FindByIdAsync(model.Id);
 
             if (customer == null)
             {
@@ -691,7 +844,9 @@ namespace Smartstore.Admin.Controllers
             }
 
             // Validate customer roles.
-            var allowManagingCustomerRoles = Services.Permissions.Authorize(Permissions.Customer.EditRole);
+            var allowManagingCustomerRoles = Services.Permissions.Authorize(
+                Permissions.Customer.EditRole
+            );
 
             var allCustomerRoleIds = allowManagingCustomerRoles
                 ? await _db.CustomerRoles.AsNoTracking().Select(x => x.Id).ToListAsync()
@@ -699,7 +854,10 @@ namespace Smartstore.Admin.Controllers
 
             if (allowManagingCustomerRoles)
             {
-                var (_, errMessage) = await ValidateCustomerRoles(model.SelectedCustomerRoleIds, allCustomerRoleIds);
+                var (_, errMessage) = await ValidateCustomerRoles(
+                    model.SelectedCustomerRoleIds,
+                    allCustomerRoleIds
+                );
                 if (errMessage.HasValue())
                 {
                     ModelState.AddModelError(string.Empty, errMessage);
@@ -719,10 +877,12 @@ namespace Smartstore.Admin.Controllers
             }
 
             // Username.
-            if (ModelState.IsValid
+            if (
+                ModelState.IsValid
                 && _customerSettings.CustomerLoginType != CustomerLoginType.Email
                 && _customerSettings.AllowUsersToChangeUsernames
-                && !newUsername.EqualsNoCase(customer.Username))
+                && !newUsername.EqualsNoCase(customer.Username)
+            )
             {
                 var result = await _userManager.SetUserNameAsync(customer, newUsername);
                 AddModelErrors(result, nameof(model.Username));
@@ -735,9 +895,13 @@ namespace Smartstore.Admin.Controllers
                     // Customer number.
                     if (_customerSettings.CustomerNumberMethod != CustomerNumberMethod.Disabled)
                     {
-                        if (model.CustomerNumber.HasValue()
+                        if (
+                            model.CustomerNumber.HasValue()
                             && model.CustomerNumber != customer.CustomerNumber
-                            && await _db.Customers.IgnoreQueryFilters().AnyAsync(x => x.CustomerNumber == model.CustomerNumber))
+                            && await _db
+                                .Customers.IgnoreQueryFilters()
+                                .AnyAsync(x => x.CustomerNumber == model.CustomerNumber)
+                        )
                         {
                             NotifyError(T("Common.CustomerNumberAlreadyExists"));
                         }
@@ -756,14 +920,24 @@ namespace Smartstore.Admin.Controllers
                         // Set VAT number status.
                         if (model.VatNumber.HasValue())
                         {
-                            if (!model.VatNumber.Equals(prevVatNumber, StringComparison.InvariantCultureIgnoreCase))
+                            if (
+                                !model.VatNumber.Equals(
+                                    prevVatNumber,
+                                    StringComparison.InvariantCultureIgnoreCase
+                                )
+                            )
                             {
-                                var response = await _taxService.GetVatNumberStatusAsync(model.VatNumber);
+                                var response = await _taxService.GetVatNumberStatusAsync(
+                                    model.VatNumber
+                                );
                                 customer.VatNumberStatusId = (int)response.Status;
 
                                 if (response.Exception != null)
                                 {
-                                    NotifyError("Checking the VAT number with the VAT validation web service threw this exception: " + response.Exception.Message);
+                                    NotifyError(
+                                        "Checking the VAT number with the VAT validation web service threw this exception: "
+                                            + response.Exception.Message
+                                    );
                                 }
                             }
                         }
@@ -783,9 +957,12 @@ namespace Smartstore.Admin.Controllers
                         // Customer roles.
                         if (allowManagingCustomerRoles)
                         {
-                            using var scope = new DbContextScope(db: Services.DbContext, autoDetectChanges: false);
-                            var existingMappings = customer.CustomerRoleMappings
-                                .Where(x => !x.IsSystemMapping)
+                            using var scope = new DbContextScope(
+                                db: Services.DbContext,
+                                autoDetectChanges: false
+                            );
+                            var existingMappings = customer
+                                .CustomerRoleMappings.Where(x => !x.IsSystemMapping)
                                 .ToMultimap(x => x.CustomerRoleId, x => x);
 
                             foreach (var roleId in allCustomerRoleIds)
@@ -794,27 +971,39 @@ namespace Smartstore.Admin.Controllers
                                 {
                                     if (!existingMappings.ContainsKey(roleId))
                                     {
-                                        _db.CustomerRoleMappings.Add(new CustomerRoleMapping
-                                        {
-                                            CustomerId = customer.Id,
-                                            CustomerRoleId = roleId
-                                        });
+                                        _db.CustomerRoleMappings.Add(
+                                            new CustomerRoleMapping
+                                            {
+                                                CustomerId = customer.Id,
+                                                CustomerRoleId = roleId,
+                                            }
+                                        );
                                     }
                                 }
                                 else if (existingMappings.ContainsKey(roleId))
                                 {
-                                    existingMappings[roleId].Each(x => _db.CustomerRoleMappings.Remove(x));
+                                    existingMappings[roleId]
+                                        .Each(x => _db.CustomerRoleMappings.Remove(x));
                                 }
                             }
 
                             await scope.CommitAsync();
                         }
 
-                        await _storeMappingService.ApplyStoreMappingsAsync(customer, model.SelectedStoreIds);
+                        await _storeMappingService.ApplyStoreMappingsAsync(
+                            customer,
+                            model.SelectedStoreIds
+                        );
                         await _db.SaveChangesAsync();
 
-                        await Services.EventPublisher.PublishAsync(new ModelBoundEvent(model, customer, form));
-                        Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditCustomer, T("ActivityLog.EditCustomer"), customer.Id);
+                        await Services.EventPublisher.PublishAsync(
+                            new ModelBoundEvent(model, customer, form)
+                        );
+                        Services.ActivityLogger.LogActivity(
+                            KnownActivityLogTypes.EditCustomer,
+                            T("ActivityLog.EditCustomer"),
+                            customer.Id
+                        );
 
                         NotifySuccess(T("Admin.Customers.Customers.Updated"));
 
@@ -858,7 +1047,11 @@ namespace Smartstore.Admin.Controllers
                 if (await _userManager.HasPasswordAsync(customer))
                 {
                     var token = await _userManager.GeneratePasswordResetTokenAsync(customer);
-                    passwordResult = await _userManager.ResetPasswordAsync(customer, token, model.Password);
+                    passwordResult = await _userManager.ResetPasswordAsync(
+                        customer,
+                        token,
+                        model.Password
+                    );
                 }
                 else
                 {
@@ -959,12 +1152,17 @@ namespace Smartstore.Admin.Controllers
         {
             Services.ActivityLogger.LogActivity(
                 KnownActivityLogTypes.DeleteCustomer,
-                T("ActivityLog.DeleteCustomer",
-                string.Join(", ", result.AllDeletedCustomerIds)));
+                T("ActivityLog.DeleteCustomer", string.Join(", ", result.AllDeletedCustomerIds))
+            );
 
             if (result.SkippedAdminIds.Length > 0)
             {
-                NotifyWarning(T("Admin.Customers.NoAdministratorsDeletedWarning", result.SkippedAdminIds.Length));
+                NotifyWarning(
+                    T(
+                        "Admin.Customers.NoAdministratorsDeletedWarning",
+                        result.SkippedAdminIds.Length
+                    )
+                );
             }
         }
 
@@ -973,9 +1171,7 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Customer.Impersonate)]
         public async Task<IActionResult> Impersonate(int id)
         {
-            var customer = await _db.Customers
-                .IncludeCustomerRoles()
-                .FindByIdAsync(id);
+            var customer = await _db.Customers.IncludeCustomerRoles().FindByIdAsync(id);
 
             if (customer == null)
             {
@@ -990,7 +1186,8 @@ namespace Smartstore.Admin.Controllers
                 return RedirectToAction(nameof(Edit), customer.Id);
             }
 
-            Services.WorkContext.CurrentCustomer.GenericAttributes.ImpersonatedCustomerId = customer.Id;
+            Services.WorkContext.CurrentCustomer.GenericAttributes.ImpersonatedCustomerId =
+                customer.Id;
             await _db.SaveChangesAsync();
 
             return RedirectToRoute("Homepage");
@@ -1009,21 +1206,34 @@ namespace Smartstore.Admin.Controllers
             {
                 if (!customer.Email.IsEmail())
                 {
-                    throw new InvalidOperationException(T("Admin.Customers.Customers.SendEmail.EmailNotValid"));
+                    throw new InvalidOperationException(
+                        T("Admin.Customers.Customers.SendEmail.EmailNotValid")
+                    );
                 }
 
-                var emailAccount = _emailAccountService.Value.GetDefaultEmailAccount() ?? throw new Exception(T("Common.Error.NoEmailAccount"));
-                var messageContext = MessageContext.Create("System.Generic", Convert.ToInt32(customer.GenericAttributes.LanguageId));
+                var emailAccount =
+                    _emailAccountService.Value.GetDefaultEmailAccount()
+                    ?? throw new Exception(T("Common.Error.NoEmailAccount"));
+                var messageContext = MessageContext.Create(
+                    "System.Generic",
+                    Convert.ToInt32(customer.GenericAttributes.LanguageId)
+                );
 
                 var customModel = new NamedModelPart("Generic")
                 {
                     ["ReplyTo"] = emailAccount.ToMailAddress().ToString(),
                     ["Email"] = customer.Email,
                     ["Subject"] = model.Subject,
-                    ["Body"] = model.Body
+                    ["Body"] = model.Body,
                 };
 
-                await _messageFactory.CreateMessageAsync(messageContext, true, customer, Services.StoreContext.CurrentStore, customModel);
+                await _messageFactory.CreateMessageAsync(
+                    messageContext,
+                    true,
+                    customer,
+                    Services.StoreContext.CurrentStore,
+                    customModel
+                );
 
                 NotifySuccess(T("Admin.Customers.Customers.SendEmail.Queued"));
             }
@@ -1048,8 +1258,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Customer.Read)]
         public async Task<IActionResult> OnlineCustomersList(GridCommand command)
         {
-            var customers = await _db.Customers
-                .AsNoTracking()
+            var customers = await _db
+                .Customers.AsNoTracking()
                 .IncludeCustomerRoles()
                 .Where(x => !x.IsSystemAccount)
                 .ApplyOnlineCustomersFilter(_customerSettings.OnlineCustomerMinutes)
@@ -1067,18 +1277,26 @@ namespace Smartstore.Admin.Controllers
                     CustomerNumber = x.CustomerNumber,
                     Active = x.Active,
                     LastIpAddress = x.LastIpAddress,
-                    Location = _geoCountryLookup.Value.LookupCountry(x.LastIpAddress)?.Name.EmptyNull(),
-                    LastActivityDate = Services.DateTimeHelper.ConvertToUserTime(x.LastActivityDateUtc, DateTimeKind.Utc),
+                    Location = _geoCountryLookup
+                        .Value.LookupCountry(x.LastIpAddress)
+                        ?.Name.EmptyNull(),
+                    LastActivityDate = Services.DateTimeHelper.ConvertToUserTime(
+                        x.LastActivityDateUtc,
+                        DateTimeKind.Utc
+                    ),
                     LastVisitedPage = x.LastVisitedPage,
-                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(x.CreatedOnUtc, DateTimeKind.Utc),
-                    EditUrl = Url.Action("Edit", "Customer", new { id = x.Id })
+                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                        x.CreatedOnUtc,
+                        DateTimeKind.Utc
+                    ),
+                    EditUrl = Url.Action("Edit", "Customer", new { id = x.Id }),
                 })
                 .ToList();
 
             var gridModel = new GridModel<OnlineCustomerModel>
             {
                 Rows = customerModels,
-                Total = await customers.GetTotalCountAsync()
+                Total = await customers.GetTotalCountAsync(),
             };
 
             return Json(gridModel);
@@ -1089,10 +1307,13 @@ namespace Smartstore.Admin.Controllers
         #region Reward points history
 
         [Permission(Permissions.Customer.Read)]
-        public async Task<IActionResult> RewardPointsHistoryList(int customerId, GridCommand command)
+        public async Task<IActionResult> RewardPointsHistoryList(
+            int customerId,
+            GridCommand command
+        )
         {
-            var entities = await _db.RewardPointsHistory
-                .AsNoTracking()
+            var entities = await _db
+                .RewardPointsHistory.AsNoTracking()
                 .Where(x => x.CustomerId == customerId)
                 .OrderByDescending(rph => rph.CreatedOnUtc)
                 .ApplyGridCommand(command)
@@ -1106,22 +1327,32 @@ namespace Smartstore.Admin.Controllers
                     Points = x.Points,
                     PointsBalance = x.PointsBalance,
                     Message = x.Message,
-                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(x.CreatedOnUtc, DateTimeKind.Utc)
+                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                        x.CreatedOnUtc,
+                        DateTimeKind.Utc
+                    ),
                 })
                 .ToList();
 
-            return Json(new GridModel<CustomerModel.RewardPointsHistoryModel>
-            {
-                Rows = rows,
-                Total = await entities.GetTotalCountAsync()
-            });
+            return Json(
+                new GridModel<CustomerModel.RewardPointsHistoryModel>
+                {
+                    Rows = rows,
+                    Total = await entities.GetTotalCountAsync(),
+                }
+            );
         }
 
         [HttpPost]
         [Permission(Permissions.Customer.Update)]
-        public async Task<IActionResult> RewardPointsInsert(CustomerModel.RewardPointsHistoryModel model, int customerId)
+        public async Task<IActionResult> RewardPointsInsert(
+            CustomerModel.RewardPointsHistoryModel model,
+            int customerId
+        )
         {
-            var customer = await _db.Customers.FindByIdAsync(customerId) ?? throw new ArgumentException("No customer found with the specified id");
+            var customer =
+                await _db.Customers.FindByIdAsync(customerId)
+                ?? throw new ArgumentException("No customer found with the specified id");
 
             customer.AddRewardPointsHistoryEntry(model.Points, model.Message);
             await _db.SaveChangesAsync();
@@ -1143,10 +1374,7 @@ namespace Smartstore.Admin.Controllers
                 return NotFound();
             }
 
-            var model = new CustomerAddressModel
-            {
-                CustomerId = customer.Id
-            };
+            var model = new CustomerAddressModel { CustomerId = customer.Id };
 
             await PrepareAddressModelAsync(model, customer, new Address());
 
@@ -1156,7 +1384,10 @@ namespace Smartstore.Admin.Controllers
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
         [Permission(Permissions.Customer.CreateAddress)]
-        public async Task<IActionResult> AddressCreate(CustomerAddressModel model, bool continueEditing)
+        public async Task<IActionResult> AddressCreate(
+            CustomerAddressModel model,
+            bool continueEditing
+        )
         {
             var customer = await _db.Customers.FindByIdAsync(model.CustomerId);
             if (customer == null)
@@ -1175,7 +1406,10 @@ namespace Smartstore.Admin.Controllers
                 NotifySuccess(T("Admin.Customers.Customers.Addresses.Added"));
 
                 return continueEditing
-                    ? RedirectToAction(nameof(AddressEdit), new { addressId = address.Id, customerId = model.CustomerId })
+                    ? RedirectToAction(
+                        nameof(AddressEdit),
+                        new { addressId = address.Id, customerId = model.CustomerId }
+                    )
                     : RedirectToAction(nameof(Edit), new { id = customer.Id });
             }
 
@@ -1210,7 +1444,10 @@ namespace Smartstore.Admin.Controllers
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [FormValueRequired("save", "save-continue")]
         [Permission(Permissions.Customer.EditAddress)]
-        public async Task<IActionResult> AddressEdit(CustomerAddressModel model, bool continueEditing)
+        public async Task<IActionResult> AddressEdit(
+            CustomerAddressModel model,
+            bool continueEditing
+        )
         {
             var customer = await _db.Customers.FindByIdAsync(model.CustomerId, false);
             if (customer == null)
@@ -1226,13 +1463,20 @@ namespace Smartstore.Admin.Controllers
 
             if (ModelState.IsValid)
             {
-                await model.Address.MapAsync(address, customer, _shoppingCartSettings.QuickCheckoutEnabled);
+                await model.Address.MapAsync(
+                    address,
+                    customer,
+                    _shoppingCartSettings.QuickCheckoutEnabled
+                );
                 await _db.SaveChangesAsync();
 
                 NotifySuccess(T("Admin.Customers.Customers.Addresses.Updated"));
 
                 return continueEditing
-                    ? RedirectToAction(nameof(AddressEdit), new { addressId = model.Address.Id, customerId = model.CustomerId })
+                    ? RedirectToAction(
+                        nameof(AddressEdit),
+                        new { addressId = model.Address.Id, customerId = model.CustomerId }
+                    )
                     : RedirectToAction(nameof(Edit), new { id = customer.Id });
             }
 
@@ -1245,8 +1489,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Customer.EditAddress)]
         public async Task<IActionResult> SetDefaultAddress(int customerId, int addressId)
         {
-            var customer = await _db.Customers
-                .Include(x => x.Addresses)
+            var customer = await _db
+                .Customers.Include(x => x.Addresses)
                 .ThenInclude(x => x.Country)
                 .FindByIdAsync(customerId);
 
@@ -1269,18 +1513,31 @@ namespace Smartstore.Admin.Controllers
             {
                 if (!billingAllowed)
                 {
-                    NotifyError(T("Order.CountryNotAllowedForBilling", address.Country?.GetLocalized(x => x.Name)));
+                    NotifyError(
+                        T(
+                            "Order.CountryNotAllowedForBilling",
+                            address.Country?.GetLocalized(x => x.Name)
+                        )
+                    );
                 }
                 if (!shippingAllowed)
                 {
-                    NotifyError(T("Order.CountryNotAllowedForShipping", address.Country?.GetLocalized(x => x.Name)));
+                    NotifyError(
+                        T(
+                            "Order.CountryNotAllowedForShipping",
+                            address.Country?.GetLocalized(x => x.Name)
+                        )
+                    );
                 }
             }
 
             var model = new CustomerModel.AddressesModel
             {
                 Id = customer.Id,
-                Addresses = await customer.Addresses.MapAsync(customer, _shoppingCartSettings.QuickCheckoutEnabled)
+                Addresses = await customer.Addresses.MapAsync(
+                    customer,
+                    _shoppingCartSettings.QuickCheckoutEnabled
+                ),
             };
 
             return PartialView("_Addresses", model);
@@ -1290,9 +1547,7 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Customer.DeleteAddress)]
         public async Task<IActionResult> AddressDelete(int customerId, int addressId)
         {
-            var customer = await _db.Customers
-                .Include(x => x.Addresses)
-                .FindByIdAsync(customerId);
+            var customer = await _db.Customers.Include(x => x.Addresses).FindByIdAsync(customerId);
 
             var address = customer?.Addresses?.FirstOrDefault(x => x.Id == addressId);
             if (address == null)
@@ -1307,7 +1562,10 @@ namespace Smartstore.Admin.Controllers
             var model = new CustomerModel.AddressesModel
             {
                 Id = customer.Id,
-                Addresses = await customer.Addresses.MapAsync(customer, _shoppingCartSettings.QuickCheckoutEnabled)
+                Addresses = await customer.Addresses.MapAsync(
+                    customer,
+                    _shoppingCartSettings.QuickCheckoutEnabled
+                ),
             };
 
             return PartialView("_Addresses", model);
@@ -1320,13 +1578,16 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Customer.Read)]
         public async Task<IActionResult> Reports()
         {
-            ViewBag.UsernamesEnabled = _customerSettings.CustomerLoginType != CustomerLoginType.Email;
+            ViewBag.UsernamesEnabled =
+                _customerSettings.CustomerLoginType != CustomerLoginType.Email;
             ViewBag.AvailableOrderStatuses = OrderStatus.Pending.ToSelectList(false).ToList();
             ViewBag.AvailablePaymentStatuses = PaymentStatus.Pending.ToSelectList(false).ToList();
-            ViewBag.AvailableShippingStatuses = ShippingStatus.NotYetShipped.ToSelectList(false).ToList();
+            ViewBag.AvailableShippingStatuses = ShippingStatus
+                .NotYetShipped.ToSelectList(false)
+                .ToList();
 
-            var registeredRoleId = await _db.CustomerRoles
-                .Where(x => x.SystemName == SystemCustomerRoleNames.Registered)
+            var registeredRoleId = await _db
+                .CustomerRoles.Where(x => x.SystemName == SystemCustomerRoleNames.Registered)
                 .Select(x => x.Id)
                 .FirstOrDefaultAsync();
 
@@ -1347,43 +1608,75 @@ namespace Smartstore.Admin.Controllers
                 {
                     T("Admin.Customers.Reports.RegisteredCustomers.Fields.Period.year"),
                     await GetRegisteredCustomersReport(365)
-                }
+                },
             };
 
             return View();
 
             async Task<int> GetRegisteredCustomersReport(int days)
             {
-                var startDate = Services.DateTimeHelper.ConvertToUserTime(DateTime.Now).AddDays(-days);
+                var startDate = Services
+                    .DateTimeHelper.ConvertToUserTime(DateTime.Now)
+                    .AddDays(-days);
 
-                return await _db.Customers
-                    .ApplyRolesFilter(new[] { registeredRoleId })
+                return await _db
+                    .Customers.ApplyRolesFilter(new[] { registeredRoleId })
                     .ApplyRegistrationFilter(startDate, null)
                     .CountAsync();
             }
         }
 
         [Permission(Permissions.Customer.Read)]
-        public async Task<IActionResult> ReportTopCustomersList(GridCommand command, TopCustomersReportModel model)
+        public async Task<IActionResult> ReportTopCustomersList(
+            GridCommand command,
+            TopCustomersReportModel model
+        )
         {
+            var currentUser = _workContext.CurrentCustomer;
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
+
             var dtHelper = Services.DateTimeHelper;
 
-            DateTime? startDate = model.StartDate != null
-                ? dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone)
-                : null;
+            DateTime? startDate =
+                model.StartDate != null
+                    ? dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone)
+                    : null;
 
-            DateTime? endDate = model.EndDate != null
-                ? dtHelper.ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone).AddDays(1)
-                : null;
+            DateTime? endDate =
+                model.EndDate != null
+                    ? dtHelper
+                        .ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone)
+                        .AddDays(1)
+                    : null;
 
             var orderStatusIds = model.OrderStatusId > 0 ? new[] { model.OrderStatusId } : null;
-            var paymentStatusIds = model.PaymentStatusId > 0 ? new[] { model.PaymentStatusId } : null;
-            var shippingStatusIds = model.ShippingStatusId > 0 ? new[] { model.ShippingStatusId } : null;
+            var paymentStatusIds =
+                model.PaymentStatusId > 0 ? new[] { model.PaymentStatusId } : null;
+            var shippingStatusIds =
+                model.ShippingStatusId > 0 ? new[] { model.ShippingStatusId } : null;
 
-            var orderQuery = _db.Orders
-                .Where(x => !x.Customer.Deleted)
+            var orderQuery = _db
+                .Orders.Where(x => !x.Customer.Deleted)
                 .ApplyStatusFilter(orderStatusIds, paymentStatusIds, shippingStatusIds)
                 .ApplyAuditDateFilter(startDate, endDate);
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db
+                    .GenericAttributes.Where(a =>
+                        a.KeyGroup == "Product"
+                        && a.Key == "CreatedByUserId"
+                        && a.Value == currentUser.Id.ToString()
+                    )
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                orderQuery = orderQuery.Where(o =>
+                    o.OrderItems.Any(oi => merchantProductIds.Contains(oi.ProductId))
+                );
+            }
 
             var reportLines = await orderQuery
                 .SelectAsTopCustomerReportLine()
@@ -1394,7 +1687,7 @@ namespace Smartstore.Admin.Controllers
             var gridModel = new GridModel<TopCustomerReportLineModel>
             {
                 Rows = await reportLines.MapAsync(_db),
-                Total = await reportLines.GetTotalCountAsync()
+                Total = await reportLines.GetTotalCountAsync(),
             };
 
             return Json(gridModel);
@@ -1407,22 +1700,25 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Cart.Read)]
         public async Task<IActionResult> GetCartList(int customerId, int cartTypeId)
         {
-            var customer = await _db.Customers
-                .IncludeShoppingCart()
-                .FindByIdAsync(customerId);
+            var customer = await _db.Customers.IncludeShoppingCart().FindByIdAsync(customerId);
 
             if (customer == null)
             {
                 return NotFound();
             }
 
-            var cart = await _shoppingCartService.Value.GetCartAsync(customer, (ShoppingCartType)cartTypeId, 0, null);
+            var cart = await _shoppingCartService.Value.GetCartAsync(
+                customer,
+                (ShoppingCartType)cartTypeId,
+                0,
+                null
+            );
             var models = await cart.MapAsync();
 
             var gridModel = new GridModel<ShoppingCartItemModel>
             {
                 Rows = models,
-                Total = cart.Items.Length
+                Total = cart.Items.Length,
             };
 
             return Json(gridModel);
@@ -1433,7 +1729,9 @@ namespace Smartstore.Admin.Controllers
         #region GDPR
 
         [Permission(Permissions.Customer.Read)]
-        public async Task<IActionResult> Export(int id /* customerId */)
+        public async Task<IActionResult> Export(
+            int id /* customerId */
+        )
         {
             var customer = await _db.Customers.FindByIdAsync(id);
             if (customer == null)
@@ -1442,13 +1740,20 @@ namespace Smartstore.Admin.Controllers
             }
 
             var data = await _gdprTool.Value.ExportCustomerAsync(customer);
-            var json = JsonConvert.SerializeObject(data, new JsonSerializerSettings
-            {
-                Formatting = Formatting.Indented,
-                TypeNameHandling = TypeNameHandling.Objects
-            });
+            var json = JsonConvert.SerializeObject(
+                data,
+                new JsonSerializerSettings
+                {
+                    Formatting = Formatting.Indented,
+                    TypeNameHandling = TypeNameHandling.Objects,
+                }
+            );
 
-            return File(json.GetBytes(), "application/json", "customer-{0}.json".FormatInvariant(customer.Id));
+            return File(
+                json.GetBytes(),
+                "application/json",
+                "customer-{0}.json".FormatInvariant(customer.Id)
+            );
         }
 
         #endregion
@@ -1461,7 +1766,8 @@ namespace Smartstore.Admin.Controllers
             int storeScope,
             CustomerSettings customerSettings,
             AddressSettings addressSettings,
-            PrivacySettings privacySettings)
+            PrivacySettings privacySettings
+        )
         {
             var model = new CustomerUserSettingsModel();
 
@@ -1469,10 +1775,19 @@ namespace Smartstore.Admin.Controllers
             await MapperFactory.MapAsync(addressSettings, model.AddressSettings);
             await MapperFactory.MapAsync(privacySettings, model.PrivacySettings);
 
-            AddLocales(model.Locales, (locale, languageId) =>
-            {
-                locale.Salutations = addressSettings.GetLocalizedSetting(x => x.Salutations, languageId, storeScope, false, false);
-            });
+            AddLocales(
+                model.Locales,
+                (locale, languageId) =>
+                {
+                    locale.Salutations = addressSettings.GetLocalizedSetting(
+                        x => x.Salutations,
+                        languageId,
+                        storeScope,
+                        false,
+                        false
+                    );
+                }
+            );
 
             return View(model);
         }
@@ -1484,9 +1799,11 @@ namespace Smartstore.Admin.Controllers
             int storeScope,
             CustomerSettings customerSettings,
             AddressSettings addressSettings,
-            PrivacySettings privacySettings)
+            PrivacySettings privacySettings
+        )
         {
-            var ignoreKey = $"{nameof(model.CustomerSettings)}.{nameof(model.CustomerSettings.RegisterCustomerRoleId)}";
+            var ignoreKey =
+                $"{nameof(model.CustomerSettings)}.{nameof(model.CustomerSettings.RegisterCustomerRoleId)}";
 
             foreach (var key in ModelState.Keys.Where(x => x.EqualsNoCase(ignoreKey)))
             {
@@ -1495,20 +1812,29 @@ namespace Smartstore.Admin.Controllers
 
             if (!ModelState.IsValid)
             {
-                return await CustomerUserSettings(storeScope, customerSettings, addressSettings, privacySettings);
+                return await CustomerUserSettings(
+                    storeScope,
+                    customerSettings,
+                    addressSettings,
+                    privacySettings
+                );
             }
             ModelState.Clear();
 
             await MapperFactory.MapAsync(model.CustomerSettings, customerSettings);
 
             var csm = model.CustomerSettings;
-            if (csm.PasswordMinLength != customerSettings.PasswordMinLength
+            if (
+                csm.PasswordMinLength != customerSettings.PasswordMinLength
                 || csm.PasswordRequireDigit != customerSettings.PasswordRequireDigit
                 || csm.PasswordRequireUppercase != customerSettings.PasswordRequireUppercase
                 || csm.PasswordRequiredUniqueChars != customerSettings.PasswordRequiredUniqueChars
                 || csm.PasswordRequireLowercase != customerSettings.PasswordRequireLowercase
-                || csm.PasswordRequireNonAlphanumeric != customerSettings.PasswordRequireNonAlphanumeric
-                || csm.CustomerNameAllowedCharacters != customerSettings.CustomerNameAllowedCharacters)
+                || csm.PasswordRequireNonAlphanumeric
+                    != customerSettings.PasswordRequireNonAlphanumeric
+                || csm.CustomerNameAllowedCharacters
+                    != customerSettings.CustomerNameAllowedCharacters
+            )
             {
                 // Save customerSettings now so new values can be applied in IdentityOptionsConfigurer.
                 await Services.SettingFactory.SaveSettingsAsync(customerSettings, storeScope);
@@ -1523,7 +1849,13 @@ namespace Smartstore.Admin.Controllers
 
             foreach (var localized in model.Locales)
             {
-                await _localizedEntityService.ApplyLocalizedSettingAsync(addressSettings, x => x.Salutations, localized.Salutations, localized.LanguageId, storeScope);
+                await _localizedEntityService.ApplyLocalizedSettingAsync(
+                    addressSettings,
+                    x => x.Salutations,
+                    localized.Salutations,
+                    localized.LanguageId,
+                    storeScope
+                );
             }
 
             await _db.SaveChangesAsync();
@@ -1545,7 +1877,11 @@ namespace Smartstore.Admin.Controllers
 
         [Permission(Permissions.Configuration.Setting.Update)]
         [HttpPost, LoadSetting]
-        public async Task<IActionResult> RewardPointsSettings(RewardPointsSettingsModel model, RewardPointsSettings settings, int storeScope)
+        public async Task<IActionResult> RewardPointsSettings(
+            RewardPointsSettingsModel model,
+            RewardPointsSettings settings,
+            int storeScope
+        )
         {
             if (!ModelState.IsValid)
             {
@@ -1561,9 +1897,20 @@ namespace Smartstore.Admin.Controllers
 
             await _multiStoreSettingHelper.UpdateSettingsAsync(settings, form);
 
-            if (storeScope != 0 && MultiStoreSettingHelper.IsOverrideChecked(settings, nameof(Core.Identity.RewardPointsSettings.PointsForPurchases_Amount), form))
+            if (
+                storeScope != 0
+                && MultiStoreSettingHelper.IsOverrideChecked(
+                    settings,
+                    nameof(Core.Identity.RewardPointsSettings.PointsForPurchases_Amount),
+                    form
+                )
+            )
             {
-                await Services.Settings.ApplySettingAsync(settings, x => x.PointsForPurchases_Points, storeScope);
+                await Services.Settings.ApplySettingAsync(
+                    settings,
+                    x => x.PointsForPurchases_Points,
+                    storeScope
+                );
             }
 
             await _db.SaveChangesAsync();
@@ -1579,8 +1926,17 @@ namespace Smartstore.Admin.Controllers
                 return new EmptyResult();
             }
 
-            var amountFormatted = Services.CurrencyService.ConvertFromPrimaryCurrency(amount, Services.WorkContext.WorkingCurrency).ToString();
-            var info = T("RewardPoints.PointsForPurchasesInfo", amountFormatted, points.ToString("N0"));
+            var amountFormatted = Services
+                .CurrencyService.ConvertFromPrimaryCurrency(
+                    amount,
+                    Services.WorkContext.WorkingCurrency
+                )
+                .ToString();
+            var info = T(
+                "RewardPoints.PointsForPurchasesInfo",
+                amountFormatted,
+                points.ToString("N0")
+            );
 
             return Content(info);
         }
@@ -1596,15 +1952,17 @@ namespace Smartstore.Admin.Controllers
 
             if (_privacySettings.CookieInfos.HasValue())
             {
-                data.AddRange(JsonConvert.DeserializeObject<List<CookieInfo>>(_privacySettings.CookieInfos)
-                    .OrderBy(x => x.CookieType)
-                    .ThenBy(x => x.Name));
+                data.AddRange(
+                    JsonConvert
+                        .DeserializeObject<List<CookieInfo>>(_privacySettings.CookieInfos)
+                        .OrderBy(x => x.CookieType)
+                        .ThenBy(x => x.Name)
+                );
             }
 
             var gridModel = new GridModel<CookieInfoModel>
             {
-                Rows = data
-                    .Select(x =>
+                Rows = data.Select(x =>
                     {
                         return new CookieInfoModel
                         {
@@ -1612,11 +1970,11 @@ namespace Smartstore.Admin.Controllers
                             Name = x.Name,
                             Description = x.Description,
                             IsPluginInfo = systemCookies.Contains(x.Name),
-                            CookieTypeName = x.CookieType.ToString()
+                            CookieTypeName = x.CookieType.ToString(),
                         };
                     })
                     .ToList(),
-                Total = data.Count
+                Total = data.Count,
             };
 
             return Json(gridModel);
@@ -1627,7 +1985,9 @@ namespace Smartstore.Admin.Controllers
             var numDeleted = 0;
 
             // First deserialize setting.
-            var ciList = JsonConvert.DeserializeObject<List<CookieInfo>>(_privacySettings.CookieInfos);
+            var ciList = JsonConvert.DeserializeObject<List<CookieInfo>>(
+                _privacySettings.CookieInfos
+            );
             foreach (var name in selection.SelectedKeys)
             {
                 ciList.Remove(x => x.Name.EqualsNoCase(name));
@@ -1652,7 +2012,11 @@ namespace Smartstore.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CookieInfoCreatePopup(string btnId, string formId, CookieInfoModel model)
+        public async Task<IActionResult> CookieInfoCreatePopup(
+            string btnId,
+            string formId,
+            CookieInfoModel model
+        )
         {
             if (!ModelState.IsValid)
             {
@@ -1660,7 +2024,8 @@ namespace Smartstore.Admin.Controllers
             }
 
             // Deserialize
-            var ciList = JsonConvert.DeserializeObject<List<CookieInfo>>(_privacySettings.CookieInfos) ?? [];
+            var ciList =
+                JsonConvert.DeserializeObject<List<CookieInfo>>(_privacySettings.CookieInfos) ?? [];
 
             var cookieInfo = ciList
                 .Select(x => x)
@@ -1678,7 +2043,7 @@ namespace Smartstore.Admin.Controllers
                 CookieType = model.CookieType,
                 Name = model.Name,
                 Description = model.Description,
-                SelectedStoreIds = model.SelectedStoreIds
+                SelectedStoreIds = model.SelectedStoreIds,
             };
 
             ciList.Add(cookieInfo);
@@ -1691,8 +2056,18 @@ namespace Smartstore.Admin.Controllers
 
             foreach (var localized in model.Locales)
             {
-                await _localizedEntityService.ApplyLocalizedValueAsync(cookieInfo, x => x.Name, localized.Name, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(cookieInfo, x => x.Description, localized.Description, localized.LanguageId);
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    cookieInfo,
+                    x => x.Name,
+                    localized.Name,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    cookieInfo,
+                    x => x.Description,
+                    localized.Description,
+                    localized.LanguageId
+                );
             }
 
             await _db.SaveChangesAsync();
@@ -1706,14 +2081,18 @@ namespace Smartstore.Admin.Controllers
 
         public IActionResult CookieInfoEditPopup(string name)
         {
-            var ciList = JsonConvert.DeserializeObject<List<CookieInfo>>(_privacySettings.CookieInfos);
-            var cookieInfo = ciList
-                .Where(x => x.Name.EqualsNoCase(name))
-                .FirstOrDefault();
+            var ciList = JsonConvert.DeserializeObject<List<CookieInfo>>(
+                _privacySettings.CookieInfos
+            );
+            var cookieInfo = ciList.Where(x => x.Name.EqualsNoCase(name)).FirstOrDefault();
 
             if (cookieInfo == null)
             {
-                NotifyError(T("Admin.Configuration.Settings.CustomerUser.Privacy.Cookies.CookieInfoNotFound"));
+                NotifyError(
+                    T(
+                        "Admin.Configuration.Settings.CustomerUser.Privacy.Cookies.CookieInfoNotFound"
+                    )
+                );
                 return View(new CookieInfoModel());
             }
 
@@ -1722,33 +2101,49 @@ namespace Smartstore.Admin.Controllers
                 CookieType = cookieInfo.CookieType,
                 Name = cookieInfo.Name,
                 Description = cookieInfo.Description,
-                SelectedStoreIds = cookieInfo.SelectedStoreIds
+                SelectedStoreIds = cookieInfo.SelectedStoreIds,
             };
 
-            AddLocales(model.Locales, (locale, languageId) =>
-            {
-                locale.Name = cookieInfo.GetLocalized(x => x.Name, languageId, false, false);
-                locale.Description = cookieInfo.GetLocalized(x => x.Description, languageId, false, false);
-            });
+            AddLocales(
+                model.Locales,
+                (locale, languageId) =>
+                {
+                    locale.Name = cookieInfo.GetLocalized(x => x.Name, languageId, false, false);
+                    locale.Description = cookieInfo.GetLocalized(
+                        x => x.Description,
+                        languageId,
+                        false,
+                        false
+                    );
+                }
+            );
 
             return View(model);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CookieInfoEditPopup(string btnId, string formId, CookieInfoModel model)
+        public async Task<IActionResult> CookieInfoEditPopup(
+            string btnId,
+            string formId,
+            CookieInfoModel model
+        )
         {
             ViewBag.RefreshPage = true;
             ViewBag.btnId = btnId;
             ViewBag.formId = formId;
 
-            var ciList = JsonConvert.DeserializeObject<List<CookieInfo>>(_privacySettings.CookieInfos);
-            var cookieInfo = ciList
-                .Where(x => x.Name.EqualsNoCase(model.Name))
-                .FirstOrDefault();
+            var ciList = JsonConvert.DeserializeObject<List<CookieInfo>>(
+                _privacySettings.CookieInfos
+            );
+            var cookieInfo = ciList.Where(x => x.Name.EqualsNoCase(model.Name)).FirstOrDefault();
 
             if (cookieInfo == null)
             {
-                NotifyError(T("Admin.Configuration.Settings.CustomerUser.Privacy.Cookies.CookieInfoNotFound"));
+                NotifyError(
+                    T(
+                        "Admin.Configuration.Settings.CustomerUser.Privacy.Cookies.CookieInfoNotFound"
+                    )
+                );
                 return View(new CookieInfoModel());
             }
 
@@ -1768,8 +2163,18 @@ namespace Smartstore.Admin.Controllers
 
                 foreach (var localized in model.Locales)
                 {
-                    await _localizedEntityService.ApplyLocalizedValueAsync(cookieInfo, x => x.Name, localized.Name, localized.LanguageId);
-                    await _localizedEntityService.ApplyLocalizedValueAsync(cookieInfo, x => x.Description, localized.Description, localized.LanguageId);
+                    await _localizedEntityService.ApplyLocalizedValueAsync(
+                        cookieInfo,
+                        x => x.Name,
+                        localized.Name,
+                        localized.LanguageId
+                    );
+                    await _localizedEntityService.ApplyLocalizedValueAsync(
+                        cookieInfo,
+                        x => x.Description,
+                        localized.Description,
+                        localized.LanguageId
+                    );
                 }
 
                 await _db.SaveChangesAsync();

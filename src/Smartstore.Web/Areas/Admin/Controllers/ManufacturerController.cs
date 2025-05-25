@@ -36,7 +36,8 @@ namespace Smartstore.Admin.Controllers
             IAclService aclService,
             ILocalizedEntityService localizedEntityService,
             CatalogSettings catalogSettings,
-            IWorkContext workContext)
+            IWorkContext workContext
+        )
         {
             _db = db;
             _discountService = discountService;
@@ -49,7 +50,7 @@ namespace Smartstore.Admin.Controllers
         }
 
         /// <summary>
-        /// (AJAX) Gets a list of all available manufacturers. 
+        /// (AJAX) Gets a list of all available manufacturers.
         /// </summary>
         /// <param name="label">Text for optional entry. If not null an entry with the specified label text and the Id 0 will be added to the list.</param>
         /// <param name="selectedId">Id of selected entity.</param>
@@ -60,22 +61,34 @@ namespace Smartstore.Admin.Controllers
 
             string currentUserCompanyName = currentUser.Company;
 
-            var adminRoleId = await _db.CustomerRoles
-                .Where(r => r.SystemName == "Administrators")
+            var adminRoleId = await _db
+                .CustomerRoles.Where(r => r.SystemName == "Administrators")
                 .Select(r => r.Id)
                 .FirstOrDefaultAsync();
 
-            bool isAdministrator = adminRoleId != 0 &&
-                await _db.CustomerRoleMappings
-                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == adminRoleId);
+            bool isAdministrator =
+                adminRoleId != 0
+                && await _db.CustomerRoleMappings.AnyAsync(m =>
+                    m.CustomerId == currentUser.Id && m.CustomerRoleId == adminRoleId
+                );
 
             if (!isAdministrator && string.IsNullOrEmpty(currentUserCompanyName))
             {
-                NotifyError("Your account does not have a company name assigned. Please contact support.");
-                return Json(new { success = false, error = "Your account does not have a company name assigned. Please contact support." });
+                NotifyError(
+                    "Your account does not have a company name assigned. Please contact support."
+                );
+                return Json(
+                    new
+                    {
+                        success = false,
+                        error = "Your account does not have a company name assigned. Please contact support.",
+                    }
+                );
             }
 
-            IQueryable<Manufacturer> query = _db.Manufacturers.AsNoTracking().ApplyStandardFilter(true);
+            IQueryable<Manufacturer> query = _db
+                .Manufacturers.AsNoTracking()
+                .ApplyStandardFilter(true);
 
             if (!isAdministrator)
             {
@@ -89,13 +102,14 @@ namespace Smartstore.Admin.Controllers
                 manufacturers.Insert(0, new Manufacturer { Name = label, Id = 0 });
             }
 
-            var list = from m in manufacturers
-                       select new
-                       {
-                           id = m.Id.ToString(),
-                           text = m.GetLocalized(x => x.Name).Value,
-                           selected = m.Id == selectedId
-                       };
+            var list =
+                from m in manufacturers
+                select new
+                {
+                    id = m.Id.ToString(),
+                    text = m.GetLocalized(x => x.Name).Value,
+                    selected = m.Id == selectedId,
+                };
 
             var mainList = list.ToList();
 
@@ -125,10 +139,15 @@ namespace Smartstore.Admin.Controllers
             // if (mruList.Count > 0)
             // {
             data = new List<object>
+            {
+                // new Dictionary<string, object> { ["text"] = T("Common.Mru").Value, ["children"] = mruList },
+                new Dictionary<string, object>
                 {
-                    // new Dictionary<string, object> { ["text"] = T("Common.Mru").Value, ["children"] = mruList },
-                    new Dictionary<string, object> { ["text"] = T("Admin.Catalog.Manufacturers").Value, ["children"] = mainList, ["main"] = true }
-                };
+                    ["text"] = T("Admin.Catalog.Manufacturers").Value,
+                    ["children"] = mainList,
+                    ["main"] = true,
+                },
+            };
             // }
 
             return new JsonResult(data);
@@ -148,7 +167,10 @@ namespace Smartstore.Admin.Controllers
         }
 
         [Permission(Permissions.Catalog.Manufacturer.Read)]
-        public async Task<IActionResult> ManufacturerList(GridCommand command, ManufacturerListModel model)
+        public async Task<IActionResult> ManufacturerList(
+            GridCommand command,
+            ManufacturerListModel model
+        )
         {
             var query = _db.Manufacturers.AsNoTracking();
 
@@ -163,24 +185,29 @@ namespace Smartstore.Admin.Controllers
                 .ToPagedList(command)
                 .LoadAsync();
 
-            var rows = manufacturers.Select(x => new ManufacturerModel
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Published = x.Published,
-                DisplayOrder = x.DisplayOrder,
-                LimitedToStores = x.LimitedToStores,
-                EditUrl = Url.Action("Edit", "Manufacturer", new { id = x.Id, area = "Admin" }),
-                CreatedOn = Services.DateTimeHelper.ConvertToUserTime(x.CreatedOnUtc, DateTimeKind.Utc),
-                UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(x.UpdatedOnUtc, DateTimeKind.Utc)
-            })
-            .ToList();
+            var rows = manufacturers
+                .Select(x => new ManufacturerModel
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Published = x.Published,
+                    DisplayOrder = x.DisplayOrder,
+                    LimitedToStores = x.LimitedToStores,
+                    EditUrl = Url.Action("Edit", "Manufacturer", new { id = x.Id, area = "Admin" }),
+                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                        x.CreatedOnUtc,
+                        DateTimeKind.Utc
+                    ),
+                    UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                        x.UpdatedOnUtc,
+                        DateTimeKind.Utc
+                    ),
+                })
+                .ToList();
 
-            return Json(new GridModel<ManufacturerModel>
-            {
-                Rows = rows,
-                Total = manufacturers.TotalCount
-            });
+            return Json(
+                new GridModel<ManufacturerModel> { Rows = rows, Total = manufacturers.TotalCount }
+            );
         }
 
         [HttpPost]
@@ -196,7 +223,8 @@ namespace Smartstore.Admin.Controllers
                 Services.ActivityLogger.LogActivity(
                     KnownActivityLogTypes.DeleteManufacturer,
                     T("ActivityLog.DeleteManufacturer"),
-                    string.Join(", ", entities.Select(x => x.Name)));
+                    string.Join(", ", entities.Select(x => x.Name))
+                );
             }
 
             return Json(new { Success = true, entities.Count });
@@ -205,10 +233,7 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Manufacturer.Create)]
         public async Task<IActionResult> Create()
         {
-            var model = new ManufacturerModel
-            {
-                Published = true
-            };
+            var model = new ManufacturerModel { Published = true };
 
             AddLocales(model.Locales);
             await PrepareManufacturerModel(model, null);
@@ -218,7 +243,11 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [Permission(Permissions.Catalog.Manufacturer.Create)]
-        public async Task<IActionResult> Create(ManufacturerModel model, bool continueEditing, IFormCollection form)
+        public async Task<IActionResult> Create(
+            ManufacturerModel model,
+            bool continueEditing,
+            IFormCollection form
+        )
         {
             if (ModelState.IsValid)
             {
@@ -228,20 +257,41 @@ namespace Smartstore.Admin.Controllers
 
                 await _db.SaveChangesAsync();
 
-                var slugResult = await _urlService.SaveSlugAsync(manufacturer, model.SeName, manufacturer.GetDisplayName(), true);
+                var slugResult = await _urlService.SaveSlugAsync(
+                    manufacturer,
+                    model.SeName,
+                    manufacturer.GetDisplayName(),
+                    true
+                );
                 model.SeName = slugResult.Slug;
 
                 await ApplyLocales(model, manufacturer);
 
-                await _discountService.ApplyDiscountsAsync(manufacturer, model?.SelectedDiscountIds, DiscountType.AssignedToManufacturers);
-                await _storeMappingService.ApplyStoreMappingsAsync(manufacturer, model.SelectedStoreIds);
-                await _aclService.ApplyAclMappingsAsync(manufacturer, model.SelectedCustomerRoleIds);
+                await _discountService.ApplyDiscountsAsync(
+                    manufacturer,
+                    model?.SelectedDiscountIds,
+                    DiscountType.AssignedToManufacturers
+                );
+                await _storeMappingService.ApplyStoreMappingsAsync(
+                    manufacturer,
+                    model.SelectedStoreIds
+                );
+                await _aclService.ApplyAclMappingsAsync(
+                    manufacturer,
+                    model.SelectedCustomerRoleIds
+                );
 
                 await _db.SaveChangesAsync();
 
-                await Services.EventPublisher.PublishAsync(new ModelBoundEvent(model, manufacturer, form));
+                await Services.EventPublisher.PublishAsync(
+                    new ModelBoundEvent(model, manufacturer, form)
+                );
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.AddNewManufacturer, T("ActivityLog.AddNewManufacturer"), manufacturer.Name);
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.AddNewManufacturer,
+                    T("ActivityLog.AddNewManufacturer"),
+                    manufacturer.Name
+                );
                 NotifySuccess(T("Admin.Catalog.Manufacturers.Added"));
 
                 return continueEditing
@@ -257,8 +307,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Manufacturer.Read)]
         public async Task<IActionResult> Edit(int id)
         {
-            var manufacturer = await _db.Manufacturers
-                .Include(x => x.AppliedDiscounts)
+            var manufacturer = await _db
+                .Manufacturers.Include(x => x.AppliedDiscounts)
                 .FindByIdAsync(id, false);
 
             if (manufacturer == null)
@@ -269,16 +319,44 @@ namespace Smartstore.Admin.Controllers
             var mapper = MapperFactory.GetMapper<Manufacturer, ManufacturerModel>();
             var model = await mapper.MapAsync(manufacturer);
 
-            await AddLocalesAsync(model.Locales, async (locale, languageId) =>
-            {
-                locale.Name = manufacturer.GetLocalized(x => x.Name, languageId, false, false);
-                locale.Description = manufacturer.GetLocalized(x => x.Description, languageId, false, false);
-                locale.BottomDescription = manufacturer.GetLocalized(x => x.BottomDescription, languageId, false, false);
-                locale.MetaKeywords = manufacturer.GetLocalized(x => x.MetaKeywords, languageId, false, false);
-                locale.MetaDescription = manufacturer.GetLocalized(x => x.MetaDescription, languageId, false, false);
-                locale.MetaTitle = manufacturer.GetLocalized(x => x.MetaTitle, languageId, false, false);
-                locale.SeName = await manufacturer.GetActiveSlugAsync(languageId, false, false);
-            });
+            await AddLocalesAsync(
+                model.Locales,
+                async (locale, languageId) =>
+                {
+                    locale.Name = manufacturer.GetLocalized(x => x.Name, languageId, false, false);
+                    locale.Description = manufacturer.GetLocalized(
+                        x => x.Description,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.BottomDescription = manufacturer.GetLocalized(
+                        x => x.BottomDescription,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.MetaKeywords = manufacturer.GetLocalized(
+                        x => x.MetaKeywords,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.MetaDescription = manufacturer.GetLocalized(
+                        x => x.MetaDescription,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.MetaTitle = manufacturer.GetLocalized(
+                        x => x.MetaTitle,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.SeName = await manufacturer.GetActiveSlugAsync(languageId, false, false);
+                }
+            );
 
             await PrepareManufacturerModel(model, manufacturer);
 
@@ -287,10 +365,14 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [Permission(Permissions.Catalog.Manufacturer.Update)]
-        public async Task<IActionResult> Edit(ManufacturerModel model, bool continueEditing, IFormCollection form)
+        public async Task<IActionResult> Edit(
+            ManufacturerModel model,
+            bool continueEditing,
+            IFormCollection form
+        )
         {
-            var manufacturer = await _db.Manufacturers
-                .Include(x => x.AppliedDiscounts)
+            var manufacturer = await _db
+                .Manufacturers.Include(x => x.AppliedDiscounts)
                 .FindByIdAsync(model.Id);
 
             if (manufacturer == null)
@@ -303,20 +385,41 @@ namespace Smartstore.Admin.Controllers
                 var mapper = MapperFactory.GetMapper<ManufacturerModel, Manufacturer>();
                 await mapper.MapAsync(model, manufacturer);
 
-                var slugResult = await _urlService.SaveSlugAsync(manufacturer, model.SeName, manufacturer.GetDisplayName(), true);
+                var slugResult = await _urlService.SaveSlugAsync(
+                    manufacturer,
+                    model.SeName,
+                    manufacturer.GetDisplayName(),
+                    true
+                );
                 model.SeName = slugResult.Slug;
 
                 await ApplyLocales(model, manufacturer);
-                await _discountService.ApplyDiscountsAsync(manufacturer, model?.SelectedDiscountIds, DiscountType.AssignedToManufacturers);
-                await _storeMappingService.ApplyStoreMappingsAsync(manufacturer, model.SelectedStoreIds);
-                await _aclService.ApplyAclMappingsAsync(manufacturer, model.SelectedCustomerRoleIds);
+                await _discountService.ApplyDiscountsAsync(
+                    manufacturer,
+                    model?.SelectedDiscountIds,
+                    DiscountType.AssignedToManufacturers
+                );
+                await _storeMappingService.ApplyStoreMappingsAsync(
+                    manufacturer,
+                    model.SelectedStoreIds
+                );
+                await _aclService.ApplyAclMappingsAsync(
+                    manufacturer,
+                    model.SelectedCustomerRoleIds
+                );
 
                 _db.Manufacturers.Update(manufacturer);
                 await _db.SaveChangesAsync();
 
-                await Services.EventPublisher.PublishAsync(new ModelBoundEvent(model, manufacturer, form));
+                await Services.EventPublisher.PublishAsync(
+                    new ModelBoundEvent(model, manufacturer, form)
+                );
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditManufacturer, T("ActivityLog.EditManufacturer"), manufacturer.Name);
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditManufacturer,
+                    T("ActivityLog.EditManufacturer"),
+                    manufacturer.Name
+                );
                 NotifySuccess(T("Admin.Catalog.Manufacturers.Updated"));
 
                 return continueEditing
@@ -342,7 +445,11 @@ namespace Smartstore.Admin.Controllers
             _db.Manufacturers.Remove(manufacturer);
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.DeleteManufacturer, T("ActivityLog.DeleteManufacturer"), manufacturer.Name);
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.DeleteManufacturer,
+                T("ActivityLog.DeleteManufacturer"),
+                manufacturer.Name
+            );
             NotifySuccess(T("Admin.Catalog.Manufacturers.Deleted"));
 
             return RedirectToAction(nameof(List));
@@ -351,11 +458,14 @@ namespace Smartstore.Admin.Controllers
         #region Product manufacturers
 
         [Permission(Permissions.Catalog.Manufacturer.Read)]
-        public async Task<IActionResult> ProductManufacturerList(GridCommand command, int manufacturerId)
+        public async Task<IActionResult> ProductManufacturerList(
+            GridCommand command,
+            int manufacturerId
+        )
         {
             var mapper = MapperFactory.GetMapper<ProductManufacturer, ManufacturerProductModel>();
-            var productManufacturers = await _db.ProductManufacturers
-                .AsNoTracking()
+            var productManufacturers = await _db
+                .ProductManufacturers.AsNoTracking()
                 .ApplyManufacturerFilter(manufacturerId)
                 .ApplyGridCommand(command, false)
                 .ToPagedList(command)
@@ -372,34 +482,49 @@ namespace Smartstore.Admin.Controllers
                     model.ProductTypeName = product.GetProductTypeLabel(Services.Localization);
                     model.ProductTypeLabelHint = product.ProductTypeLabelHint;
                     model.Published = product.Published;
-                    model.EditUrl = Url.Action("Edit", "Product", new { id = x.ProductId, area = "Admin" });
+                    model.EditUrl = Url.Action(
+                        "Edit",
+                        "Product",
+                        new { id = x.ProductId, area = "Admin" }
+                    );
 
                     return model;
                 })
                 .AsyncToList();
 
-            return Json(new GridModel<ManufacturerProductModel>
-            {
-                Rows = rows,
-                Total = productManufacturers.TotalCount
-            });
+            return Json(
+                new GridModel<ManufacturerProductModel>
+                {
+                    Rows = rows,
+                    Total = productManufacturers.TotalCount,
+                }
+            );
         }
 
         [HttpPost]
         [Permission(Permissions.Catalog.Manufacturer.EditProduct)]
-        public async Task<IActionResult> ProductManufacturerInsert(ManufacturerProductModel model, int manufacturerId)
+        public async Task<IActionResult> ProductManufacturerInsert(
+            ManufacturerProductModel model,
+            int manufacturerId
+        )
         {
             var success = false;
 
-            if (!await _db.ProductManufacturers.AnyAsync(x => x.ManufacturerId == manufacturerId && x.ProductId == model.ProductId))
+            if (
+                !await _db.ProductManufacturers.AnyAsync(x =>
+                    x.ManufacturerId == manufacturerId && x.ProductId == model.ProductId
+                )
+            )
             {
-                _db.ProductManufacturers.Add(new ProductManufacturer
-                {
-                    ManufacturerId = manufacturerId,
-                    ProductId = model.ProductId,
-                    IsFeaturedProduct = model.IsFeaturedProduct,
-                    DisplayOrder = model.DisplayOrder
-                });
+                _db.ProductManufacturers.Add(
+                    new ProductManufacturer
+                    {
+                        ManufacturerId = manufacturerId,
+                        ProductId = model.ProductId,
+                        IsFeaturedProduct = model.IsFeaturedProduct,
+                        DisplayOrder = model.DisplayOrder,
+                    }
+                );
 
                 await _db.SaveChangesAsync();
                 success = true;
@@ -421,8 +546,12 @@ namespace Smartstore.Admin.Controllers
             var productManufacturer = await _db.ProductManufacturers.FindByIdAsync(model.Id);
             if (productManufacturer != null)
             {
-                if (model.ProductId != productManufacturer.ProductId &&
-                    await _db.ProductManufacturers.AnyAsync(x => x.ManufacturerId == model.ManufacturerId && x.ProductId == model.ProductId))
+                if (
+                    model.ProductId != productManufacturer.ProductId
+                    && await _db.ProductManufacturers.AnyAsync(x =>
+                        x.ManufacturerId == model.ManufacturerId && x.ProductId == model.ProductId
+                    )
+                )
                 {
                     NotifyError(T("Admin.Catalog.Products.Manufacturers.NoDuplicatesAllowed"));
                 }
@@ -463,20 +592,35 @@ namespace Smartstore.Admin.Controllers
 
         #endregion
 
-        private async Task PrepareManufacturerModel(ManufacturerModel model, Manufacturer manufacturer)
+        private async Task PrepareManufacturerModel(
+            ManufacturerModel model,
+            Manufacturer manufacturer
+        )
         {
             if (manufacturer != null)
             {
-                model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(manufacturer.CreatedOnUtc, DateTimeKind.Utc);
-                model.UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(manufacturer.UpdatedOnUtc, DateTimeKind.Utc);
-                model.SelectedDiscountIds = manufacturer.AppliedDiscounts.Select(d => d.Id).ToArray();
-                model.SelectedStoreIds = await _storeMappingService.GetAuthorizedStoreIdsAsync(manufacturer);
-                model.SelectedCustomerRoleIds = await _aclService.GetAuthorizedCustomerRoleIdsAsync(manufacturer);
+                model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                    manufacturer.CreatedOnUtc,
+                    DateTimeKind.Utc
+                );
+                model.UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                    manufacturer.UpdatedOnUtc,
+                    DateTimeKind.Utc
+                );
+                model.SelectedDiscountIds = manufacturer
+                    .AppliedDiscounts.Select(d => d.Id)
+                    .ToArray();
+                model.SelectedStoreIds = await _storeMappingService.GetAuthorizedStoreIdsAsync(
+                    manufacturer
+                );
+                model.SelectedCustomerRoleIds = await _aclService.GetAuthorizedCustomerRoleIdsAsync(
+                    manufacturer
+                );
                 model.ManufacturerUrl = await GetEntityPublicUrlAsync(manufacturer);
             }
 
-            var manufacturerTemplates = await _db.ManufacturerTemplates
-                .AsNoTracking()
+            var manufacturerTemplates = await _db
+                .ManufacturerTemplates.AsNoTracking()
                 .OrderBy(x => x.DisplayOrder)
                 .ToListAsync();
 
@@ -489,14 +633,50 @@ namespace Smartstore.Admin.Controllers
         {
             foreach (var localized in model.Locales)
             {
-                await _localizedEntityService.ApplyLocalizedValueAsync(manufacturer, x => x.Name, localized.Name, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(manufacturer, x => x.Description, localized.Description, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(manufacturer, x => x.BottomDescription, localized.BottomDescription, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(manufacturer, x => x.MetaKeywords, localized.MetaKeywords, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(manufacturer, x => x.MetaDescription, localized.MetaDescription, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(manufacturer, x => x.MetaTitle, localized.MetaTitle, localized.LanguageId);
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    manufacturer,
+                    x => x.Name,
+                    localized.Name,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    manufacturer,
+                    x => x.Description,
+                    localized.Description,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    manufacturer,
+                    x => x.BottomDescription,
+                    localized.BottomDescription,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    manufacturer,
+                    x => x.MetaKeywords,
+                    localized.MetaKeywords,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    manufacturer,
+                    x => x.MetaDescription,
+                    localized.MetaDescription,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    manufacturer,
+                    x => x.MetaTitle,
+                    localized.MetaTitle,
+                    localized.LanguageId
+                );
 
-                await _urlService.SaveSlugAsync(manufacturer, localized.SeName, localized.Name, false, localized.LanguageId);
+                await _urlService.SaveSlugAsync(
+                    manufacturer,
+                    localized.SeName,
+                    localized.Name,
+                    false,
+                    localized.LanguageId
+                );
             }
         }
     }

@@ -363,7 +363,7 @@ namespace Smartstore.Admin.Controllers
                 new GridModel<OrderOverviewModel>
                 {
                     Rows = rows,
-                    TotaRegisterMode.csl = orders.TotalCount,
+                    Total = orders.TotalCount,
                     Aggregates = new
                     {
                         profit = Services

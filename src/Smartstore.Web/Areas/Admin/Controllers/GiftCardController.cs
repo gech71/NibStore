@@ -22,6 +22,7 @@ namespace Smartstore.Admin.Controllers
         private readonly IMessageFactory _messageFactory;
         private readonly LocalizationSettings _localizationSettings;
         private readonly Currency _primaryCurrency;
+        private readonly IWorkContext _workContext;
 
         public GiftCardController(
             SmartDbContext db,
@@ -29,7 +30,9 @@ namespace Smartstore.Admin.Controllers
             ILanguageService languageService,
             ICurrencyService currencyService,
             IMessageFactory messageFactory,
-            LocalizationSettings localizationSettings)
+            LocalizationSettings localizationSettings,
+            IWorkContext workContext
+        )
         {
             _db = db;
             _giftCardService = giftCardService;
@@ -37,8 +40,8 @@ namespace Smartstore.Admin.Controllers
             _currencyService = currencyService;
             _messageFactory = messageFactory;
             _localizationSettings = localizationSettings;
-
             _primaryCurrency = currencyService.PrimaryCurrency;
+            _workContext = workContext;
         }
 
         public IActionResult Index()
@@ -52,7 +55,7 @@ namespace Smartstore.Admin.Controllers
             ViewBag.ActivatedList = new List<SelectListItem>
             {
                 new() { Value = "true", Text = T("Common.Activated") },
-                new() { Value = "false", Text = T("Common.Deactivated") }
+                new() { Value = "false", Text = T("Common.Deactivated") },
             };
 
             return View(new GiftCardListModel());
@@ -61,10 +64,33 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.GiftCard.Read)]
         public async Task<IActionResult> GiftCardList(GridCommand command, GiftCardListModel model)
         {
+            var currentUser = _workContext.CurrentCustomer;
+
+            var adminRoleId = await _db
+                .CustomerRoles.Where(r => r.SystemName == "Administrators")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            bool isAdministrator =
+                adminRoleId != 0
+                && await _db.CustomerRoleMappings.AnyAsync(m =>
+                    m.CustomerId == currentUser.Id && m.CustomerRoleId == adminRoleId
+                );
+
+            bool isMerchant =
+                !isAdministrator
+                && await _db.Customers.AnyAsync(m =>
+                    m.Id == currentUser.Id && m.Email == currentUser.Email
+                );
+
             var mapper = MapperFactory.GetMapper<GiftCard, GiftCardModel>();
-            var query = _db.GiftCards
-                .Include(x => x.GiftCardUsageHistory)
-                .AsNoTracking();
+            var query = _db.GiftCards.Include(x => x.GiftCardUsageHistory).AsNoTracking();
+
+            if (isMerchant)
+            {
+                var merchantEmail = currentUser.Email;
+                query = query.Where(x => x.SenderEmail == merchantEmail);
+            }
 
             if (model.CouponCode.HasValue())
             {
@@ -91,18 +117,17 @@ namespace Smartstore.Admin.Controllers
                 })
                 .AsyncToList();
 
-            return Json(new GridModel<GiftCardModel>
-            {
-                Rows = rows,
-                Total = giftCards.TotalCount
-            });
+            return Json(new GridModel<GiftCardModel> { Rows = rows, Total = giftCards.TotalCount });
         }
 
         [Permission(Permissions.Order.GiftCard.Read)]
-        public async Task<IActionResult> GiftCardUsageHistoryList(GridCommand command, int id /* giftCardId */)
+        public async Task<IActionResult> GiftCardUsageHistoryList(
+            GridCommand command,
+            int id /* giftCardId */
+        )
         {
-            var historyEntries = await _db.GiftCardUsageHistory
-                .AsNoTracking()
+            var historyEntries = await _db
+                .GiftCardUsageHistory.AsNoTracking()
                 .Where(x => x.GiftCardId == id)
                 .OrderByDescending(x => x.CreatedOnUtc)
                 .ApplyGridCommand(command, false)
@@ -114,18 +139,25 @@ namespace Smartstore.Admin.Controllers
                 {
                     Id = x.Id,
                     OrderId = x.UsedWithOrderId,
-                    UsedValue = _currencyService.CreateMoney(x.UsedValue, _primaryCurrency).ToString(true),
-                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(x.CreatedOnUtc, DateTimeKind.Utc),
-                    OrderEditUrl = Url.Action("Edit", "Order", new { id = x.UsedWithOrderId, area = "Admin" }),
-                    OrderEditLinkText = T("Admin.Common.ViewObject", x.UsedWithOrderId)
+                    UsedValue = _currencyService
+                        .CreateMoney(x.UsedValue, _primaryCurrency)
+                        .ToString(true),
+                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                        x.CreatedOnUtc,
+                        DateTimeKind.Utc
+                    ),
+                    OrderEditUrl = Url.Action(
+                        "Edit",
+                        "Order",
+                        new { id = x.UsedWithOrderId, area = "Admin" }
+                    ),
+                    OrderEditLinkText = T("Admin.Common.ViewObject", x.UsedWithOrderId),
                 })
                 .ToList();
 
-            return Json(new GridModel<GiftCardUsageHistoryModel>
-            {
-                Rows = rows,
-                Total = rows.Count
-            });
+            return Json(
+                new GridModel<GiftCardUsageHistoryModel> { Rows = rows, Total = rows.Count }
+            );
         }
 
         [Permission(Permissions.Order.GiftCard.Create)]
@@ -149,7 +181,11 @@ namespace Smartstore.Admin.Controllers
                 _db.GiftCards.Add(giftCard);
                 await _db.SaveChangesAsync();
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.AddNewGiftCard, T("ActivityLog.AddNewGiftCard"), giftCard.GiftCardCouponCode);
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.AddNewGiftCard,
+                    T("ActivityLog.AddNewGiftCard"),
+                    giftCard.GiftCardCouponCode
+                );
                 NotifySuccess(T("Admin.GiftCards.Added"));
 
                 return continueEditing
@@ -165,8 +201,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.GiftCard.Read)]
         public async Task<IActionResult> Edit(int id)
         {
-            var giftCard = await _db.GiftCards
-                .Include(x => x.PurchasedWithOrderItem)
+            var giftCard = await _db
+                .GiftCards.Include(x => x.PurchasedWithOrderItem)
                 .ThenInclude(x => x.Order)
                 .FindByIdAsync(id);
 
@@ -189,8 +225,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.GiftCard.Update)]
         public async Task<IActionResult> Edit(GiftCardModel model, bool continueEditing)
         {
-            var giftCard = await _db.GiftCards
-                .Include(x => x.PurchasedWithOrderItem)
+            var giftCard = await _db
+                .GiftCards.Include(x => x.PurchasedWithOrderItem)
                 .ThenInclude(x => x.Order)
                 .FindByIdAsync(model.Id);
 
@@ -206,7 +242,11 @@ namespace Smartstore.Admin.Controllers
 
                 await _db.SaveChangesAsync();
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditGiftCard, T("ActivityLog.EditGiftCard"), giftCard.GiftCardCouponCode);
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditGiftCard,
+                    T("ActivityLog.EditGiftCard"),
+                    giftCard.GiftCardCouponCode
+                );
                 NotifySuccess(T("Admin.GiftCards.Updated"));
 
                 return continueEditing
@@ -240,7 +280,11 @@ namespace Smartstore.Admin.Controllers
             _db.GiftCards.Remove(giftCard);
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.DeleteGiftCard, T("ActivityLog.DeleteGiftCard"), giftCard.GiftCardCouponCode);
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.DeleteGiftCard,
+                T("ActivityLog.DeleteGiftCard"),
+                giftCard.GiftCardCouponCode
+            );
             NotifySuccess(T("Admin.GiftCards.Deleted"));
 
             return RedirectToAction(nameof(List));
@@ -262,7 +306,10 @@ namespace Smartstore.Admin.Controllers
                 {
                     if (giftCard.SenderEmail.IsEmail())
                     {
-                        var msg = await _messageFactory.SendGiftCardNotificationAsync(giftCard, model.LanguageId);
+                        var msg = await _messageFactory.SendGiftCardNotificationAsync(
+                            giftCard,
+                            model.LanguageId
+                        );
                         if (msg?.Email?.Id != null)
                         {
                             giftCard.IsRecipientNotified = true;
@@ -296,15 +343,27 @@ namespace Smartstore.Admin.Controllers
                 var remainAmount = await _giftCardService.GetRemainingAmountAsync(giftCard);
                 var languageId = giftCard?.PurchasedWithOrderItem?.Order?.CustomerLanguageId;
 
-                if (languageId.HasValue && !await _db.Languages.AnyAsync(x => x.Id == languageId.Value))
+                if (
+                    languageId.HasValue
+                    && !await _db.Languages.AnyAsync(x => x.Id == languageId.Value)
+                )
                 {
                     languageId = null;
                 }
 
-                model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(giftCard.CreatedOnUtc, DateTimeKind.Utc);
-                model.AmountStr = _currencyService.CreateMoney(giftCard.Amount, _primaryCurrency).ToString(true);
+                model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                    giftCard.CreatedOnUtc,
+                    DateTimeKind.Utc
+                );
+                model.AmountStr = _currencyService
+                    .CreateMoney(giftCard.Amount, _primaryCurrency)
+                    .ToString(true);
                 model.RemainingAmountStr = remainAmount.ToString(true);
-                model.EditUrl = Url.Action(nameof(Edit), "GiftCard", new { id = giftCard.Id, area = "Admin" });
+                model.EditUrl = Url.Action(
+                    nameof(Edit),
+                    "GiftCard",
+                    new { id = giftCard.Id, area = "Admin" }
+                );
                 model.PurchasedWithOrderId = giftCard.PurchasedWithOrderItem?.OrderId;
                 model.LanguageId = languageId ?? Services.WorkContext.WorkingLanguage.Id;
             }
@@ -313,7 +372,9 @@ namespace Smartstore.Admin.Controllers
         private async Task PrepareViewBag()
         {
             ViewBag.PrimaryStoreCurrencyCode = _primaryCurrency.CurrencyCode;
-            ViewBag.AllLanguages = (await _languageService.GetAllLanguagesAsync(true)).ToSelectListItems();
+            ViewBag.AllLanguages = (
+                await _languageService.GetAllLanguagesAsync(true)
+            ).ToSelectListItems();
         }
     }
 }
