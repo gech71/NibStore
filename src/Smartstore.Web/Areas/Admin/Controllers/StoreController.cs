@@ -27,7 +27,8 @@ namespace Smartstore.Admin.Controllers
             SmartDbContext db,
             ICatalogSearchService catalogSearchService,
             ShoppingCartSettings shoppingCartSettings,
-            ILogger<StoreController> logger)
+            ILogger<StoreController> logger
+        )
         {
             _db = db;
             _catalogSearchService = catalogSearchService;
@@ -36,7 +37,7 @@ namespace Smartstore.Admin.Controllers
         }
 
         /// <summary>
-        /// (AJAX) Gets a list of all available stores. 
+        /// (AJAX) Gets a list of all available stores.
         /// </summary>
         /// <param name="label">Text for optional entry. If not null an entry with the specified label text and the Id 0 will be added to the list.</param>
         /// <param name="selectedIds">Ids of selected entities.</param>
@@ -56,7 +57,7 @@ namespace Smartstore.Admin.Controllers
                 {
                     Id = x.Id.ToString(),
                     Text = x.Name,
-                    Selected = ids.Contains(x.Id)
+                    Selected = ids.Contains(x.Id),
                 })
                 .ToList();
 
@@ -94,11 +95,7 @@ namespace Smartstore.Admin.Controllers
                 })
                 .AsyncToList();
 
-            return Json(new GridModel<StoreModel>
-            {
-                Rows = rows,
-                Total = rows.Count
-            });
+            return Json(new GridModel<StoreModel> { Rows = rows, Total = rows.Count });
         }
 
         [Permission(Permissions.Configuration.Store.Create)]
@@ -108,7 +105,7 @@ namespace Smartstore.Admin.Controllers
 
             var model = new StoreModel
             {
-                DefaultCurrencyId = Services.CurrencyService.PrimaryCurrency.Id
+                DefaultCurrencyId = Services.CurrencyService.PrimaryCurrency.Id,
             };
 
             return View(model);
@@ -213,38 +210,73 @@ namespace Smartstore.Admin.Controllers
         public async Task<JsonResult> StoreDashboardReportAsync()
         {
             var primaryCurrency = Services.CurrencyService.PrimaryCurrency;
-            var customer = Services.WorkContext.CurrentCustomer;
-            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", customer.Id);
+            var currentUser = Services.WorkContext.CurrentCustomer;
+            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync(
+                "Customer",
+                currentUser.Id
+            );
 
-            // Check if merchant
-            var merchantRole = await _db.CustomerRoles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.SystemName == "Merchant");
-            bool isMerchant = merchantRole != null &&
-                await _db.CustomerRoleMappings
-                    .AnyAsync(m => m.CustomerId == customer.Id && m.CustomerRoleId == merchantRole.Id);
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
 
-            int productsCount = 0, attributesCount = 0, categoriesCount = 0, manufacturersCount = 0, customersCount = 0, ordersCount = 0, attributeCombinationsCount = 0;
+            int productsCount = 0,
+                attributesCount = 0,
+                categoriesCount = 0,
+                manufacturersCount = 0,
+                customersCount = 0,
+                ordersCount = 0,
+                attributeCombinationsCount = 0;
             decimal sales = 0;
 
-            int? mediaCount = 0, onlineCustomersCount = 0;
-            decimal? mediaSize = 0, cartsValue = 0, wishlistsValue = 0;
+            int? mediaCount = 0,
+                onlineCustomersCount = 0;
+            decimal? mediaSize = 0,
+                cartsValue = 0,
+                wishlistsValue = 0;
 
             if (isMerchant)
             {
-                var merchantProductIds = await _db.GenericAttributes
-                    .Where(a => a.KeyGroup == "Product" && a.Key == "CreatedByUserId" && a.Value == customer.Id.ToString())
+                var merchantProductIds = await _db
+                    .GenericAttributes.Where(a =>
+                        a.KeyGroup == "Product"
+                        && a.Key == "CreatedByUserId"
+                        && a.Value == currentUser.Id.ToString()
+                    )
                     .Select(a => a.EntityId)
                     .ToListAsync();
 
-                productsCount = await _db.Products.Where(p => merchantProductIds.Contains(p.Id)).CountAsync();
-                attributesCount = await _db.ProductVariantAttributes.Where(a => merchantProductIds.Contains(a.ProductId)).CountAsync();
-                attributeCombinationsCount = await _db.ProductVariantAttributeCombinations.Where(ac => merchantProductIds.Contains(ac.ProductId) && ac.IsActive).CountAsync();
-                categoriesCount = await _db.ProductCategories.Where(pc => merchantProductIds.Contains(pc.ProductId)).Select(pc => pc.CategoryId).Distinct().CountAsync();
-                manufacturersCount = await _db.ProductManufacturers.Where(pm => merchantProductIds.Contains(pm.ProductId)).Select(pm => pm.ManufacturerId).Distinct().CountAsync();
-                customersCount = await _db.OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId)).Select(oi => oi.Order.CustomerId).Distinct().CountAsync();
-                ordersCount = await _db.OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId)).Select(oi => oi.OrderId).Distinct().CountAsync();
-                sales = await _db.OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId)).SumAsync(oi => (decimal?)oi.PriceInclTax * oi.Quantity) ?? 0;
+                productsCount = await _db
+                    .Products.Where(p => merchantProductIds.Contains(p.Id))
+                    .CountAsync();
+                attributesCount = await _db
+                    .ProductVariantAttributes.Where(a => merchantProductIds.Contains(a.ProductId))
+                    .CountAsync();
+                attributeCombinationsCount = await _db
+                    .ProductVariantAttributeCombinations.Where(ac =>
+                        merchantProductIds.Contains(ac.ProductId) && ac.IsActive
+                    )
+                    .CountAsync();
+                categoriesCount = await _db.Categories.CountAsync();
+                manufacturersCount = await _db
+                    .ProductManufacturers.Where(pm => merchantProductIds.Contains(pm.ProductId))
+                    .Select(pm => pm.ManufacturerId)
+                    .Distinct()
+                    .CountAsync();
+                customersCount = await _db
+                    .OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId))
+                    .Select(oi => oi.Order.CustomerId)
+                    .Distinct()
+                    .CountAsync();
+                ordersCount = await _db
+                    .OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId))
+                    .Select(oi => oi.OrderId)
+                    .Distinct()
+                    .CountAsync();
+                sales =
+                    await _db
+                        .OrderItems.Where(oi => merchantProductIds.Contains(oi.ProductId))
+                        .SumAsync(oi => (decimal?)oi.PriceInclTax * oi.Quantity) ?? 0;
                 mediaCount = null;
                 mediaSize = null;
                 onlineCustomersCount = null;
@@ -253,18 +285,21 @@ namespace Smartstore.Admin.Controllers
             }
             else
             {
-                productsCount = await _catalogSearchService.PrepareQuery(new CatalogSearchQuery()).CountAsync();
+                productsCount = await _catalogSearchService
+                    .PrepareQuery(new CatalogSearchQuery())
+                    .CountAsync();
                 attributesCount = await _db.ProductAttributes.CountAsync();
-                attributeCombinationsCount = await _db.ProductVariantAttributeCombinations.CountAsync(x => x.IsActive);
+                attributeCombinationsCount =
+                    await _db.ProductVariantAttributeCombinations.CountAsync(x => x.IsActive);
                 categoriesCount = await _db.Categories.CountAsync();
                 manufacturersCount = await _db.Manufacturers.CountAsync();
 
-                var registeredRole = await _db.CustomerRoles
-                    .AsNoTracking()
+                var registeredRole = await _db
+                    .CustomerRoles.AsNoTracking()
                     .FirstOrDefaultAsync(x => x.SystemName == SystemCustomerRoleNames.Registered);
 
-                var registeredCustomersQuery = _db.Customers
-                    .AsNoTracking()
+                var registeredCustomersQuery = _db
+                    .Customers.AsNoTracking()
                     .ApplyRolesFilter([registeredRole.Id]);
 
                 customersCount = await registeredCustomersQuery.CountAsync();
@@ -273,11 +308,20 @@ namespace Smartstore.Admin.Controllers
                 ordersCount = await ordersQuery.CountAsync();
                 sales = await ordersQuery.SumAsync(x => (decimal?)x.OrderTotal) ?? 0;
 
-                mediaCount = await Services.MediaService.CountFilesAsync(new MediaSearchQuery { Deleted = false });
+                mediaCount = await Services.MediaService.CountFilesAsync(
+                    new MediaSearchQuery { Deleted = false }
+                );
                 mediaSize = await _db.MediaFiles.SumAsync(x => (long)x.Size);
-                onlineCustomersCount = await _db.Customers.ApplyOnlineCustomersFilter(15).CountAsync();
-                cartsValue = await _db.ShoppingCartItems.GetOpenCartTypeSubTotalAsync(ShoppingCartType.ShoppingCart, _shoppingCartSettings.AllowActivatableCartItems ? true : null);
-                wishlistsValue = await _db.ShoppingCartItems.GetOpenCartTypeSubTotalAsync(ShoppingCartType.Wishlist);
+                onlineCustomersCount = await _db
+                    .Customers.ApplyOnlineCustomersFilter(15)
+                    .CountAsync();
+                cartsValue = await _db.ShoppingCartItems.GetOpenCartTypeSubTotalAsync(
+                    ShoppingCartType.ShoppingCart,
+                    _shoppingCartSettings.AllowActivatableCartItems ? true : null
+                );
+                wishlistsValue = await _db.ShoppingCartItems.GetOpenCartTypeSubTotalAsync(
+                    ShoppingCartType.Wishlist
+                );
             }
 
             var model = new StoreDashboardReportModel
@@ -288,20 +332,33 @@ namespace Smartstore.Admin.Controllers
                 AttributesCount = attributesCount.ToString("N0"),
                 AttributeCombinationsCount = attributeCombinationsCount.ToString("N0"),
                 MediaCount = mediaCount != null ? mediaCount.Value.ToString("N0") : null,
-                MediaSize = mediaSize != null ? Prettifier.HumanizeBytes((long)mediaSize.Value) : null,
+                MediaSize =
+                    mediaSize != null ? Prettifier.HumanizeBytes((long)mediaSize.Value) : null,
                 OrdersCount = ordersCount.ToString("N0"),
-                OnlineCustomersCount = onlineCustomersCount != null ? onlineCustomersCount.Value.ToString("N0") : null,
+                OnlineCustomersCount =
+                    onlineCustomersCount != null ? onlineCustomersCount.Value.ToString("N0") : null,
                 Sales = Services.CurrencyService.CreateMoney(sales, primaryCurrency).ToString(),
-                CartsValue = cartsValue != null ? Services.CurrencyService.CreateMoney(cartsValue.Value, primaryCurrency).ToString() : null,
-                WishlistsValue = wishlistsValue != null ? Services.CurrencyService.CreateMoney(wishlistsValue.Value, primaryCurrency).ToString() : null
+                CartsValue =
+                    cartsValue != null
+                        ? Services
+                            .CurrencyService.CreateMoney(cartsValue.Value, primaryCurrency)
+                            .ToString()
+                        : null,
+                WishlistsValue =
+                    wishlistsValue != null
+                        ? Services
+                            .CurrencyService.CreateMoney(wishlistsValue.Value, primaryCurrency)
+                            .ToString()
+                        : null,
             };
 
             return new JsonResult(new { model });
         }
+
         private async Task PrepareViewBag(Store store)
         {
-            var currencies = await _db.Currencies
-                .AsNoTracking()
+            var currencies = await _db
+                .Currencies.AsNoTracking()
                 .ApplyStandardFilter(false, store?.Id ?? 0)
                 .ToListAsync();
 
@@ -309,7 +366,7 @@ namespace Smartstore.Admin.Controllers
                 .Select(x => new SelectListItem
                 {
                     Text = x.GetLocalized(y => y.Name),
-                    Value = x.Id.ToString()
+                    Value = x.Id.ToString(),
                 })
                 .ToList();
         }

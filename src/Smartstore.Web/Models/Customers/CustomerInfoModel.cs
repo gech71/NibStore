@@ -27,18 +27,22 @@ namespace Smartstore.Web.Models.Customers
 
         // Form fields & properties.
         public bool GenderEnabled { get; set; }
+
         [LocalizedDisplay("*Gender")]
         public string Gender { get; set; }
 
         public bool TitleEnabled { get; set; }
+
         [LocalizedDisplay("*Title")]
         public string Title { get; set; }
 
         public bool FirstNameRequired { get; set; }
+
         [LocalizedDisplay("*FirstName")]
         public string FirstName { get; set; }
 
         public bool LastNameRequired { get; set; }
+
         [LocalizedDisplay("*LastName")]
         public string LastName { get; set; }
 
@@ -49,50 +53,60 @@ namespace Smartstore.Web.Models.Customers
 
         public bool CompanyEnabled { get; set; }
         public bool CompanyRequired { get; set; }
+
         [LocalizedDisplay("*Company")]
         public string Company { get; set; }
 
         public bool StreetAddressEnabled { get; set; }
         public bool StreetAddressRequired { get; set; }
+
         [LocalizedDisplay("*StreetAddress")]
         public string StreetAddress { get; set; }
 
         public bool StreetAddress2Enabled { get; set; }
         public bool StreetAddress2Required { get; set; }
+
         [LocalizedDisplay("*StreetAddress2")]
         public string StreetAddress2 { get; set; }
 
         public bool ZipPostalCodeEnabled { get; set; }
         public bool ZipPostalCodeRequired { get; set; }
+
         [LocalizedDisplay("*ZipPostalCode")]
         public string ZipPostalCode { get; set; }
 
         public bool CityEnabled { get; set; }
         public bool CityRequired { get; set; }
+
         [LocalizedDisplay("*City")]
         public string City { get; set; }
 
         public bool CountryEnabled { get; set; }
+
         [LocalizedDisplay("*Country")]
         public int CountryId { get; set; }
 
         public bool StateProvinceEnabled { get; set; }
+
         [LocalizedDisplay("*StateProvince")]
         public int StateProvinceId { get; set; }
 
         public bool PhoneEnabled { get; set; }
         public bool PhoneRequired { get; set; }
+
         [LocalizedDisplay("*Phone")]
         [DataType(DataType.PhoneNumber)]
         public string Phone { get; set; }
 
         public bool FaxEnabled { get; set; }
         public bool FaxRequired { get; set; }
+
         [LocalizedDisplay("*Fax")]
         [DataType(DataType.PhoneNumber)]
         public string Fax { get; set; }
 
         public bool NewsletterEnabled { get; set; }
+
         [LocalizedDisplay("*Newsletter")]
         public bool Newsletter { get; set; }
 
@@ -125,7 +139,11 @@ namespace Smartstore.Web.Models.Customers
 
     public class CustomerInfoValidator : SmartValidator<CustomerInfoModel>
     {
-        public CustomerInfoValidator(Localizer T, CustomerSettings customerSettings, TaxSettings taxSettings)
+        public CustomerInfoValidator(
+            Localizer T,
+            CustomerSettings customerSettings,
+            TaxSettings taxSettings
+        )
         {
             RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
 
@@ -164,23 +182,21 @@ namespace Smartstore.Web.Models.Customers
             {
                 RuleFor(x => x.City).NotEmpty();
             }
-            if (customerSettings.StateProvinceRequired && customerSettings.StateProvinceEnabled && customerSettings.CountryEnabled)
+            if (
+                customerSettings.StateProvinceRequired
+                && customerSettings.StateProvinceEnabled
+                && customerSettings.CountryEnabled
+            )
             {
                 RuleFor(x => x.StateProvinceId)
                     .NotNull()
                     .NotEqual(0)
                     .WithMessage(T("Address.Fields.StateProvince.Required"));
             }
-            RuleFor(x => x.Username)
-                .NotEmpty().WithMessage("Username is required.")
-                .MinimumLength(5).WithMessage("Username must be at least 5 characters long.")
-                .Matches(@"^[A-Za-z][A-Za-z0-9_]*$")
-                .WithMessage("Username must start with a letter and can only contain letters, numbers, and underscores.");
-
-            RuleFor(x => x.Phone)
-                .NotEmpty().WithMessage("Phone number is required.")
-                .Matches(@"^(?:\+251|0)(?:9|7)\d{8}$")
-                .WithMessage("Invalid phone number format.");
+            if (customerSettings.PhoneRequired && customerSettings.PhoneEnabled)
+            {
+                RuleFor(x => x.Phone).NotEmpty();
+            }
             if (customerSettings.FaxRequired && customerSettings.FaxEnabled)
             {
                 RuleFor(x => x.Fax).NotEmpty();

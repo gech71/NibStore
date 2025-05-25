@@ -109,8 +109,8 @@ namespace Smartstore.Admin.Controllers
             SearchSettings searchSettings,
             ShoppingCartSettings shoppingCartSettings,
             IEventPublisher eventPublisher,
-            IGenericAttributeService genericAttributeService)
-
+            IGenericAttributeService genericAttributeService
+        )
         {
             _db = db;
             _productService = productService;
@@ -177,7 +177,11 @@ namespace Smartstore.Admin.Controllers
             _db.Products.Remove(product);
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.DeleteProduct, T("ActivityLog.DeleteProduct"), product.Name);
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.DeleteProduct,
+                T("ActivityLog.DeleteProduct"),
+                product.Name
+            );
             NotifySuccess(T("Admin.Catalog.Products.Deleted"));
 
             return RedirectToAction(nameof(List));
@@ -195,7 +199,11 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [Permission(Permissions.Catalog.Product.Create)]
-        public async Task<IActionResult> Create(ProductModel model, bool continueEditing, IFormCollection form)
+        public async Task<IActionResult> Create(
+            ProductModel model,
+            bool continueEditing,
+            IFormCollection form
+        )
         {
             if (model.DownloadFileVersion.HasValue() && model.DownloadId != null)
             {
@@ -205,7 +213,10 @@ namespace Smartstore.Admin.Controllers
                 }
                 catch
                 {
-                    ModelState.AddModelError("FileVersion", T("Admin.Catalog.Products.Download.SemanticVersion.NotValid"));
+                    ModelState.AddModelError(
+                        "FileVersion",
+                        T("Admin.Catalog.Products.Download.SemanticVersion.NotValid")
+                    );
                 }
             }
 
@@ -240,7 +251,7 @@ namespace Smartstore.Admin.Controllers
                     EntityId = product.Id,
                     KeyGroup = "Product",
                     Key = "CreatedByUserId",
-                    Value = currentUser.Id.ToString()
+                    Value = currentUser.Id.ToString(),
                 };
 
                 _db.GenericAttributes.Add(attribute);
@@ -248,7 +259,11 @@ namespace Smartstore.Admin.Controllers
 
                 await UpdateDataOfExistingProductAsync(product, model, false);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.AddNewProduct, T("ActivityLog.AddNewProduct"), product.Name);
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.AddNewProduct,
+                    T("ActivityLog.AddNewProduct"),
+                    product.Name
+                );
 
                 if (continueEditing)
                 {
@@ -256,12 +271,17 @@ namespace Smartstore.Admin.Controllers
                     var selectedTab = TempData["SelectedTab.product-edit"] as SelectedTabInfo;
                     if (selectedTab != null)
                     {
-                        selectedTab.Path = Url.Action("Edit", new RouteValueDictionary { { "id", product.Id } });
+                        selectedTab.Path = Url.Action(
+                            "Edit",
+                            new RouteValueDictionary { { "id", product.Id } }
+                        );
                     }
                 }
 
                 NotifySuccess(T("Admin.Catalog.Products.Added"));
-                return continueEditing ? RedirectToAction(nameof(Edit), new { id = product.Id }) : RedirectToAction(nameof(List));
+                return continueEditing
+                    ? RedirectToAction(nameof(Edit), new { id = product.Id })
+                    : RedirectToAction(nameof(List));
             }
 
             // If we got this far something failed. Redisplay form.
@@ -273,8 +293,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.Read)]
         public async Task<IActionResult> Edit(int id)
         {
-            var product = await _db.Products
-                .AsSplitQuery()
+            var product = await _db
+                .Products.AsSplitQuery()
                 .Include(x => x.ProductTags)
                 .Include(x => x.AppliedDiscounts)
                 .FindByIdAsync(id);
@@ -294,27 +314,64 @@ namespace Smartstore.Admin.Controllers
             var model = await MapperFactory.MapAsync<Product, ProductModel>(product);
             await PrepareProductModelAsync(model, product, false, false);
 
-            await AddLocalesAsync(model.Locales, async (locale, languageId) =>
-            {
-                locale.Name = product.GetLocalized(x => x.Name, languageId, false, false);
-                locale.ShortDescription = product.GetLocalized(x => x.ShortDescription, languageId, false, false);
-                locale.FullDescription = product.GetLocalized(x => x.FullDescription, languageId, false, false);
-                locale.MetaKeywords = product.GetLocalized(x => x.MetaKeywords, languageId, false, false);
-                locale.MetaDescription = product.GetLocalized(x => x.MetaDescription, languageId, false, false);
-                locale.MetaTitle = product.GetLocalized(x => x.MetaTitle, languageId, false, false);
-                locale.SeName = await product.GetActiveSlugAsync(languageId, false, false);
-                locale.BundleTitleText = product.GetLocalized(x => x.BundleTitleText, languageId, false, false);
-            });
+            await AddLocalesAsync(
+                model.Locales,
+                async (locale, languageId) =>
+                {
+                    locale.Name = product.GetLocalized(x => x.Name, languageId, false, false);
+                    locale.ShortDescription = product.GetLocalized(
+                        x => x.ShortDescription,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.FullDescription = product.GetLocalized(
+                        x => x.FullDescription,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.MetaKeywords = product.GetLocalized(
+                        x => x.MetaKeywords,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.MetaDescription = product.GetLocalized(
+                        x => x.MetaDescription,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.MetaTitle = product.GetLocalized(
+                        x => x.MetaTitle,
+                        languageId,
+                        false,
+                        false
+                    );
+                    locale.SeName = await product.GetActiveSlugAsync(languageId, false, false);
+                    locale.BundleTitleText = product.GetLocalized(
+                        x => x.BundleTitleText,
+                        languageId,
+                        false,
+                        false
+                    );
+                }
+            );
 
             return View(model);
         }
 
         [HttpPost, ParameterBasedOnFormName("save-continue", "continueEditing")]
         [Permission(Permissions.Catalog.Product.Update)]
-        public async Task<IActionResult> Edit(ProductModel model, bool continueEditing, IFormCollection form)
+        public async Task<IActionResult> Edit(
+            ProductModel model,
+            bool continueEditing,
+            IFormCollection form
+        )
         {
-            var product = await _db.Products
-                .AsSplitQuery()
+            var product = await _db
+                .Products.AsSplitQuery()
                 .Include(x => x.AppliedDiscounts)
                 .Include(x => x.ProductTags)
                 .FindByIdAsync(model.Id);
@@ -338,10 +395,16 @@ namespace Smartstore.Admin.Controllers
                 await MapModelToProductAsync(model, product, form);
                 await UpdateDataOfExistingProductAsync(product, model, true);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditProduct, T("ActivityLog.EditProduct"), product.Name);
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditProduct,
+                    T("ActivityLog.EditProduct"),
+                    product.Name
+                );
 
                 NotifySuccess(T("Admin.Catalog.Products.Updated"));
-                return continueEditing ? RedirectToAction(nameof(Edit), new { id = product.Id }) : RedirectToAction(nameof(List));
+                return continueEditing
+                    ? RedirectToAction(nameof(Edit), new { id = product.Id })
+                    : RedirectToAction(nameof(List));
             }
 
             // If we got this far something failed. Redisplay form.
@@ -352,7 +415,7 @@ namespace Smartstore.Admin.Controllers
 
         #endregion
 
-        #region Misc 
+        #region Misc
 
         /// <summary>
         /// (AJAX) Gets a list of all products.
@@ -360,7 +423,12 @@ namespace Smartstore.Admin.Controllers
         /// <param name="page">Zero based page index.</param>
         /// <param name="term">Optional search term.</param>
         /// <param name="selectedIds">Selected product identifiers.</param>
-        public async Task<IActionResult> AllProducts(int page, string term, string selectedIds, string disabledIds)
+        public async Task<IActionResult> AllProducts(
+            int page,
+            string term,
+            string selectedIds,
+            string disabledIds
+        )
         {
             const int pageSize = 100;
 
@@ -420,7 +488,7 @@ namespace Smartstore.Admin.Controllers
                         {
                             Id = x.Id,
                             Name = x.Name,
-                            Sku = x.Sku
+                            Sku = x.Sku,
                         })
                         .OrderBy(x => x.Name)
                         .Skip(skip)
@@ -429,21 +497,18 @@ namespace Smartstore.Admin.Controllers
                 }
             }
 
-            var items = products.Select(x => new ChoiceListItem
-            {
-                Id = x.Id.ToString(),
-                Text = x.Name,
-                Hint = x.Sku,
-                Selected = idsSelected.Contains(x.Id),
-                Disabled = idsDisabled.Contains(x.Id)
-            })
-            .ToList();
+            var items = products
+                .Select(x => new ChoiceListItem
+                {
+                    Id = x.Id.ToString(),
+                    Text = x.Name,
+                    Hint = x.Sku,
+                    Selected = idsSelected.Contains(x.Id),
+                    Disabled = idsDisabled.Contains(x.Id),
+                })
+                .ToList();
 
-            return new JsonResult(new
-            {
-                hasMoreData,
-                results = items
-            });
+            return new JsonResult(new { hasMoreData, results = items });
         }
 
         [Permission(Permissions.Catalog.Product.Read)]
@@ -462,8 +527,8 @@ namespace Smartstore.Admin.Controllers
                     return Content("A unique tab name has to specified (route parameter: tabName)");
                 }
 
-                var product = await _db.Products
-                    .AsSplitQuery()
+                var product = await _db
+                    .Products.AsSplitQuery()
                     .Include(x => x.AppliedDiscounts)
                     .Include(x => x.ProductTags)
                     .FindByIdAsync(id, false);
@@ -472,17 +537,50 @@ namespace Smartstore.Admin.Controllers
 
                 await PrepareProductModelAsync(model, product, false, false);
 
-                await AddLocalesAsync(model.Locales, async (locale, languageId) =>
-                {
-                    locale.Name = product.GetLocalized(x => x.Name, languageId, false, false);
-                    locale.ShortDescription = product.GetLocalized(x => x.ShortDescription, languageId, false, false);
-                    locale.FullDescription = product.GetLocalized(x => x.FullDescription, languageId, false, false);
-                    locale.MetaKeywords = product.GetLocalized(x => x.MetaKeywords, languageId, false, false);
-                    locale.MetaDescription = product.GetLocalized(x => x.MetaDescription, languageId, false, false);
-                    locale.MetaTitle = product.GetLocalized(x => x.MetaTitle, languageId, false, false);
-                    locale.SeName = await product.GetActiveSlugAsync(languageId, false, false);
-                    locale.BundleTitleText = product.GetLocalized(x => x.BundleTitleText, languageId, false, false);
-                });
+                await AddLocalesAsync(
+                    model.Locales,
+                    async (locale, languageId) =>
+                    {
+                        locale.Name = product.GetLocalized(x => x.Name, languageId, false, false);
+                        locale.ShortDescription = product.GetLocalized(
+                            x => x.ShortDescription,
+                            languageId,
+                            false,
+                            false
+                        );
+                        locale.FullDescription = product.GetLocalized(
+                            x => x.FullDescription,
+                            languageId,
+                            false,
+                            false
+                        );
+                        locale.MetaKeywords = product.GetLocalized(
+                            x => x.MetaKeywords,
+                            languageId,
+                            false,
+                            false
+                        );
+                        locale.MetaDescription = product.GetLocalized(
+                            x => x.MetaDescription,
+                            languageId,
+                            false,
+                            false
+                        );
+                        locale.MetaTitle = product.GetLocalized(
+                            x => x.MetaTitle,
+                            languageId,
+                            false,
+                            false
+                        );
+                        locale.SeName = await product.GetActiveSlugAsync(languageId, false, false);
+                        locale.BundleTitleText = product.GetLocalized(
+                            x => x.BundleTitleText,
+                            languageId,
+                            false,
+                            false
+                        );
+                    }
+                );
 
                 return PartialView(viewPath.NullEmpty() ?? "_CreateOrUpdate." + tabName, model);
             }
@@ -501,8 +599,8 @@ namespace Smartstore.Admin.Controllers
 
             if (productCode.HasValue())
             {
-                var products = await _db.Products
-                    .IgnoreQueryFilters()
+                var products = await _db
+                    .Products.IgnoreQueryFilters()
                     .ApplyProductCodeFilter(productCode)
                     .Select(x => new { x.Id, x.Deleted })
                     .ToListAsync();
@@ -522,8 +620,12 @@ namespace Smartstore.Admin.Controllers
                 else
                 {
                     var query =
-                        from ac in _db.ProductVariantAttributeCombinations.ApplyProductCodeFilter(productCode)
-                        join p in _db.Products.AsNoTracking().IgnoreQueryFilters() on ac.ProductId equals p.Id into acp
+                        from ac in _db.ProductVariantAttributeCombinations.ApplyProductCodeFilter(
+                            productCode
+                        )
+                        join p in _db.Products.AsNoTracking().IgnoreQueryFilters()
+                            on ac.ProductId equals p.Id
+                            into acp
                         from p in acp.DefaultIfEmpty()
                         select new { Combination = ac, Product = p };
 
@@ -541,7 +643,10 @@ namespace Smartstore.Admin.Controllers
                         }
                         else
                         {
-                            return RedirectToAction(nameof(Edit), new { id = pvac.Combination.ProductId });
+                            return RedirectToAction(
+                                nameof(Edit),
+                                new { id = pvac.Combination.ProductId }
+                            );
                         }
                     }
                 }
@@ -562,8 +667,8 @@ namespace Smartstore.Admin.Controllers
                 Product clone = null;
                 // Lets just load this untracked as nearly all navigation properties are needed in order to copy successfully.
                 // We just eager load the most common properties.
-                var product = await _db.Products
-                    .AsSplitQuery()
+                var product = await _db
+                    .Products.AsSplitQuery()
                     .Include(x => x.ProductCategories)
                     .Include(x => x.ProductManufacturers)
                     .Include(x => x.ProductSpecificationAttributes)
@@ -577,7 +682,11 @@ namespace Smartstore.Admin.Controllers
                 for (var i = 1; i <= numCopies; ++i)
                 {
                     var newName = numCopies > 1 ? $"{name} {i}" : name;
-                    clone = await _productCloner.Value.CloneProductAsync(product, newName, copyModel.Published);
+                    clone = await _productCloner.Value.CloneProductAsync(
+                        product,
+                        newName,
+                        copyModel.Published
+                    );
 
                     await _eventPublisher.PublishAsync(new ProductClonedEvent(product, clone));
                 }
@@ -598,22 +707,36 @@ namespace Smartstore.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> GetBasePrice(int productId, string basePriceMeasureUnit, decimal basePriceAmount, int basePriceBaseAmount)
+        public async Task<IActionResult> GetBasePrice(
+            int productId,
+            string basePriceMeasureUnit,
+            decimal basePriceAmount,
+            int basePriceBaseAmount
+        )
         {
             var basePrice = string.Empty;
 
             if (basePriceAmount != decimal.Zero)
             {
-                var price = await _db.Products
-                    .Where(x => x.Id == productId)
+                var price = await _db
+                    .Products.Where(x => x.Id == productId)
                     .Select(x => x.Price)
                     .FirstOrDefaultAsync();
 
-                var basePriceValue = Convert.ToDecimal(price / basePriceAmount * basePriceBaseAmount);
-                var basePriceFormatted = _currencyService.ConvertFromPrimaryCurrency(basePriceValue, _workContext.WorkingCurrency).ToString();
+                var basePriceValue = Convert.ToDecimal(
+                    price / basePriceAmount * basePriceBaseAmount
+                );
+                var basePriceFormatted = _currencyService
+                    .ConvertFromPrimaryCurrency(basePriceValue, _workContext.WorkingCurrency)
+                    .ToString();
                 var unit = $"{basePriceBaseAmount} {basePriceMeasureUnit}";
 
-                basePrice = T("Admin.Catalog.Products.Fields.BasePriceInfo", $"{basePriceAmount:G29} {basePriceMeasureUnit}", basePriceFormatted, unit);
+                basePrice = T(
+                    "Admin.Catalog.Products.Fields.BasePriceInfo",
+                    $"{basePriceAmount:G29} {basePriceMeasureUnit}",
+                    basePriceFormatted,
+                    unit
+                );
             }
 
             return Json(new { Result = true, BasePrice = basePrice });
@@ -639,8 +762,8 @@ namespace Smartstore.Admin.Controllers
             var model = new GroupedProductConfigurationModel();
             await product.MapAsync(model);
 
-            var defaultAssociatedHeaders = _catalogSettings.CollapsibleAssociatedProductsHeaders
-                .Select(x =>
+            var defaultAssociatedHeaders = _catalogSettings
+                .CollapsibleAssociatedProductsHeaders.Select(x =>
                 {
                     switch (x)
                     {
@@ -661,8 +784,15 @@ namespace Smartstore.Admin.Controllers
                 })
                 .Where(x => x != null);
 
-            ViewBag.DefaultAssociatedProductsHeaderFields = string.Join(", ", defaultAssociatedHeaders);
-            ViewBag.AssociatedProductsHeaderFields = CreateAssociatedProductsHeaderFieldsList(model?.HeaderFields ?? [], T, true);
+            ViewBag.DefaultAssociatedProductsHeaderFields = string.Join(
+                ", ",
+                defaultAssociatedHeaders
+            );
+            ViewBag.AssociatedProductsHeaderFields = CreateAssociatedProductsHeaderFieldsList(
+                model?.HeaderFields ?? [],
+                T,
+                true
+            );
             ViewBag.FormId = formId;
 
             return View(model);
@@ -670,7 +800,10 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.Product.Update)]
-        public async Task<IActionResult> EditGroupedProductConfiguration(string formId, GroupedProductConfigurationModel model)
+        public async Task<IActionResult> EditGroupedProductConfiguration(
+            string formId,
+            GroupedProductConfigurationModel model
+        )
         {
             var product = await _db.Products.FindByIdAsync(model.Id);
             if (product == null)
@@ -704,13 +837,27 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.Read)]
         public async Task<IActionResult> ProductCategoryList(int productId)
         {
-            var productCategories = await _categoryService.Value.GetProductCategoriesByProductIdsAsync(new[] { productId }, true);
+            var productCategories =
+                await _categoryService.Value.GetProductCategoriesByProductIdsAsync(
+                    new[] { productId },
+                    true
+                );
 
             var rows = await productCategories
                 .SelectAwait(async x =>
                 {
-                    var node = await _categoryService.Value.GetCategoryTreeAsync(x.CategoryId, true);
-                    var categoryPath = node != null ? _categoryService.Value.GetCategoryPath(node, null, "<span class='badge badge-secondary'>{0}</span>") : string.Empty;
+                    var node = await _categoryService.Value.GetCategoryTreeAsync(
+                        x.CategoryId,
+                        true
+                    );
+                    var categoryPath =
+                        node != null
+                            ? _categoryService.Value.GetCategoryPath(
+                                node,
+                                null,
+                                "<span class='badge badge-secondary'>{0}</span>"
+                            )
+                            : string.Empty;
 
                     return new ProductModel.ProductCategoryModel
                     {
@@ -721,23 +868,26 @@ namespace Smartstore.Admin.Controllers
                         IsFeaturedProduct = x.IsFeaturedProduct,
                         DisplayOrder = x.DisplayOrder,
                         IsSystemMapping = x.IsSystemMapping,
-                        EditUrl = Url.Action("Edit", "Category", new { id = x.CategoryId })
+                        EditUrl = Url.Action("Edit", "Category", new { id = x.CategoryId }),
                     };
                 })
                 .AsyncToList();
 
-            return Json(new GridModel<ProductModel.ProductCategoryModel>
-            {
-                Rows = rows,
-                Total = rows.Count,
-            });
+            return Json(
+                new GridModel<ProductModel.ProductCategoryModel> { Rows = rows, Total = rows.Count }
+            );
         }
 
         [HttpPost]
         [Permission(Permissions.Catalog.Product.EditCategory)]
-        public async Task<IActionResult> ProductCategoryInsert(ProductModel.ProductCategoryModel model, int productId)
+        public async Task<IActionResult> ProductCategoryInsert(
+            ProductModel.ProductCategoryModel model,
+            int productId
+        )
         {
-            var alreadyAssigned = await _db.ProductCategories.AnyAsync(x => x.CategoryId == model.CategoryId && x.ProductId == productId);
+            var alreadyAssigned = await _db.ProductCategories.AnyAsync(x =>
+                x.CategoryId == model.CategoryId && x.ProductId == productId
+            );
 
             if (alreadyAssigned)
             {
@@ -750,7 +900,7 @@ namespace Smartstore.Admin.Controllers
                 ProductId = productId,
                 CategoryId = model.CategoryId,
                 IsFeaturedProduct = model.IsFeaturedProduct,
-                DisplayOrder = model.DisplayOrder
+                DisplayOrder = model.DisplayOrder,
             };
 
             try
@@ -760,9 +910,11 @@ namespace Smartstore.Admin.Controllers
                 var mru = new TrimmedBuffer<string>(
                     _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedCategories,
                     model.CategoryId.ToString(),
-                    _catalogSettings.MostRecentlyUsedCategoriesMaxSize);
+                    _catalogSettings.MostRecentlyUsedCategoriesMaxSize
+                );
 
-                _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedCategories = mru.ToString();
+                _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedCategories =
+                    mru.ToString();
                 await _db.SaveChangesAsync();
 
                 return Json(new { success = true });
@@ -776,14 +928,18 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.Product.EditCategory)]
-        public async Task<IActionResult> ProductCategoryUpdate(ProductModel.ProductCategoryModel model)
+        public async Task<IActionResult> ProductCategoryUpdate(
+            ProductModel.ProductCategoryModel model
+        )
         {
             var productCategory = await _db.ProductCategories.FindByIdAsync(model.Id);
             var categoryChanged = model.CategoryId != productCategory.CategoryId;
 
             if (categoryChanged)
             {
-                var alreadyAssigned = await _db.ProductCategories.AnyAsync(x => x.CategoryId == model.CategoryId && x.ProductId == model.ProductId);
+                var alreadyAssigned = await _db.ProductCategories.AnyAsync(x =>
+                    x.CategoryId == model.CategoryId && x.ProductId == model.ProductId
+                );
 
                 if (alreadyAssigned)
                 {
@@ -803,9 +959,11 @@ namespace Smartstore.Admin.Controllers
                     var mru = new TrimmedBuffer<string>(
                         _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedCategories,
                         model.CategoryId.ToString(),
-                        _catalogSettings.MostRecentlyUsedCategoriesMaxSize);
+                        _catalogSettings.MostRecentlyUsedCategoriesMaxSize
+                    );
 
-                    _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedCategories = mru.ToString();
+                    _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedCategories =
+                        mru.ToString();
                 }
 
                 await _db.SaveChangesAsync();
@@ -844,7 +1002,11 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> ProductManufacturerList(int productId)
         {
             var model = new GridModel<ProductModel.ProductManufacturerModel>();
-            var productManufacturers = await _manufacturerService.Value.GetProductManufacturersByProductIdsAsync(new[] { productId }, true);
+            var productManufacturers =
+                await _manufacturerService.Value.GetProductManufacturersByProductIdsAsync(
+                    new[] { productId },
+                    true
+                );
 
             var rows = productManufacturers
                 .Select(x => new ProductModel.ProductManufacturerModel
@@ -855,22 +1017,29 @@ namespace Smartstore.Admin.Controllers
                     ManufacturerId = x.ManufacturerId,
                     IsFeaturedProduct = x.IsFeaturedProduct,
                     DisplayOrder = x.DisplayOrder,
-                    EditUrl = Url.Action("Edit", "Manufacturer", new { id = x.ManufacturerId })
+                    EditUrl = Url.Action("Edit", "Manufacturer", new { id = x.ManufacturerId }),
                 })
                 .ToList();
 
-            return Json(new GridModel<ProductModel.ProductManufacturerModel>
-            {
-                Rows = rows,
-                Total = rows.Count
-            });
+            return Json(
+                new GridModel<ProductModel.ProductManufacturerModel>
+                {
+                    Rows = rows,
+                    Total = rows.Count,
+                }
+            );
         }
 
         [HttpPost]
         [Permission(Permissions.Catalog.Product.EditManufacturer)]
-        public async Task<IActionResult> ProductManufacturerInsert(ProductModel.ProductManufacturerModel model, int productId)
+        public async Task<IActionResult> ProductManufacturerInsert(
+            ProductModel.ProductManufacturerModel model,
+            int productId
+        )
         {
-            var alreadyAssigned = await _db.ProductManufacturers.AnyAsync(x => x.ManufacturerId == model.ManufacturerId && x.ProductId == productId);
+            var alreadyAssigned = await _db.ProductManufacturers.AnyAsync(x =>
+                x.ManufacturerId == model.ManufacturerId && x.ProductId == productId
+            );
 
             if (alreadyAssigned)
             {
@@ -883,7 +1052,7 @@ namespace Smartstore.Admin.Controllers
                 ProductId = productId,
                 ManufacturerId = model.ManufacturerId,
                 IsFeaturedProduct = model.IsFeaturedProduct,
-                DisplayOrder = model.DisplayOrder
+                DisplayOrder = model.DisplayOrder,
             };
 
             try
@@ -893,9 +1062,11 @@ namespace Smartstore.Admin.Controllers
                 var mru = new TrimmedBuffer<string>(
                     _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers,
                     model.ManufacturerId.ToString(),
-                    _catalogSettings.MostRecentlyUsedManufacturersMaxSize);
+                    _catalogSettings.MostRecentlyUsedManufacturersMaxSize
+                );
 
-                _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers = mru.ToString();
+                _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers =
+                    mru.ToString();
                 await _db.SaveChangesAsync();
 
                 return Json(new { success = true });
@@ -909,14 +1080,18 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.Product.EditManufacturer)]
-        public async Task<IActionResult> ProductManufacturerUpdate(ProductModel.ProductManufacturerModel model)
+        public async Task<IActionResult> ProductManufacturerUpdate(
+            ProductModel.ProductManufacturerModel model
+        )
         {
             var productManufacturer = await _db.ProductManufacturers.FindByIdAsync(model.Id);
             var manufacturerChanged = model.ManufacturerId != productManufacturer.ManufacturerId;
 
             if (manufacturerChanged)
             {
-                var alreadyAssigned = await _db.ProductManufacturers.AnyAsync(x => x.ManufacturerId == model.ManufacturerId && x.ProductId == model.ProductId);
+                var alreadyAssigned = await _db.ProductManufacturers.AnyAsync(x =>
+                    x.ManufacturerId == model.ManufacturerId && x.ProductId == model.ProductId
+                );
 
                 if (alreadyAssigned)
                 {
@@ -934,11 +1109,16 @@ namespace Smartstore.Admin.Controllers
                 if (manufacturerChanged)
                 {
                     var mru = new TrimmedBuffer<string>(
-                        _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers,
+                        _workContext
+                            .CurrentCustomer
+                            .GenericAttributes
+                            .MostRecentlyUsedManufacturers,
                         model.ManufacturerId.ToString(),
-                        _catalogSettings.MostRecentlyUsedManufacturersMaxSize);
+                        _catalogSettings.MostRecentlyUsedManufacturersMaxSize
+                    );
 
-                    _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers = mru.ToString();
+                    _workContext.CurrentCustomer.GenericAttributes.MostRecentlyUsedManufacturers =
+                        mru.ToString();
                 }
 
                 await _db.SaveChangesAsync();
@@ -979,9 +1159,7 @@ namespace Smartstore.Admin.Controllers
 
             try
             {
-                var files = await _db.ProductMediaFiles
-                    .ApplyProductFilter(entityId)
-                    .ToListAsync();
+                var files = await _db.ProductMediaFiles.ApplyProductFilter(entityId).ToListAsync();
 
                 var pictureIds = new HashSet<int>(pictures.ToIntArray());
                 var displayOrder = 1;
@@ -999,7 +1177,7 @@ namespace Smartstore.Admin.Controllers
                         {
                             productPicture.DisplayOrder,
                             productPicture.MediaFileId,
-                            EntityMediaId = productPicture.Id
+                            EntityMediaId = productPicture.Id,
                         };
 
                         response.Add(file);
@@ -1028,10 +1206,7 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.EditPicture)]
         public async Task<IActionResult> ProductMediaFilesAdd(string mediaFileIds, int entityId)
         {
-            var ids = mediaFileIds
-                .ToIntArray()
-                .Distinct()
-                .ToArray();
+            var ids = mediaFileIds.ToIntArray().Distinct().ToArray();
 
             if (ids.Length == 0)
             {
@@ -1039,8 +1214,8 @@ namespace Smartstore.Admin.Controllers
             }
 
             var success = false;
-            var product = await _db.Products
-                .Include(x => x.ProductMediaFiles)
+            var product = await _db
+                .Products.Include(x => x.ProductMediaFiles)
                 .FindByIdAsync(entityId);
 
             if (product == null)
@@ -1050,8 +1225,13 @@ namespace Smartstore.Admin.Controllers
 
             var response = new List<dynamic>();
             var existingFileIds = product.ProductMediaFiles.Select(x => x.MediaFileId).ToList();
-            var displayOrder = product.ProductMediaFiles.Count > 0 ? product.ProductMediaFiles.Max(x => x.DisplayOrder) : 0;
-            var files = (await _mediaService.GetFilesByIdsAsync(ids, MediaLoadFlags.AsNoTracking)).ToDictionary(x => x.Id);
+            var displayOrder =
+                product.ProductMediaFiles.Count > 0
+                    ? product.ProductMediaFiles.Max(x => x.DisplayOrder)
+                    : 0;
+            var files = (
+                await _mediaService.GetFilesByIdsAsync(ids, MediaLoadFlags.AsNoTracking)
+            ).ToDictionary(x => x.Id);
 
             foreach (var id in ids)
             {
@@ -1064,7 +1244,7 @@ namespace Smartstore.Admin.Controllers
                     {
                         ProductId = entityId,
                         MediaFileId = id,
-                        DisplayOrder = ++displayOrder
+                        DisplayOrder = ++displayOrder,
                     };
 
                     _db.ProductMediaFiles.Add(productPicture);
@@ -1078,19 +1258,21 @@ namespace Smartstore.Admin.Controllers
                     {
                         MediaFileId = id,
                         ProductMediaFileId = productPicture.Id,
-                        file?.Name
+                        file?.Name,
                     };
 
                     response.Add(respObj);
                 }
             }
 
-            return Json(new
-            {
-                success,
-                response,
-                message = T("Admin.Product.Picture.Added").JsValue.ToString()
-            });
+            return Json(
+                new
+                {
+                    success,
+                    response,
+                    message = T("Admin.Product.Picture.Added").JsValue.ToString(),
+                }
+            );
         }
 
         [HttpPost]
@@ -1124,19 +1306,21 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.EditTierPrice)]
         public async Task<IActionResult> TierPriceList(GridCommand command, int productId)
         {
-            var tierPrices = await _db.TierPrices
-                .Where(x => x.ProductId == productId)
+            var tierPrices = await _db
+                .TierPrices.Where(x => x.ProductId == productId)
                 .OrderBy(x => x.Quantity)
                 .ApplyGridCommand(command)
                 .ToPagedList(command)
                 .LoadAsync();
 
-            var product = await _db.Products
-                .Include(x => x.TierPrices)
+            var product = await _db
+                .Products.Include(x => x.TierPrices)
                 .ThenInclude(x => x.CustomerRole)
                 .FindByIdAsync(productId, false);
 
-            string allRolesString = T("Admin.Catalog.Products.TierPrices.Fields.CustomerRole.AllRoles");
+            string allRolesString = T(
+                "Admin.Catalog.Products.TierPrices.Fields.CustomerRole.AllRoles"
+            );
             string allStoresString = T("Admin.Common.StoresAll");
             string deletedString = $"[{T("Admin.Common.Deleted")}]";
 
@@ -1145,19 +1329,20 @@ namespace Smartstore.Admin.Controllers
 
             if (product.TierPrices.Any())
             {
-                var customerRoleIds = new HashSet<int>(product.TierPrices
-                    .Select(x => x.CustomerRoleId ?? 0)
-                    .Where(x => x != 0));
+                var customerRoleIds = new HashSet<int>(
+                    product.TierPrices.Select(x => x.CustomerRoleId ?? 0).Where(x => x != 0)
+                );
 
-                var customerRolesQuery = _db.CustomerRoles
-                    .AsNoTracking()
+                var customerRolesQuery = _db
+                    .CustomerRoles.AsNoTracking()
                     .ApplyStandardFilter(true)
                     .AsQueryable();
 
-                customerRoles = (await customerRolesQuery
-                    .Where(x => customerRoleIds.Contains(x.Id))
-                    .ToListAsync())
-                    .ToDictionary(x => x.Id);
+                customerRoles = (
+                    await customerRolesQuery
+                        .Where(x => customerRoleIds.Contains(x.Id))
+                        .ToListAsync()
+                ).ToDictionary(x => x.Id);
 
                 stores = Services.StoreContext.GetAllStores().ToDictionary(x => x.Id);
             }
@@ -1176,11 +1361,17 @@ namespace Smartstore.Admin.Controllers
                         Price1 = x.Price,
                         CalculationMethod = x.CalculationMethod switch
                         {
-                            TierPriceCalculationMethod.Fixed => T("Admin.Product.Price.Tierprices.Fixed").Value,
-                            TierPriceCalculationMethod.Adjustment => T("Admin.Product.Price.Tierprices.Adjustment").Value,
-                            TierPriceCalculationMethod.Percental => T("Admin.Product.Price.Tierprices.Percental").Value,
+                            TierPriceCalculationMethod.Fixed => T(
+                                "Admin.Product.Price.Tierprices.Fixed"
+                            ).Value,
+                            TierPriceCalculationMethod.Adjustment => T(
+                                "Admin.Product.Price.Tierprices.Adjustment"
+                            ).Value,
+                            TierPriceCalculationMethod.Percental => T(
+                                "Admin.Product.Price.Tierprices.Percental"
+                            ).Value,
                             _ => x.CalculationMethod.ToString(),
-                        }
+                        },
                     };
 
                     if (x.CustomerRoleId.HasValue)
@@ -1210,16 +1401,18 @@ namespace Smartstore.Admin.Controllers
             var model = new GridModel<ProductModel.TierPriceModel>
             {
                 Rows = tierPricesModel,
-                Total = tierPrices.TotalCount
+                Total = tierPrices.TotalCount,
             };
 
             return Json(model);
         }
 
-
         [HttpPost]
         [Permission(Permissions.Catalog.Product.EditTierPrice)]
-        public async Task<IActionResult> TierPriceInsert(ProductModel.TierPriceModel model, int productId)
+        public async Task<IActionResult> TierPriceInsert(
+            ProductModel.TierPriceModel model,
+            int productId
+        )
         {
             var tierPrice = new TierPrice
             {
@@ -1228,7 +1421,7 @@ namespace Smartstore.Admin.Controllers
                 CustomerRoleId = model.CustomerRoleId,
                 Quantity = model.Quantity,
                 Price = model.Price1 ?? 0,
-                CalculationMethod = (TierPriceCalculationMethod)model.CalculationMethodId
+                CalculationMethod = (TierPriceCalculationMethod)model.CalculationMethodId,
             };
 
             try
@@ -1300,12 +1493,16 @@ namespace Smartstore.Admin.Controllers
             _db.Downloads.Remove(download);
             await _db.SaveChangesAsync();
 
-            return Json(new { success = true, Message = T("Admin.Common.TaskSuccessfullyProcessed").Value });
+            return Json(
+                new { success = true, Message = T("Admin.Common.TaskSuccessfullyProcessed").Value }
+            );
         }
 
         private async Task UpdateDataOfProductDownloadsAsync(ProductModel model)
         {
-            var testVersions = (new[] { model.DownloadFileVersion, model.NewVersion }).Where(x => x.HasValue());
+            var testVersions = (new[] { model.DownloadFileVersion, model.NewVersion }).Where(x =>
+                x.HasValue()
+            );
             var saved = false;
             foreach (var testVersion in testVersions)
             {
@@ -1317,26 +1514,44 @@ namespace Smartstore.Admin.Controllers
                     // If NewVersionDownloadId has value
                     if (model.NewVersion.HasValue() && !saved)
                     {
-                        await InsertProductDownloadAsync(model.NewVersionDownloadId, model.Id, model.NewVersion);
+                        await InsertProductDownloadAsync(
+                            model.NewVersionDownloadId,
+                            model.Id,
+                            model.NewVersion
+                        );
                         saved = true;
                     }
                     else
                     {
-                        await InsertProductDownloadAsync(model.DownloadId, model.Id, model.DownloadFileVersion);
+                        await InsertProductDownloadAsync(
+                            model.DownloadId,
+                            model.Id,
+                            model.DownloadFileVersion
+                        );
                     }
                 }
                 catch
                 {
-                    ModelState.AddModelError("DownloadFileVersion", T("Admin.Catalog.Products.Download.SemanticVersion.NotValid"));
+                    ModelState.AddModelError(
+                        "DownloadFileVersion",
+                        T("Admin.Catalog.Products.Download.SemanticVersion.NotValid")
+                    );
                 }
             }
 
             var isUrlDownload = Request.Form["is-url-download-" + model.SampleDownloadId] == "true";
 
-            if (model.SampleDownloadId != model.OldSampleDownloadId && model.SampleDownloadId != 0 && !isUrlDownload)
+            if (
+                model.SampleDownloadId != model.OldSampleDownloadId
+                && model.SampleDownloadId != 0
+                && !isUrlDownload
+            )
             {
                 // Insert sample download if a new file was uploaded.
-                model.SampleDownloadId = await InsertSampleDownloadAsync(model.SampleDownloadId, model.Id);
+                model.SampleDownloadId = await InsertSampleDownloadAsync(
+                    model.SampleDownloadId,
+                    model.Id
+                );
             }
             else if (isUrlDownload)
             {
@@ -1346,7 +1561,11 @@ namespace Smartstore.Admin.Controllers
             }
         }
 
-        private async Task InsertProductDownloadAsync(int? fileId, int entityId, string fileVersion = "")
+        private async Task InsertProductDownloadAsync(
+            int? fileId,
+            int entityId,
+            string fileVersion = ""
+        )
         {
             if (fileId > 0)
             {
@@ -1365,7 +1584,7 @@ namespace Smartstore.Admin.Controllers
                         DownloadUrl = string.Empty,
                         UpdatedOnUtc = DateTime.UtcNow,
                         IsTransient = false,
-                        FileVersion = fileVersion
+                        FileVersion = fileVersion,
                     };
 
                     _db.Downloads.Add(download);
@@ -1395,7 +1614,7 @@ namespace Smartstore.Admin.Controllers
                     UseDownloadUrl = false,
                     DownloadUrl = string.Empty,
                     UpdatedOnUtc = DateTime.UtcNow,
-                    IsTransient = false
+                    IsTransient = false,
                 };
 
                 _db.Downloads.Add(download);
@@ -1415,7 +1634,11 @@ namespace Smartstore.Admin.Controllers
         /// (AJAX) Gets a paged list of product tags.
         /// </summary>
         /// <param name="selectedNames">Names of selected tags.</param>
-        public async Task<IActionResult> AllProductTags(string term, string selectedNames, int page = 1)
+        public async Task<IActionResult> AllProductTags(
+            string term,
+            string selectedNames,
+            int page = 1
+        )
         {
             const int pageSize = 500;
             var skip = page * pageSize;
@@ -1428,27 +1651,19 @@ namespace Smartstore.Admin.Controllers
                 query = query.ApplySearchFilterFor(x => x.Name, term);
             }
 
-            var tags = await query
-                .OrderBy(x => x.Name)
-                .ToPagedList(page - 1, pageSize)
-                .LoadAsync();
+            var tags = await query.OrderBy(x => x.Name).ToPagedList(page - 1, pageSize).LoadAsync();
 
-            var results = tags
-                .Select(x => new ChoiceListItem
+            var results = tags.Select(x => new ChoiceListItem
                 {
                     Id = x.Name,
                     Text = x.Name,
                     Selected = selectedNames?.Contains(x.Name) ?? false,
                     Title = !x.Published ? unpublishedStr : null,
-                    CssClass = !x.Published ? "choice-item-unavailable" : null
+                    CssClass = !x.Published ? "choice-item-unavailable" : null,
                 })
                 .ToList();
 
-            return new JsonResult(new
-            {
-                results,
-                pagination = new { more = tags.HasNextPage }
-            });
+            return new JsonResult(new { results, pagination = new { more = tags.HasNextPage } });
         }
 
         [Permission(Permissions.Catalog.Product.Read)]
@@ -1459,7 +1674,10 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.Product.Read)]
-        public async Task<IActionResult> ProductTagsList(GridCommand command, ProductTagListModel model)
+        public async Task<IActionResult> ProductTagsList(
+            GridCommand command,
+            ProductTagListModel model
+        )
         {
             var query = _db.ProductTags.AsNoTracking();
 
@@ -1478,21 +1696,22 @@ namespace Smartstore.Admin.Controllers
                 .ToPagedList(command)
                 .LoadAsync();
 
-            var rows = await tags
-                .SelectAwait(async x => new ProductTagModel
+            var rows = await tags.SelectAwait(async x => new ProductTagModel
                 {
                     Id = x.Id,
                     Name = x.Name,
                     Published = x.Published,
-                    ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id)
+                    ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
                 })
                 .AsyncToList();
 
-            return Json(new GridModel<ProductTagModel>
-            {
-                Rows = rows,
-                Total = await tags.GetTotalCountAsync()
-            });
+            return Json(
+                new GridModel<ProductTagModel>
+                {
+                    Rows = rows,
+                    Total = await tags.GetTotalCountAsync(),
+                }
+            );
         }
 
         [HttpPost]
@@ -1534,8 +1753,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.EditTag)]
         public async Task<IActionResult> EditProductTag(string btnId, string formId, int id)
         {
-            var productTag = await _db.ProductTags
-                .Include(x => x.Products)
+            var productTag = await _db
+                .ProductTags.Include(x => x.Products)
                 .FindByIdAsync(id, false);
 
             if (productTag == null)
@@ -1548,13 +1767,16 @@ namespace Smartstore.Admin.Controllers
                 Id = productTag.Id,
                 Name = productTag.Name,
                 Published = productTag.Published,
-                ProductCount = productTag.Products.Count
+                ProductCount = productTag.Products.Count,
             };
 
-            AddLocales(model.Locales, (locale, languageId) =>
-            {
-                locale.Name = productTag.GetLocalized(x => x.Name, languageId, false, false);
-            });
+            AddLocales(
+                model.Locales,
+                (locale, languageId) =>
+                {
+                    locale.Name = productTag.GetLocalized(x => x.Name, languageId, false, false);
+                }
+            );
 
             ViewBag.btnId = btnId;
             ViewBag.formId = formId;
@@ -1564,11 +1786,13 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.Product.EditTag)]
-        public async Task<IActionResult> EditProductTag(string btnId, string formId, ProductTagModel model)
+        public async Task<IActionResult> EditProductTag(
+            string btnId,
+            string formId,
+            ProductTagModel model
+        )
         {
-            var productTag = await _db.ProductTags
-                .Include(x => x.Products)
-                .FindByIdAsync(model.Id);
+            var productTag = await _db.ProductTags.Include(x => x.Products).FindByIdAsync(model.Id);
 
             if (productTag == null)
             {
@@ -1582,7 +1806,12 @@ namespace Smartstore.Admin.Controllers
 
                 foreach (var localized in model.Locales)
                 {
-                    await _localizedEntityService.ApplyLocalizedValueAsync(productTag, x => x.Name, localized.Name, localized.LanguageId);
+                    await _localizedEntityService.ApplyLocalizedValueAsync(
+                        productTag,
+                        x => x.Name,
+                        localized.Name,
+                        localized.LanguageId
+                    );
                 }
 
                 await _db.SaveChangesAsync();
@@ -1610,19 +1839,46 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.Product.Read)]
         public async Task<IActionResult> LowStockReportList(GridCommand command)
         {
+            var currentUser = _workContext.CurrentCustomer;
+
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
             var productIdQuery =
                 from p in _db.Products
-                join ac in _db.ProductVariantAttributeCombinations on p.Id equals ac.ProductId into pac
+                join ac in _db.ProductVariantAttributeCombinations
+                    on p.Id equals ac.ProductId
+                    into pac
                 from ac in pac.DefaultIfEmpty()
-                where (p.ManageInventoryMethodId == (int)ManageInventoryMethod.ManageStock && p.StockQuantity <= p.MinStockQuantity) ||
-                    (p.ManageInventoryMethodId == (int)ManageInventoryMethod.ManageStockByAttributes && ac.StockQuantity <= 0)
+                where
+                    (
+                        p.ManageInventoryMethodId == (int)ManageInventoryMethod.ManageStock
+                        && p.StockQuantity <= p.MinStockQuantity
+                    )
+                    || (
+                        p.ManageInventoryMethodId
+                            == (int)ManageInventoryMethod.ManageStockByAttributes
+                        && ac.StockQuantity <= 0
+                    )
                 select p.Id;
+
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db
+                    .GenericAttributes.Where(a =>
+                        a.KeyGroup == "Product"
+                        && a.Key == "CreatedByUserId"
+                        && a.Value == currentUser.Id.ToString()
+                    )
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                productIdQuery = productIdQuery.Where(p => merchantProductIds.Contains(p));
+            }
 
             var distinctQuery = productIdQuery
                 .Distinct()
-                .SelectMany(key => _db.Products
-                    .AsNoTracking()
-                    .Where(x => x.Id == key));
+                .SelectMany(key => _db.Products.AsNoTracking().Where(x => x.Id == key));
 
             var products = await distinctQuery
                 .OrderBy(x => x.StockQuantity)
@@ -1631,12 +1887,16 @@ namespace Smartstore.Admin.Controllers
                 .LoadAsync();
 
             var rows = await products.MapAsync(Services.MediaService);
+            var count = await productIdQuery.Distinct().CountAsync();
 
-            return Json(new GridModel<ProductOverviewModel>
-            {
-                Rows = rows,
-                Total = await products.GetTotalCountAsync()
-            });
+            return Json(
+                new GridModel<ProductOverviewModel>
+                {
+                    Rows = rows,
+                    Total = await products.GetTotalCountAsync(),
+                    lowStockCount = count,
+                }
+            );
         }
 
         #endregion
@@ -1644,9 +1904,14 @@ namespace Smartstore.Admin.Controllers
         #region Hidden normalizers
 
         [Permission(Permissions.Catalog.Product.Update)]
-        public async Task<IActionResult> FixProductMainPictureIds(DateTime? ifModifiedSinceUtc = null)
+        public async Task<IActionResult> FixProductMainPictureIds(
+            DateTime? ifModifiedSinceUtc = null
+        )
         {
-            var count = await ProductPictureHelper.FixProductMainPictureIds(_db, ifModifiedSinceUtc);
+            var count = await ProductPictureHelper.FixProductMainPictureIds(
+                _db,
+                ifModifiedSinceUtc
+            );
 
             return Content("Fixed {0} ids.".FormatInvariant(count));
         }
@@ -1660,20 +1925,32 @@ namespace Smartstore.Admin.Controllers
             model.DisplayProductPictures = _adminAreaSettings.DisplayProductPictures;
             model.IsSingleStoreMode = Services.StoreContext.IsSingleStoreMode();
 
-            foreach (var c in (await _categoryService.Value.GetCategoryTreeAsync(includeHidden: true)).FlattenNodes(false))
+            foreach (
+                var c in (
+                    await _categoryService.Value.GetCategoryTreeAsync(includeHidden: true)
+                ).FlattenNodes(false)
+            )
             {
-                model.AvailableCategories.Add(new() { Text = c.GetCategoryNameIndented(), Value = c.Id.ToString() });
+                model.AvailableCategories.Add(
+                    new() { Text = c.GetCategoryNameIndented(), Value = c.Id.ToString() }
+                );
             }
 
-            foreach (var m in await _db.Manufacturers.AsNoTracking().ApplyStandardFilter(true).Select(x => new { x.Name, x.Id }).ToListAsync())
+            foreach (
+                var m in await _db
+                    .Manufacturers.AsNoTracking()
+                    .ApplyStandardFilter(true)
+                    .Select(x => new { x.Name, x.Id })
+                    .ToListAsync()
+            )
             {
                 model.AvailableManufacturers.Add(new() { Text = m.Name, Value = m.Id.ToString() });
             }
 
             model.AvailableProductTypes = ProductType.SimpleProduct.ToSelectList(false).ToList();
 
-            var deliveryTimes = await _db.DeliveryTimes
-                .AsNoTracking()
+            var deliveryTimes = await _db
+                .DeliveryTimes.AsNoTracking()
                 .OrderBy(x => x.DisplayOrder)
                 .ToListAsync();
 
@@ -1682,48 +1959,75 @@ namespace Smartstore.Admin.Controllers
                 .ToList();
         }
 
-        private async Task PrepareProductModelAsync(ProductModel model, Product product, bool setPredefinedValues, bool excludeProperties)
+        private async Task PrepareProductModelAsync(
+            ProductModel model,
+            Product product,
+            bool setPredefinedValues,
+            bool excludeProperties
+        )
         {
             Guard.NotNull(model);
 
             if (product != null)
             {
-                var parentGroupedProduct = await _db.Products.FindByIdAsync(product.ParentGroupedProductId, false);
+                var parentGroupedProduct = await _db.Products.FindByIdAsync(
+                    product.ParentGroupedProductId,
+                    false
+                );
                 if (parentGroupedProduct != null)
                 {
                     model.AssociatedToProductId = product.ParentGroupedProductId;
                     model.AssociatedToProductName = parentGroupedProduct.Name;
                 }
 
-                model.CreatedOn = _dateTimeHelper.ConvertToUserTime(product.CreatedOnUtc, DateTimeKind.Utc);
-                model.UpdatedOn = _dateTimeHelper.ConvertToUserTime(product.UpdatedOnUtc, DateTimeKind.Utc);
-                model.SelectedStoreIds = await _storeMappingService.GetAuthorizedStoreIdsAsync(product);
-                model.SelectedCustomerRoleIds = await _aclService.GetAuthorizedCustomerRoleIdsAsync(product);
+                model.CreatedOn = _dateTimeHelper.ConvertToUserTime(
+                    product.CreatedOnUtc,
+                    DateTimeKind.Utc
+                );
+                model.UpdatedOn = _dateTimeHelper.ConvertToUserTime(
+                    product.UpdatedOnUtc,
+                    DateTimeKind.Utc
+                );
+                model.SelectedStoreIds = await _storeMappingService.GetAuthorizedStoreIdsAsync(
+                    product
+                );
+                model.SelectedCustomerRoleIds = await _aclService.GetAuthorizedCustomerRoleIdsAsync(
+                    product
+                );
                 model.OriginalStockQuantity = product.StockQuantity;
                 model.ProductUrl = await GetEntityPublicUrlAsync(product);
 
-                model.NumberOfOrders = await _db.Orders
-                    .Where(x => x.OrderItems.Any(oi => oi.ProductId == product.Id))
+                model.NumberOfOrders = await _db
+                    .Orders.Where(x => x.OrderItems.Any(oi => oi.ProductId == product.Id))
                     .Select(x => x.Id)
                     .Distinct()
                     .CountAsync();
 
-                var maxDisplayOrder = (await _db.ProductSpecificationAttributes
-                    .Where(x => x.ProductId == product.Id)
-                    .MaxAsync(x => (int?)x.DisplayOrder)) ?? 0;
+                var maxDisplayOrder =
+                    (
+                        await _db
+                            .ProductSpecificationAttributes.Where(x => x.ProductId == product.Id)
+                            .MaxAsync(x => (int?)x.DisplayOrder)
+                    ) ?? 0;
 
                 model.AddSpecificationAttributeModel.DisplayOrder = ++maxDisplayOrder;
 
                 // Downloads.
-                var productDownloads = await _db.Downloads
-                    .AsNoTracking()
+                var productDownloads = await _db
+                    .Downloads.AsNoTracking()
                     .Include(x => x.MediaFile)
                     .ApplyEntityFilter(product)
                     .ApplyVersionFilter(string.Empty)
                     .ToListAsync();
 
                 var idsOrderedByVersion = productDownloads
-                    .Select(x => new { x.Id, Version = SemanticVersion.Parse(x.FileVersion.HasValue() ? x.FileVersion : "1.0.0") })
+                    .Select(x => new
+                    {
+                        x.Id,
+                        Version = SemanticVersion.Parse(
+                            x.FileVersion.HasValue() ? x.FileVersion : "1.0.0"
+                        ),
+                    })
                     .OrderByDescending(x => x.Version)
                     .Select(x => x.Id);
 
@@ -1735,7 +2039,9 @@ namespace Smartstore.Admin.Controllers
                         FileVersion = x.FileVersion,
                         DownloadId = x.Id,
                         FileName = x.UseDownloadUrl ? x.DownloadUrl : x.MediaFile?.Name,
-                        DownloadUrl = x.UseDownloadUrl ? x.DownloadUrl : Url.Action("DownloadFile", "Download", new { downloadId = x.Id })
+                        DownloadUrl = x.UseDownloadUrl
+                            ? x.DownloadUrl
+                            : Url.Action("DownloadFile", "Download", new { downloadId = x.Id }),
                     })
                     .ToList();
 
@@ -1745,9 +2051,20 @@ namespace Smartstore.Admin.Controllers
                 model.CurrentDownload = currentDownload;
                 if (currentDownload?.MediaFile != null)
                 {
-                    model.DownloadThumbUrl = await _mediaService.GetUrlAsync(currentDownload.MediaFile.Id, _mediaSettings.CartThumbPictureSize, null, true);
-                    currentDownload.DownloadUrl = Url.Action("DownloadFile", "Download", new { downloadId = currentDownload.Id });
-                    model.CurrentFile = await _mediaService.GetFileByIdAsync(currentDownload.MediaFile.Id);
+                    model.DownloadThumbUrl = await _mediaService.GetUrlAsync(
+                        currentDownload.MediaFile.Id,
+                        _mediaSettings.CartThumbPictureSize,
+                        null,
+                        true
+                    );
+                    currentDownload.DownloadUrl = Url.Action(
+                        "DownloadFile",
+                        "Download",
+                        new { downloadId = currentDownload.Id }
+                    );
+                    model.CurrentFile = await _mediaService.GetFileByIdAsync(
+                        currentDownload.MediaFile.Id
+                    );
                 }
 
                 model.DownloadFileVersion = (currentDownload?.FileVersion).EmptyNull();
@@ -1755,7 +2072,10 @@ namespace Smartstore.Admin.Controllers
 
                 // Media files.
                 var file = await _mediaService.GetFileByIdAsync(product.MainPictureId ?? 0);
-                model.PictureThumbnailUrl = _mediaService.GetUrl(file, _mediaSettings.CartThumbPictureSize);
+                model.PictureThumbnailUrl = _mediaService.GetUrl(
+                    file,
+                    _mediaSettings.CartThumbPictureSize
+                );
                 model.NoThumb = file == null;
 
                 await PrepareProductFileModelAsync(model);
@@ -1763,12 +2083,23 @@ namespace Smartstore.Admin.Controllers
 
                 model.ProductTagNames = product.ProductTags.Select(x => x.Name).ToArray();
 
-                ViewBag.SelectedProductTags = model.ProductTagNames
-                    .Select(x => new SelectListItem { Value = x, Text = x, Selected = true })
+                ViewBag.SelectedProductTags = model
+                    .ProductTagNames.Select(x => new SelectListItem
+                    {
+                        Value = x,
+                        Text = x,
+                        Selected = true,
+                    })
                     .ToList();
 
-                ViewBag.ProductTagsUrl = Url.Action(nameof(AllProductTags), new { selectedNames = string.Join(',', model.ProductTagNames.Select(x => x)) });
-                ViewBag.NumberOfAttributeCombinations = await _db.ProductVariantAttributeCombinations.CountAsync(x => x.ProductId == product.Id);
+                ViewBag.ProductTagsUrl = Url.Action(
+                    nameof(AllProductTags),
+                    new { selectedNames = string.Join(',', model.ProductTagNames.Select(x => x)) }
+                );
+                ViewBag.NumberOfAttributeCombinations =
+                    await _db.ProductVariantAttributeCombinations.CountAsync(x =>
+                        x.ProductId == product.Id
+                    );
             }
             else
             {
@@ -1777,8 +2108,14 @@ namespace Smartstore.Admin.Controllers
                 ViewBag.NumberOfAttributeCombinations = 0;
             }
 
-            var baseWeight = await _db.MeasureWeights.FindByIdAsync(_measureSettings.BaseWeightId, false);
-            var baseDimension = await _db.MeasureDimensions.FindByIdAsync(_measureSettings.BaseDimensionId, false);
+            var baseWeight = await _db.MeasureWeights.FindByIdAsync(
+                _measureSettings.BaseWeightId,
+                false
+            );
+            var baseDimension = await _db.MeasureDimensions.FindByIdAsync(
+                _measureSettings.BaseDimensionId,
+                false
+            );
 
             model.BaseWeightIn = baseWeight?.GetLocalized(x => x.Name) ?? string.Empty;
             model.BaseDimensionIn = baseDimension?.GetLocalized(x => x.Name) ?? string.Empty;
@@ -1797,22 +2134,18 @@ namespace Smartstore.Admin.Controllers
             }
 
             // Templates.
-            var templates = await _db.ProductTemplates
-                .AsNoTracking()
+            var templates = await _db
+                .ProductTemplates.AsNoTracking()
                 .OrderBy(x => x.DisplayOrder)
                 .ToListAsync();
 
             ViewBag.AvailableProductTemplates = templates
-                .Select(x => new SelectListItem
-                {
-                    Text = x.Name,
-                    Value = x.Id.ToString()
-                })
+                .Select(x => new SelectListItem { Text = x.Name, Value = x.Id.ToString() })
                 .ToList();
 
             // Tax categories.
-            var taxCategories = await _db.TaxCategories
-                .AsNoTracking()
+            var taxCategories = await _db
+                .TaxCategories.AsNoTracking()
                 .OrderBy(x => x.DisplayOrder)
                 .ToListAsync();
 
@@ -1821,21 +2154,30 @@ namespace Smartstore.Admin.Controllers
                 {
                     Text = x.Name,
                     Value = x.Id.ToString(),
-                    Selected = product != null && !setPredefinedValues && x.Id == product.TaxCategoryId
+                    Selected =
+                        product != null && !setPredefinedValues && x.Id == product.TaxCategoryId,
                 })
                 .ToList();
 
             // Do not pre-select a tax category that is not stored.
             if (product != null && product.TaxCategoryId == 0)
             {
-                ViewBag.AvailableTaxCategories.Insert(0, new SelectListItem { Text = T("Common.PleaseSelect"), Value = string.Empty, Selected = true });
+                ViewBag.AvailableTaxCategories.Insert(
+                    0,
+                    new SelectListItem
+                    {
+                        Text = T("Common.PleaseSelect"),
+                        Value = string.Empty,
+                        Selected = true,
+                    }
+                );
             }
 
             // Delivery times.
             if (setPredefinedValues)
             {
-                var defaultDeliveryTime = await _db.DeliveryTimes
-                    .AsNoTracking()
+                var defaultDeliveryTime = await _db
+                    .DeliveryTimes.AsNoTracking()
                     .Where(x => x.IsDefault == true)
                     .FirstOrDefaultAsync();
 
@@ -1843,8 +2185,8 @@ namespace Smartstore.Admin.Controllers
             }
 
             // Quantity units.
-            var quantityUnits = await _db.QuantityUnits
-                .AsNoTracking()
+            var quantityUnits = await _db
+                .QuantityUnits.AsNoTracking()
                 .OrderBy(x => x.DisplayOrder)
                 .ToListAsync();
 
@@ -1853,14 +2195,28 @@ namespace Smartstore.Admin.Controllers
                 {
                     Text = x.Name,
                     Value = x.Id.ToString(),
-                    Selected = product != null && !setPredefinedValues && x.Id == product.QuantityUnitId.GetValueOrDefault()
+                    Selected =
+                        product != null
+                        && !setPredefinedValues
+                        && x.Id == product.QuantityUnitId.GetValueOrDefault(),
                 })
                 .ToList();
 
             // BasePrice aka PAnGV
-            var measureUnitKeys = await _db.MeasureWeights.AsNoTracking().OrderBy(x => x.DisplayOrder).Select(x => x.SystemKeyword).ToListAsync();
-            var measureDimensionKeys = await _db.MeasureDimensions.AsNoTracking().OrderBy(x => x.DisplayOrder).Select(x => x.SystemKeyword).ToListAsync();
-            var measureUnits = new HashSet<string>(measureUnitKeys.Concat(measureDimensionKeys), StringComparer.OrdinalIgnoreCase);
+            var measureUnitKeys = await _db
+                .MeasureWeights.AsNoTracking()
+                .OrderBy(x => x.DisplayOrder)
+                .Select(x => x.SystemKeyword)
+                .ToListAsync();
+            var measureDimensionKeys = await _db
+                .MeasureDimensions.AsNoTracking()
+                .OrderBy(x => x.DisplayOrder)
+                .Select(x => x.SystemKeyword)
+                .ToListAsync();
+            var measureUnits = new HashSet<string>(
+                measureUnitKeys.Concat(measureDimensionKeys),
+                StringComparer.OrdinalIgnoreCase
+            );
 
             if (product != null && !setPredefinedValues && product.BasePriceMeasureUnit.HasValue())
             {
@@ -1872,7 +2228,10 @@ namespace Smartstore.Admin.Controllers
                 {
                     Text = x,
                     Value = x,
-                    Selected = product != null && !setPredefinedValues && x.EqualsNoCase(product.BasePriceMeasureUnit)
+                    Selected =
+                        product != null
+                        && !setPredefinedValues
+                        && x.EqualsNoCase(product.BasePriceMeasureUnit),
                 })
                 .ToList();
 
@@ -1883,8 +2242,11 @@ namespace Smartstore.Admin.Controllers
                 model.SelectedDiscountIds = product.AppliedDiscounts.Select(d => d.Id).ToArray();
             }
 
-            var inventoryMethods = ((ManageInventoryMethod[])Enum.GetValues(typeof(ManageInventoryMethod))).Where(
-                x => model.ProductTypeId != (int)ProductType.BundledProduct || x != ManageInventoryMethod.ManageStockByAttributes
+            var inventoryMethods = (
+                (ManageInventoryMethod[])Enum.GetValues(typeof(ManageInventoryMethod))
+            ).Where(x =>
+                model.ProductTypeId != (int)ProductType.BundledProduct
+                || x != ManageInventoryMethod.ManageStockByAttributes
             );
 
             ViewBag.AvailableManageInventoryMethods = inventoryMethods
@@ -1892,12 +2254,12 @@ namespace Smartstore.Admin.Controllers
                 {
                     Value = ((int)x).ToString(),
                     Text = x.GetLocalizedEnum(),
-                    Selected = (int)x == model.ManageInventoryMethodId
+                    Selected = (int)x == model.ManageInventoryMethodId,
                 })
                 .ToList();
 
-            var priceLabels = await _db.PriceLabels
-                .AsNoTracking()
+            var priceLabels = await _db
+                .PriceLabels.AsNoTracking()
                 .OrderBy(x => x.DisplayOrder)
                 .ToListAsync();
 
@@ -1906,17 +2268,24 @@ namespace Smartstore.Admin.Controllers
                 {
                     Value = x.Id.ToString(),
                     Text = x.GetLocalized(x => x.ShortName),
-                    Selected = !setPredefinedValues && product != null && x.Id == product.ComparePriceLabelId.GetValueOrDefault()
+                    Selected =
+                        !setPredefinedValues
+                        && product != null
+                        && x.Id == product.ComparePriceLabelId.GetValueOrDefault(),
                 })
                 .ToList();
 
             ViewBag.DefaultComparePriceLabelName =
-                _priceLabelService.GetDefaultComparePriceLabel()?.GetLocalized(x => x.ShortName)?.Value ??
-                T("Common.Unspecified").Value;
+                _priceLabelService
+                    .GetDefaultComparePriceLabel()
+                    ?.GetLocalized(x => x.ShortName)
+                    ?.Value ?? T("Common.Unspecified").Value;
 
-            ViewBag.CartQuantityInfo = T("Admin.Catalog.Products.CartQuantity.Info",
+            ViewBag.CartQuantityInfo = T(
+                "Admin.Catalog.Products.CartQuantity.Info",
                 _shoppingCartSettings.MaxQuantityInputDropdownItems.ToString("N0"),
-                Url.Action("ShoppingCart", "Setting"));
+                Url.Action("ShoppingCart", "Setting")
+            );
 
             if (setPredefinedValues)
             {
@@ -1939,26 +2308,58 @@ namespace Smartstore.Admin.Controllers
             }
         }
 
-        internal static List<SelectListItem> CreateAssociatedProductsHeaderFieldsList(string[] headerFields, Localizer T, bool includeName = false)
+        internal static List<SelectListItem> CreateAssociatedProductsHeaderFieldsList(
+            string[] headerFields,
+            Localizer T,
+            bool includeName = false
+        )
         {
             var fields = new List<SelectListItem>
             {
-                new() { Value = AssociatedProductHeader.Image, Text = T("Common.Image"), Selected = headerFields.Contains(AssociatedProductHeader.Image) },
-                new() { Value = AssociatedProductHeader.Sku, Text = T("Admin.Catalog.Products.Fields.Sku"), Selected = headerFields.Contains(AssociatedProductHeader.Sku) },
-                new() { Value = AssociatedProductHeader.Price, Text = T("Admin.Catalog.Products.Fields.Price"), Selected = headerFields.Contains(AssociatedProductHeader.Price) },
-                new() { Value = AssociatedProductHeader.Weight, Text = T("Admin.Catalog.Products.Fields.Weight"), Selected = headerFields.Contains(AssociatedProductHeader.Weight) },
-                new() { Value = AssociatedProductHeader.Dimensions, Text = T("Admin.Configuration.Measures.Dimensions"), Selected = headerFields.Contains(AssociatedProductHeader.Dimensions) }
+                new()
+                {
+                    Value = AssociatedProductHeader.Image,
+                    Text = T("Common.Image"),
+                    Selected = headerFields.Contains(AssociatedProductHeader.Image),
+                },
+                new()
+                {
+                    Value = AssociatedProductHeader.Sku,
+                    Text = T("Admin.Catalog.Products.Fields.Sku"),
+                    Selected = headerFields.Contains(AssociatedProductHeader.Sku),
+                },
+                new()
+                {
+                    Value = AssociatedProductHeader.Price,
+                    Text = T("Admin.Catalog.Products.Fields.Price"),
+                    Selected = headerFields.Contains(AssociatedProductHeader.Price),
+                },
+                new()
+                {
+                    Value = AssociatedProductHeader.Weight,
+                    Text = T("Admin.Catalog.Products.Fields.Weight"),
+                    Selected = headerFields.Contains(AssociatedProductHeader.Weight),
+                },
+                new()
+                {
+                    Value = AssociatedProductHeader.Dimensions,
+                    Text = T("Admin.Configuration.Measures.Dimensions"),
+                    Selected = headerFields.Contains(AssociatedProductHeader.Dimensions),
+                },
             };
 
             if (includeName)
             {
                 // INFO: workaround to be able to display only the product name as a header for a certain grouped product.
-                fields.Insert(0, new()
-                {
-                    Value = AssociatedProductHeader.Name,
-                    Text = T("Admin.Catalog.ProductReviews.List.ProductName"),
-                    Selected = headerFields.Contains(AssociatedProductHeader.Name)
-                });
+                fields.Insert(
+                    0,
+                    new()
+                    {
+                        Value = AssociatedProductHeader.Name,
+                        Text = T("Admin.Catalog.ProductReviews.List.ProductName"),
+                        Selected = headerFields.Contains(AssociatedProductHeader.Name),
+                    }
+                );
             }
 
             return fields;
@@ -1968,8 +2369,8 @@ namespace Smartstore.Admin.Controllers
         {
             Guard.NotNull(model);
 
-            var productFiles = await _db.ProductMediaFiles
-                .AsNoTracking()
+            var productFiles = await _db
+                .ProductMediaFiles.AsNoTracking()
                 .Include(x => x.MediaFile)
                 .ApplyProductFilter(model.Id)
                 .ToListAsync();
@@ -1983,7 +2384,7 @@ namespace Smartstore.Admin.Controllers
                         ProductId = x.ProductId,
                         MediaFileId = x.MediaFileId,
                         DisplayOrder = x.DisplayOrder,
-                        MediaFile = x.MediaFile
+                        MediaFile = x.MediaFile,
                     };
 
                     return media;
@@ -1991,7 +2392,13 @@ namespace Smartstore.Admin.Controllers
                 .ToList();
         }
 
-        private async Task PrepareBundleItemEditModelAsync(ProductBundleItemModel model, ProductBundleItem bundleItem, string btnId, string formId, bool refreshPage = false)
+        private async Task PrepareBundleItemEditModelAsync(
+            ProductBundleItemModel model,
+            ProductBundleItem bundleItem,
+            string btnId,
+            string formId,
+            bool refreshPage = false
+        )
         {
             ViewBag.BtnId = btnId;
             ViewBag.FormId = formId;
@@ -2003,23 +2410,43 @@ namespace Smartstore.Admin.Controllers
                 return;
             }
 
-            model.CreatedOn = _dateTimeHelper.ConvertToUserTime(bundleItem.CreatedOnUtc, DateTimeKind.Utc);
-            model.UpdatedOn = _dateTimeHelper.ConvertToUserTime(bundleItem.UpdatedOnUtc, DateTimeKind.Utc);
+            model.CreatedOn = _dateTimeHelper.ConvertToUserTime(
+                bundleItem.CreatedOnUtc,
+                DateTimeKind.Utc
+            );
+            model.UpdatedOn = _dateTimeHelper.ConvertToUserTime(
+                bundleItem.UpdatedOnUtc,
+                DateTimeKind.Utc
+            );
             model.IsPerItemPricing = bundleItem.BundleProduct.BundlePerItemPricing;
 
             if (model.Locales.Count == 0)
             {
-                AddLocales(model.Locales, (locale, languageId) =>
-                {
-                    locale.Name = bundleItem.GetLocalized(x => x.Name, languageId, false, false);
-                    locale.ShortDescription = bundleItem.GetLocalized(x => x.ShortDescription, languageId, false, false);
-                });
+                AddLocales(
+                    model.Locales,
+                    (locale, languageId) =>
+                    {
+                        locale.Name = bundleItem.GetLocalized(
+                            x => x.Name,
+                            languageId,
+                            false,
+                            false
+                        );
+                        locale.ShortDescription = bundleItem.GetLocalized(
+                            x => x.ShortDescription,
+                            languageId,
+                            false,
+                            false
+                        );
+                    }
+                );
             }
 
-            ViewBag.Title = $"{T("Admin.Catalog.Products.BundleItems.EditOf")} {bundleItem.Product.Name} ({bundleItem.Product.Sku})";
+            ViewBag.Title =
+                $"{T("Admin.Catalog.Products.BundleItems.EditOf")} {bundleItem.Product.Name} ({bundleItem.Product.Sku})";
 
-            var attributes = await _db.ProductVariantAttributes
-                .AsNoTracking()
+            var attributes = await _db
+                .ProductVariantAttributes.AsNoTracking()
                 .Include(x => x.ProductAttribute)
                 .ApplyProductFilter([bundleItem.ProductId])
                 .OrderBy(x => x.DisplayOrder)
@@ -2030,34 +2457,42 @@ namespace Smartstore.Admin.Controllers
                 var attributeModel = new ProductBundleItemAttributeModel
                 {
                     Id = attribute.Id,
-                    Name = attribute.ProductAttribute.Alias.HasValue() ? $"{attribute.ProductAttribute.Name} ({attribute.ProductAttribute.Alias})" : attribute.ProductAttribute.Name
+                    Name = attribute.ProductAttribute.Alias.HasValue()
+                        ? $"{attribute.ProductAttribute.Name} ({attribute.ProductAttribute.Alias})"
+                        : attribute.ProductAttribute.Name,
                 };
 
-                var attributeValues = await _db.ProductVariantAttributeValues
-                    .AsNoTracking()
+                var attributeValues = await _db
+                    .ProductVariantAttributeValues.AsNoTracking()
                     .OrderBy(x => x.DisplayOrder)
                     .Where(x => x.ProductVariantAttributeId == attribute.Id)
                     .ToListAsync();
 
                 foreach (var attributeValue in attributeValues)
                 {
-                    var filteredValue = bundleItem.AttributeFilters.FirstOrDefault(x => x.AttributeId == attribute.Id && x.AttributeValueId == attributeValue.Id);
+                    var filteredValue = bundleItem.AttributeFilters.FirstOrDefault(x =>
+                        x.AttributeId == attribute.Id && x.AttributeValueId == attributeValue.Id
+                    );
 
-                    attributeModel.Values.Add(new SelectListItem
-                    {
-                        Text = attributeValue.Name,
-                        Value = attributeValue.Id.ToString(),
-                        Selected = (filteredValue != null)
-                    });
-
-                    if (filteredValue != null)
-                    {
-                        attributeModel.PreSelect.Add(new SelectListItem
+                    attributeModel.Values.Add(
+                        new SelectListItem
                         {
                             Text = attributeValue.Name,
                             Value = attributeValue.Id.ToString(),
-                            Selected = filteredValue.IsPreSelected
-                        });
+                            Selected = (filteredValue != null),
+                        }
+                    );
+
+                    if (filteredValue != null)
+                    {
+                        attributeModel.PreSelect.Add(
+                            new SelectListItem
+                            {
+                                Text = attributeValue.Name,
+                                Value = attributeValue.Id.ToString(),
+                                Selected = filteredValue.IsPreSelected,
+                            }
+                        );
                     }
                 }
 
@@ -2065,7 +2500,10 @@ namespace Smartstore.Admin.Controllers
                 {
                     if (attributeModel.PreSelect.Count > 0)
                     {
-                        attributeModel.PreSelect.Insert(0, new SelectListItem { Text = T("Admin.Common.PleaseSelect") });
+                        attributeModel.PreSelect.Insert(
+                            0,
+                            new SelectListItem { Text = T("Admin.Common.PleaseSelect") }
+                        );
                     }
 
                     model.Attributes.Add(attributeModel);
@@ -2077,19 +2515,28 @@ namespace Smartstore.Admin.Controllers
         {
             var form = Request.Form;
 
-            var toDelete = await _db.ProductBundleItemAttributeFilter
-                .Where(x => x.BundleItemId == bundleItem.Id)
+            var toDelete = await _db
+                .ProductBundleItemAttributeFilter.Where(x => x.BundleItemId == bundleItem.Id)
                 .ToListAsync();
 
             _db.ProductBundleItemAttributeFilter.RemoveRange(toDelete);
             await _db.SaveChangesAsync();
 
-            var allFilterKeys = form.Keys.Where(x => x.HasValue() && x.StartsWith(ProductBundleItemAttributeModel.AttributeControlPrefix));
+            var allFilterKeys = form.Keys.Where(x =>
+                x.HasValue() && x.StartsWith(ProductBundleItemAttributeModel.AttributeControlPrefix)
+            );
 
             foreach (var key in allFilterKeys)
             {
-                int attributeId = key[ProductBundleItemAttributeModel.AttributeControlPrefix.Length..].ToInt();
-                string preSelectId = form[ProductBundleItemAttributeModel.PreSelectControlPrefix + attributeId.ToString()].ToString().EmptyNull();
+                int attributeId = key[
+                    ProductBundleItemAttributeModel.AttributeControlPrefix.Length..
+                ]
+                    .ToInt();
+                string preSelectId = form[
+                    ProductBundleItemAttributeModel.PreSelectControlPrefix + attributeId.ToString()
+                ]
+                    .ToString()
+                    .EmptyNull();
 
                 foreach (var valueId in form[key].ToString().SplitSafe(','))
                 {
@@ -2098,7 +2545,7 @@ namespace Smartstore.Admin.Controllers
                         BundleItemId = bundleItem.Id,
                         AttributeId = attributeId,
                         AttributeValueId = valueId.ToInt(),
-                        IsPreSelected = (preSelectId == valueId)
+                        IsPreSelected = (preSelectId == valueId),
                     };
 
                     _db.ProductBundleItemAttributeFilter.Add(attributeFilter);
@@ -2112,7 +2559,11 @@ namespace Smartstore.Admin.Controllers
 
         #region Update[...]
 
-        private async Task MapModelToProductAsync(ProductModel model, Product product, IFormCollection form)
+        private async Task MapModelToProductAsync(
+            ProductModel model,
+            Product product,
+            IFormCollection form
+        )
         {
             if (model.LoadedTabs == null || model.LoadedTabs.Length == 0)
             {
@@ -2272,7 +2723,12 @@ namespace Smartstore.Admin.Controllers
             // SEO
             foreach (var localized in model.Locales)
             {
-                await _localizedEntityService.ApplyLocalizedValueAsync(product, x => x.BundleTitleText, localized.BundleTitleText, localized.LanguageId);
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    product,
+                    x => x.BundleTitleText,
+                    localized.BundleTitleText,
+                    localized.LanguageId
+                );
             }
         }
 
@@ -2309,7 +2765,11 @@ namespace Smartstore.Admin.Controllers
             p.BasePriceMeasureUnit = m.BasePriceMeasureUnit;
 
             // Discounts.
-            await _discountService.ApplyDiscountsAsync(product, model.SelectedDiscountIds, DiscountType.AssignedToSkus);
+            await _discountService.ApplyDiscountsAsync(
+                product,
+                model.SelectedDiscountIds,
+                DiscountType.AssignedToSkus
+            );
         }
 
         private static void UpdateProductAttributes(Product product, ProductModel model)
@@ -2330,9 +2790,24 @@ namespace Smartstore.Admin.Controllers
             var service = _localizedEntityService;
             foreach (var localized in model.Locales)
             {
-                await service.ApplyLocalizedValueAsync(product, x => x.MetaKeywords, localized.MetaKeywords, localized.LanguageId);
-                await service.ApplyLocalizedValueAsync(product, x => x.MetaDescription, localized.MetaDescription, localized.LanguageId);
-                await service.ApplyLocalizedValueAsync(product, x => x.MetaTitle, localized.MetaTitle, localized.LanguageId);
+                await service.ApplyLocalizedValueAsync(
+                    product,
+                    x => x.MetaKeywords,
+                    localized.MetaKeywords,
+                    localized.LanguageId
+                );
+                await service.ApplyLocalizedValueAsync(
+                    product,
+                    x => x.MetaDescription,
+                    localized.MetaDescription,
+                    localized.LanguageId
+                );
+                await service.ApplyLocalizedValueAsync(
+                    product,
+                    x => x.MetaTitle,
+                    localized.MetaTitle,
+                    localized.LanguageId
+                );
             }
         }
 
@@ -2341,7 +2816,11 @@ namespace Smartstore.Admin.Controllers
             product.HasPreviewPicture = model.HasPreviewPicture;
         }
 
-        private async Task UpdateDataOfExistingProductAsync(Product product, ProductModel model, bool editMode)
+        private async Task UpdateDataOfExistingProductAsync(
+            Product product,
+            ProductModel model,
+            bool editMode
+        )
         {
             var p = product;
             var m = model;
@@ -2360,11 +2839,32 @@ namespace Smartstore.Admin.Controllers
 
             foreach (var localized in model.Locales)
             {
-                await _localizedEntityService.ApplyLocalizedValueAsync(product, x => x.Name, localized.Name, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(product, x => x.ShortDescription, localized.ShortDescription, localized.LanguageId);
-                await _localizedEntityService.ApplyLocalizedValueAsync(product, x => x.FullDescription, localized.FullDescription, localized.LanguageId);
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    product,
+                    x => x.Name,
+                    localized.Name,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    product,
+                    x => x.ShortDescription,
+                    localized.ShortDescription,
+                    localized.LanguageId
+                );
+                await _localizedEntityService.ApplyLocalizedValueAsync(
+                    product,
+                    x => x.FullDescription,
+                    localized.FullDescription,
+                    localized.LanguageId
+                );
 
-                await _urlService.SaveSlugAsync(p, localized.SeName, localized.Name, false, localized.LanguageId);
+                await _urlService.SaveSlugAsync(
+                    p,
+                    localized.SeName,
+                    localized.Name,
+                    false,
+                    localized.LanguageId
+                );
             }
 
             await _storeMappingService.ApplyStoreMappingsAsync(p, model.SelectedStoreIds);
@@ -2375,14 +2875,20 @@ namespace Smartstore.Admin.Controllers
             await _productTagService.UpdateProductTagsAsync(p, m.ProductTagNames);
         }
 
-        private bool CheckStockQuantityUpdate(Product product, int originalStockQuantity, int newStockQuantity)
+        private bool CheckStockQuantityUpdate(
+            Product product,
+            int originalStockQuantity,
+            int newStockQuantity
+        )
         {
             var canUpdateStockQuantity = true;
             var stockQuantityInDatabase = product.StockQuantity;
 
-            if (product.Id != 0
+            if (
+                product.Id != 0
                 && product.ManageInventoryMethod == ManageInventoryMethod.ManageStock
-                && stockQuantityInDatabase != originalStockQuantity)
+                && stockQuantityInDatabase != originalStockQuantity
+            )
             {
                 // The stock has changed since the edit page was loaded, e.g. because an order has been placed.
                 canUpdateStockQuantity = false;
@@ -2390,7 +2896,12 @@ namespace Smartstore.Admin.Controllers
                 if (newStockQuantity != originalStockQuantity)
                 {
                     // The merchant has changed the stock quantity manually.
-                    NotifyWarning(T("Admin.Catalog.Products.StockQuantityNotChanged", stockQuantityInDatabase.ToString("N0")));
+                    NotifyWarning(
+                        T(
+                            "Admin.Catalog.Products.StockQuantityNotChanged",
+                            stockQuantityInDatabase.ToString("N0")
+                        )
+                    );
                 }
             }
 

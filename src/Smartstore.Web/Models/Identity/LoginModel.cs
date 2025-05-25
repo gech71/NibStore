@@ -1,35 +1,4 @@
-﻿using FluentValidation;
-using Smartstore.Core.Identity;
-
-namespace Smartstore.Web.Models.Identity
-{
-    [LocalizedDisplay("Account.Login.Fields.")]
-    public partial class LoginModel : ModelBase
-    {
-        public bool CheckoutAsGuest { get; set; }
-
-        [LocalizedDisplay("*PhoneNumber", Prompt = "*PhoneNumber")]
-        public string PhoneNumber { get; set; }
-
-        [LocalizedDisplay("*RememberMe")]
-        public bool RememberMe { get; set; }
-    }
-    
-    public class LoginValidator : SmartValidator<LoginModel>
-    {
-        public LoginValidator(CustomerSettings customerSettings)
-        {
-            RuleFor(x => x.PhoneNumber)
-                .NotEmpty()
-                .WithMessage("Phone number is required.")
-                .Matches(@"^(?:\+251|0)(?:9|7)\d{8}$")
-                .WithMessage("Invalid phone number format. Example: +251912345678 or 0912345678");
-        }
-    }
-}
-
-/*
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using FluentValidation;
 using Smartstore.Core.Identity;
 
@@ -85,4 +54,3 @@ namespace Smartstore.Web.Models.Identity
         }
     }
 }
-*/

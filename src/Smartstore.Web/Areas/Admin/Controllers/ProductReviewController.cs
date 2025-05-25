@@ -12,13 +12,13 @@ namespace Smartstore.Admin.Controllers
 {
     public class ProductReviewController : AdminController
     {
-        private readonly static SelectListItem[] _ratings = new[]
+        private static readonly SelectListItem[] _ratings = new[]
         {
             new SelectListItem { Text = "5", Value = "5" },
             new SelectListItem { Text = "4", Value = "4" },
             new SelectListItem { Text = "3", Value = "3" },
             new SelectListItem { Text = "2", Value = "2" },
-            new SelectListItem { Text = "1", Value = "1" }
+            new SelectListItem { Text = "1", Value = "1" },
         };
 
         private readonly SmartDbContext _db;
@@ -31,7 +31,7 @@ namespace Smartstore.Admin.Controllers
             IProductService productService,
             ICustomerService customerService,
             IWorkContext workContext
-)
+        )
         {
             _db = db;
             _productService = productService;
@@ -56,36 +56,50 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.ProductReview.Read)]
-        public async Task<IActionResult> ProductReviewList(GridCommand command, ProductReviewListModel model)
+        public async Task<IActionResult> ProductReviewList(
+            GridCommand command,
+            ProductReviewListModel model
+        )
         {
             var currentUser = _workContext.CurrentCustomer;
 
-            var isMerchant = await _db.CustomerRoleMappings
-                .AnyAsync(m => m.CustomerId == currentUser.Id &&
-                              m.CustomerRole.SystemName == "Merchant");
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
 
             var dtHelper = Services.DateTimeHelper;
 
-            DateTime? createdFrom = model.CreatedOnFrom == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.CreatedOnFrom.Value, dtHelper.CurrentTimeZone);
+            DateTime? createdFrom =
+                model.CreatedOnFrom == null
+                    ? null
+                    : dtHelper.ConvertToUtcTime(
+                        model.CreatedOnFrom.Value,
+                        dtHelper.CurrentTimeZone
+                    );
 
-            DateTime? createdTo = model.CreatedOnTo == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.CreatedOnTo.Value, dtHelper.CurrentTimeZone).AddDays(1);
+            DateTime? createdTo =
+                model.CreatedOnTo == null
+                    ? null
+                    : dtHelper
+                        .ConvertToUtcTime(model.CreatedOnTo.Value, dtHelper.CurrentTimeZone)
+                        .AddDays(1);
 
-            var query = _db.ProductReviews
-                .AsSplitQuery()
+            var query = _db
+                .ProductReviews.AsSplitQuery()
                 .Include(x => x.Product)
-                .Include(x => x.Customer).ThenInclude(x => x.CustomerRoleMappings).ThenInclude(x => x.CustomerRole)
+                .Include(x => x.Customer)
+                .ThenInclude(x => x.CustomerRoleMappings)
+                .ThenInclude(x => x.CustomerRole)
                 .ApplyAuditDateFilter(createdFrom, createdTo);
 
             if (isMerchant)
             {
-                var merchantProductIds = await _db.GenericAttributes
-                    .Where(a => a.KeyGroup == "Product" &&
-                                a.Key == "CreatedByUserId" &&
-                                a.Value == currentUser.Id.ToString())
+                var merchantProductIds = await _db
+                    .GenericAttributes.Where(a =>
+                        a.KeyGroup == "Product"
+                        && a.Key == "CreatedByUserId"
+                        && a.Value == currentUser.Id.ToString()
+                    )
                     .Select(a => a.EntityId)
                     .ToListAsync();
 
@@ -118,19 +132,22 @@ namespace Smartstore.Admin.Controllers
                 .ToPagedList(command)
                 .LoadAsync();
 
-            var rows = productReviews.Select(x =>
-            {
-                var m = new ProductReviewModel();
-                PrepareProductReviewModel(m, x, false, true);
-                return m;
-            })
-            .ToList();
+            var rows = productReviews
+                .Select(x =>
+                {
+                    var m = new ProductReviewModel();
+                    PrepareProductReviewModel(m, x, false, true);
+                    return m;
+                })
+                .ToList();
 
-            return Json(new GridModel<ProductReviewModel>
-            {
-                Rows = rows,
-                Total = await productReviews.GetTotalCountAsync()
-            });
+            return Json(
+                new GridModel<ProductReviewModel>
+                {
+                    Rows = rows,
+                    Total = await productReviews.GetTotalCountAsync(),
+                }
+            );
         }
 
         [HttpPost]
@@ -148,8 +165,8 @@ namespace Smartstore.Admin.Controllers
                 _db.CustomerContent.RemoveRange(productReviews);
                 await _db.SaveChangesAsync();
 
-                var products = await _db.Products
-                    .Include(x => x.ProductReviews)
+                var products = await _db
+                    .Products.Include(x => x.ProductReviews)
                     .Where(x => productIds.Contains(x.Id))
                     .ToListAsync();
 
@@ -166,8 +183,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.ProductReview.Delete)]
         public async Task<IActionResult> Delete(int id)
         {
-            var productReview = await _db.CustomerContent
-                .OfType<ProductReview>()
+            var productReview = await _db
+                .CustomerContent.OfType<ProductReview>()
                 .Include(x => x.Product)
                 .FindByIdAsync(id);
 
@@ -192,8 +209,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.ProductReview.Read)]
         public async Task<IActionResult> Edit(int id)
         {
-            var productReview = await _db.CustomerContent
-                .OfType<ProductReview>()
+            var productReview = await _db
+                .CustomerContent.OfType<ProductReview>()
                 .Include(x => x.Product)
                 .FindByIdAsync(id);
 
@@ -212,8 +229,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.ProductReview.Update)]
         public async Task<IActionResult> Edit(ProductReviewModel model, bool continueEditing)
         {
-            var productReview = await _db.CustomerContent
-                .OfType<ProductReview>()
+            var productReview = await _db
+                .CustomerContent.OfType<ProductReview>()
                 .Include(x => x.Product)
                 .Include(x => x.Customer)
                 .FindByIdAsync(model.Id);
@@ -237,7 +254,11 @@ namespace Smartstore.Admin.Controllers
                 if (approvedChanged)
                 {
                     _productService.ApplyProductReviewTotals(productReview.Product);
-                    _customerService.ApplyRewardPointsForProductReview(productReview.Customer, productReview.Product, productReview.IsApproved);
+                    _customerService.ApplyRewardPointsForProductReview(
+                        productReview.Customer,
+                        productReview.Product,
+                        productReview.IsApproved
+                    );
 
                     await _db.SaveChangesAsync();
                 }
@@ -270,7 +291,9 @@ namespace Smartstore.Admin.Controllers
         {
             var numDisapproved = await UpdateApproved(selectedIds, false);
 
-            NotifySuccess(T("Admin.Catalog.ProductReviews.NumberDisapprovedReviews", numDisapproved));
+            NotifySuccess(
+                T("Admin.Catalog.ProductReviews.NumberDisapprovedReviews", numDisapproved)
+            );
 
             return RedirectToAction(nameof(List));
         }
@@ -283,8 +306,11 @@ namespace Smartstore.Admin.Controllers
 
             if (ids.Any())
             {
-                var productReviews = await _db.ProductReviews
-                    .Where(x => ids.Contains(x.Id) && (x.IsVerifiedPurchase == false || x.IsVerifiedPurchase == null))
+                var productReviews = await _db
+                    .ProductReviews.Where(x =>
+                        ids.Contains(x.Id)
+                        && (x.IsVerifiedPurchase == false || x.IsVerifiedPurchase == null)
+                    )
                     .ToListAsync();
 
                 if (productReviews.Any())
@@ -293,14 +319,24 @@ namespace Smartstore.Admin.Controllers
 
                     await _db.SaveChangesAsync();
 
-                    NotifySuccess(T("Admin.Catalog.ProductReviews.NumberVerfifiedReviews", productReviews.Count));
+                    NotifySuccess(
+                        T(
+                            "Admin.Catalog.ProductReviews.NumberVerfifiedReviews",
+                            productReviews.Count
+                        )
+                    );
                 }
             }
 
             return RedirectToAction(nameof(List));
         }
 
-        private void PrepareProductReviewModel(ProductReviewModel model, ProductReview productReview, bool excludeProperties, bool forList)
+        private void PrepareProductReviewModel(
+            ProductReviewModel model,
+            ProductReview productReview,
+            bool excludeProperties,
+            bool forList
+        )
         {
             Guard.NotNull(model, nameof(model));
             Guard.NotNull(productReview, nameof(productReview));
@@ -318,8 +354,14 @@ namespace Smartstore.Admin.Controllers
             model.CustomerName = customer?.GetDisplayName(T);
             model.IpAddress = productReview.IpAddress;
             model.Rating = productReview.Rating;
-            model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(productReview.CreatedOnUtc, DateTimeKind.Utc);
-            model.UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(productReview.UpdatedOnUtc, DateTimeKind.Utc);
+            model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                productReview.CreatedOnUtc,
+                DateTimeKind.Utc
+            );
+            model.UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                productReview.UpdatedOnUtc,
+                DateTimeKind.Utc
+            );
             model.HelpfulYesTotal = productReview.HelpfulYesTotal;
             model.HelpfulNoTotal = productReview.HelpfulNoTotal;
             model.IsVerifiedPurchase = productReview.IsVerifiedPurchase;
@@ -327,12 +369,20 @@ namespace Smartstore.Admin.Controllers
 
             if (customer != null)
             {
-                model.CustomerEditUrl = Url.Action("Edit", "Customer", new { Id = productReview.CustomerId });
+                model.CustomerEditUrl = Url.Action(
+                    "Edit",
+                    "Customer",
+                    new { Id = productReview.CustomerId }
+                );
             }
 
             if (product != null)
             {
-                model.ProductEditUrl = Url.Action("Edit", "Product", new { Id = productReview.ProductId });
+                model.ProductEditUrl = Url.Action(
+                    "Edit",
+                    "Product",
+                    new { Id = productReview.ProductId }
+                );
             }
 
             if (!excludeProperties)
@@ -353,9 +403,10 @@ namespace Smartstore.Admin.Controllers
 
             if (ids.Any())
             {
-                var productReviews = await _db.CustomerContent
-                    .OfType<ProductReview>()
-                    .Include(x => x.Customer).ThenInclude(x => x.RewardPointsHistory)
+                var productReviews = await _db
+                    .CustomerContent.OfType<ProductReview>()
+                    .Include(x => x.Customer)
+                    .ThenInclude(x => x.RewardPointsHistory)
                     .Where(x => ids.Contains(x.Id) && x.IsApproved != approved)
                     .ToListAsync();
 
@@ -369,8 +420,8 @@ namespace Smartstore.Admin.Controllers
                     // Update product review totals.
                     var productIds = productReviews.ToDistinctArray(x => x.ProductId);
 
-                    var products = await _db.Products
-                        .Include(x => x.ProductReviews)
+                    var products = await _db
+                        .Products.Include(x => x.ProductReviews)
                         .Where(x => productIds.Contains(x.Id))
                         .ToDictionaryAsync(x => x.Id, x => x);
 
@@ -379,7 +430,11 @@ namespace Smartstore.Admin.Controllers
                     // Update reward points history.
                     foreach (var productReview in productReviews)
                     {
-                        _customerService.ApplyRewardPointsForProductReview(productReview.Customer, products.Get(productReview.ProductId), productReview.IsApproved);
+                        _customerService.ApplyRewardPointsForProductReview(
+                            productReview.Customer,
+                            products.Get(productReview.ProductId),
+                            productReview.IsApproved
+                        );
                     }
 
                     await _db.SaveChangesAsync();

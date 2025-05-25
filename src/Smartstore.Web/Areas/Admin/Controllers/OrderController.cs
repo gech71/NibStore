@@ -96,7 +96,8 @@ namespace Smartstore.Admin.Controllers
             ShoppingCartSettings shoppingCartSettings,
             MediaSettings mediaSettings,
             AdminAreaSettings adminAreaSettings,
-            IWorkContext workContext)
+            IWorkContext workContext
+        )
         {
             _db = db;
             _orderService = orderService;
@@ -139,8 +140,12 @@ namespace Smartstore.Admin.Controllers
             var paymentProviders = allPaymentProviders
                 .Select(x => new SelectListItem
                 {
-                    Text = (_moduleManager.GetLocalizedFriendlyName(x.Metadata).NullEmpty() ?? x.Metadata.FriendlyName.NullEmpty() ?? x.Metadata.SystemName).EmptyNull(),
-                    Value = x.Metadata.SystemName
+                    Text = (
+                        _moduleManager.GetLocalizedFriendlyName(x.Metadata).NullEmpty()
+                        ?? x.Metadata.FriendlyName.NullEmpty()
+                        ?? x.Metadata.SystemName
+                    ).EmptyNull(),
+                    Value = x.Metadata.SystemName,
                 })
                 .ToList();
 
@@ -171,17 +176,17 @@ namespace Smartstore.Admin.Controllers
         }
 
         [Permission(Permissions.Order.Read)]
-        public async Task<IActionResult> OrderList(GridCommand command, OrderListModel model, int? productId = null, int? customerId = null)
+        public async Task<IActionResult> OrderList(
+            GridCommand command,
+            OrderListModel model,
+            int? productId = null,
+            int? customerId = null
+        )
         {
             var currentUser = _workContext.CurrentCustomer;
-            var merchantRoleId = await _db.CustomerRoles
-                .Where(r => r.SystemName == "Merchant")
-                .Select(r => r.Id)
-                .FirstOrDefaultAsync();
-
-            bool isMerchant = merchantRoleId != 0 &&
-                await _db.CustomerRoleMappings
-                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
 
             var dtHelper = Services.DateTimeHelper;
             var viaShippingMethodString = T("Admin.Order.ViaShippingMethod").Value;
@@ -189,43 +194,60 @@ namespace Smartstore.Admin.Controllers
             var fromStoreString = T("Admin.Order.FromStore").Value;
             var paymentMethodSystemnames = model.PaymentMethods.SplitSafe(',').ToArray();
             var customer = Services.WorkContext.CurrentCustomer;
-            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync("Customer", customer.Id);
+            var authorizedStoreIds = await Services.StoreMappingService.GetAuthorizedStoreIdsAsync(
+                "Customer",
+                customer.Id
+            );
 
-            DateTime? startDateUtc = model.StartDate == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone);
+            DateTime? startDateUtc =
+                model.StartDate == null
+                    ? null
+                    : dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone);
 
-            DateTime? endDateUtc = model.EndDate == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone).AddDays(1);
+            DateTime? endDateUtc =
+                model.EndDate == null
+                    ? null
+                    : dtHelper
+                        .ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone)
+                        .AddDays(1);
 
-            var orderQuery = _db.Orders
-                .IgnoreQueryFilters()
+            var orderQuery = _db
+                .Orders.IgnoreQueryFilters()
                 .Include(x => x.OrderItems)
                 .Include(x => x.BillingAddress)
                 .IncludeShippingAddress()
                 .IncludeCustomer()
                 .AsNoTracking()
                 .ApplyAuditDateFilter(startDateUtc, endDateUtc)
-                .ApplyStatusFilter(model.OrderStatusIds, model.PaymentStatusIds, model.ShippingStatusIds)
+                .ApplyStatusFilter(
+                    model.OrderStatusIds,
+                    model.PaymentStatusIds,
+                    model.ShippingStatusIds
+                )
                 .ApplyPaymentFilter(paymentMethodSystemnames)
                 .ApplyCustomerFilter(authorizedStoreIds);
 
             if (isMerchant)
             {
-                var merchantProductIds = await _db.GenericAttributes
-                    .Where(a => a.KeyGroup == "Product" &&
-                                a.Key == "CreatedByUserId" &&
-                                a.Value == currentUser.Id.ToString())
+                var merchantProductIds = await _db
+                    .GenericAttributes.Where(a =>
+                        a.KeyGroup == "Product"
+                        && a.Key == "CreatedByUserId"
+                        && a.Value == currentUser.Id.ToString()
+                    )
                     .Select(a => a.EntityId)
                     .ToListAsync();
 
-                orderQuery = orderQuery.Where(o => o.OrderItems.Any(oi => merchantProductIds.Contains(oi.ProductId)));
+                orderQuery = orderQuery.Where(o =>
+                    o.OrderItems.Any(oi => merchantProductIds.Contains(oi.ProductId))
+                );
             }
 
             if (productId > 0)
             {
-                orderQuery = orderQuery.Where(x => x.OrderItems.Any(i => i.ProductId == productId.Value));
+                orderQuery = orderQuery.Where(x =>
+                    x.OrderItems.Any(i => i.ProductId == productId.Value)
+                );
             }
             if (customerId > 0)
             {
@@ -234,7 +256,10 @@ namespace Smartstore.Admin.Controllers
 
             if (model.CustomerEmail.HasValue())
             {
-                orderQuery = orderQuery.ApplySearchFilterFor(x => x.BillingAddress.Email, model.CustomerEmail);
+                orderQuery = orderQuery.ApplySearchFilterFor(
+                    x => x.BillingAddress.Email,
+                    model.CustomerEmail
+                );
             }
             if (model.CustomerName.HasValue())
             {
@@ -242,7 +267,8 @@ namespace Smartstore.Admin.Controllers
                     model.CustomerName,
                     LogicalRuleOperator.Or,
                     x => x.BillingAddress.FirstName,
-                    x => x.BillingAddress.LastName);
+                    x => x.BillingAddress.LastName
+                );
             }
             if (model.OrderNumber.HasValue())
             {
@@ -255,7 +281,8 @@ namespace Smartstore.Admin.Controllers
                     LogicalRuleOperator.Or,
                     x => x.CaptureTransactionId,
                     x => x.AuthorizationTransactionId,
-                    x => x.AuthorizationTransactionCode);
+                    x => x.AuthorizationTransactionCode
+                );
             }
             if (model.StoreId > 0)
             {
@@ -267,15 +294,15 @@ namespace Smartstore.Admin.Controllers
                 .OrderByDescending(x => x.CreatedOnUtc)
                 .ApplyGridCommand(command);
 
-            var orders = await orderQuery
-                .ToPagedList(command)
-                .LoadAsync();
+            var orders = await orderQuery.ToPagedList(command).LoadAsync();
 
             var paymentMethods = await orders
                 .Where(x => x.PaymentMethodSystemName.HasValue())
                 .Select(x => x.PaymentMethodSystemName)
                 .Distinct()
-                .SelectAwait(async x => await _paymentService.LoadPaymentProviderBySystemNameAsync(x))
+                .SelectAwait(async x =>
+                    await _paymentService.LoadPaymentProviderBySystemNameAsync(x)
+                )
                 .AsyncToList();
 
             var paymentMethodsDic = paymentMethods
@@ -283,7 +310,8 @@ namespace Smartstore.Admin.Controllers
                 .ToDictionarySafe(
                     x => x.Metadata.SystemName,
                     x => _moduleManager.GetLocalizedFriendlyName(x.Metadata),
-                    StringComparer.OrdinalIgnoreCase);
+                    StringComparer.OrdinalIgnoreCase
+                );
 
             var rows = await orders
                 .SelectAwait(async x =>
@@ -302,7 +330,8 @@ namespace Smartstore.Admin.Controllers
 
                     if (shipTo != null && m.IsShippable)
                     {
-                        m.ShippingAddressString = $"{shipTo.Address1}, {shipTo.ZipPostalCode} {shipTo.City}";
+                        m.ShippingAddressString =
+                            $"{shipTo.Address1}, {shipTo.ZipPostalCode} {shipTo.City}";
                         if (shipTo.Country != null)
                         {
                             m.ShippingAddressString += ", " + shipTo.Country.TwoLetterIsoCode;
@@ -320,27 +349,35 @@ namespace Smartstore.Admin.Controllers
                 {
                     OrderCount = grp.Count(),
                     SumTax = grp.Sum(x => x.OrderTax),
-                    SumOrderTotal = grp.Sum(x => x.OrderTotal)
+                    SumOrderTotal = grp.Sum(x => x.OrderTotal),
                 };
 
-            var summary = await summaryQuery
-                .OrderByDescending(x => x.SumOrderTotal)
-                .FirstOrDefaultAsync() ?? new OrderAverageReportLine();
+            var summary =
+                await summaryQuery.OrderByDescending(x => x.SumOrderTotal).FirstOrDefaultAsync()
+                ?? new OrderAverageReportLine();
 
             var productCost = await orderQuery.GetOrdersProductCostsAsync();
             var profit = summary.SumOrderTotal - summary.SumTax - productCost;
 
-            return Json(new GridModel<OrderOverviewModel>
-            {
-                Rows = rows,
-                Total = orders.TotalCount,
-                Aggregates = new
+            return Json(
+                new GridModel<OrderOverviewModel>
                 {
-                    profit = Services.CurrencyService.CreateMoney(profit, _primaryCurrency).ToString(true),
-                    tax = Services.CurrencyService.CreateMoney(summary.SumTax, _primaryCurrency).ToString(true),
-                    total = Services.CurrencyService.CreateMoney(summary.SumOrderTotal, _primaryCurrency).ToString(true)
+                    Rows = rows,
+                    TotaRegisterMode.csl = orders.TotalCount,
+                    Aggregates = new
+                    {
+                        profit = Services
+                            .CurrencyService.CreateMoney(profit, _primaryCurrency)
+                            .ToString(true),
+                        tax = Services
+                            .CurrencyService.CreateMoney(summary.SumTax, _primaryCurrency)
+                            .ToString(true),
+                        total = Services
+                            .CurrencyService.CreateMoney(summary.SumOrderTotal, _primaryCurrency)
+                            .ToString(true),
+                    },
                 }
-            });
+            );
         }
 
         [HttpPost, ActionName("List")]
@@ -355,15 +392,15 @@ namespace Smartstore.Admin.Controllers
             {
                 if (RegularExpressions.IsGuid.IsMatch(orderNumber))
                 {
-                    orderId = await _db.Orders
-                        .Where(x => x.OrderGuid.ToString() == orderNumber)
+                    orderId = await _db
+                        .Orders.Where(x => x.OrderGuid.ToString() == orderNumber)
                         .Select(x => x.Id)
                         .FirstOrDefaultAsync();
                 }
                 else
                 {
-                    orderId = await _db.Orders
-                        .Where(x => x.OrderNumber == orderNumber)
+                    orderId = await _db
+                        .Orders.Where(x => x.OrderNumber == orderNumber)
                         .Select(x => x.Id)
                         .FirstOrDefaultAsync();
 
@@ -391,7 +428,16 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Read)]
         public IActionResult ExportPdf(string selectedIds)
         {
-            return RedirectToAction("PrintMany", "Order", new { ids = selectedIds, pdf = true, area = string.Empty });
+            return RedirectToAction(
+                "PrintMany",
+                "Order",
+                new
+                {
+                    ids = selectedIds,
+                    pdf = true,
+                    area = string.Empty,
+                }
+            );
         }
 
         #region Payment
@@ -401,8 +447,8 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> ProcessOrder(string selectedIds, string operation)
         {
             var ids = selectedIds.ToIntArray();
-            var orders = await _db.Orders
-                .Include(x => x.Shipments)
+            var orders = await _db
+                .Orders.Include(x => x.Shipments)
                 .IncludeCustomer(true)
                 .IncludeOrderItems()
                 .Where(x => ids.Contains(x.Id))
@@ -452,7 +498,10 @@ namespace Smartstore.Admin.Controllers
                             break;
                         case "ship":
                         case "deliver":
-                            if (o.ShippingStatus != ShippingStatus.ShippingNotRequired && o.ShippingAddressId != 0)
+                            if (
+                                o.ShippingStatus != ShippingStatus.ShippingNotRequired
+                                && o.ShippingAddressId != 0
+                            )
                             {
                                 var ship = operation == "ship";
                                 if (o.Shipments.Count > 0)
@@ -463,9 +512,16 @@ namespace Smartstore.Admin.Controllers
                                         {
                                             await _orderProcessingService.ShipAsync(shipment, true);
                                         }
-                                        else if (!ship && shipment.ShippedDateUtc != null && shipment.DeliveryDateUtc == null)
+                                        else if (
+                                            !ship
+                                            && shipment.ShippedDateUtc != null
+                                            && shipment.DeliveryDateUtc == null
+                                        )
                                         {
-                                            await _orderProcessingService.DeliverAsync(shipment, true);
+                                            await _orderProcessingService.DeliverAsync(
+                                                shipment,
+                                                true
+                                            );
                                         }
                                     }
 
@@ -482,14 +538,28 @@ namespace Smartstore.Admin.Controllers
                                             quantities.Add(orderItem.Id, orderItem.Quantity);
                                         }
 
-                                        var shipment = await _orderProcessingService.AddShipmentAsync(o, null, null, null, quantities);
+                                        var shipment =
+                                            await _orderProcessingService.AddShipmentAsync(
+                                                o,
+                                                null,
+                                                null,
+                                                null,
+                                                quantities
+                                            );
                                         if (shipment != null)
                                         {
-                                            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), o.GetOrderNumber());
+                                            Services.ActivityLogger.LogActivity(
+                                                KnownActivityLogTypes.EditOrder,
+                                                T("ActivityLog.EditOrder"),
+                                                o.GetOrderNumber()
+                                            );
 
                                             if (ship && shipment.ShippedDateUtc == null)
                                             {
-                                                await _orderProcessingService.ShipAsync(shipment, true);
+                                                await _orderProcessingService.ShipAsync(
+                                                    shipment,
+                                                    true
+                                                );
                                             }
 
                                             ++numSuccess;
@@ -596,14 +666,28 @@ namespace Smartstore.Admin.Controllers
             }
 
             var msg = new StringBuilder((errorMessages.Count * 100) + 100);
-            msg.Append(T("Admin.Orders.ProcessingResult", numSuccess, ids.Length, numSkipped, numSkipped == 0 ? " class='hide'" : string.Empty));
-            errorMessages.Take(maxErrors).Each(x => msg.Append($"<div class='text-danger mt-2'>{x}</div>"));
+            msg.Append(
+                T(
+                    "Admin.Orders.ProcessingResult",
+                    numSuccess,
+                    ids.Length,
+                    numSkipped,
+                    numSkipped == 0 ? " class='hide'" : string.Empty
+                )
+            );
+            errorMessages
+                .Take(maxErrors)
+                .Each(x => msg.Append($"<div class='text-danger mt-2'>{x}</div>"));
 
             NotifyInfo(msg.ToString());
 
             if (succeededOrderNumbers.Count > 0)
             {
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), string.Join(", ", succeededOrderNumbers.OrderBy(x => x)));
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    string.Join(", ", succeededOrderNumbers.OrderBy(x => x))
+                );
             }
 
             return RedirectToReferrer(null, () => RedirectToAction(nameof(List)));
@@ -624,7 +708,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.CancelOrderAsync(order, true);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -649,7 +737,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.CompleteOrderAsync(order);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -674,7 +766,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.CaptureAsync(order);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -700,7 +796,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.MarkOrderAsPaidAsync(order);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -725,7 +825,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.RefundAsync(order);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -751,7 +855,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.RefundOfflineAsync(order);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -776,7 +884,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.VoidAsync(order);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -802,7 +914,11 @@ namespace Smartstore.Admin.Controllers
             {
                 await _orderProcessingService.VoidOfflineAsync(order);
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
             catch (Exception ex)
             {
@@ -827,7 +943,7 @@ namespace Smartstore.Admin.Controllers
             {
                 Id = id,
                 MaxAmountToRefund = maxAmountToRefund,
-                MaxAmountToRefundString = Format(maxAmountToRefund)
+                MaxAmountToRefundString = Format(maxAmountToRefund),
             };
 
             ViewBag.Online = online;
@@ -838,7 +954,10 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Order.Update)]
-        public async Task<IActionResult> PartiallyRefundOrder(OrderModel.RefundModel model, bool online)
+        public async Task<IActionResult> PartiallyRefundOrder(
+            OrderModel.RefundModel model,
+            bool online
+        )
         {
             var success = false;
 
@@ -866,13 +985,20 @@ namespace Smartstore.Admin.Controllers
                     }
                     else
                     {
-                        await _orderProcessingService.PartiallyRefundOfflineAsync(order, amountToRefund);
+                        await _orderProcessingService.PartiallyRefundOfflineAsync(
+                            order,
+                            amountToRefund
+                        );
                         success = true;
                     }
 
                     if (success)
                     {
-                        Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                        Services.ActivityLogger.LogActivity(
+                            KnownActivityLogTypes.EditOrder,
+                            T("ActivityLog.EditOrder"),
+                            order.GetOrderNumber()
+                        );
                     }
                 }
                 else
@@ -897,8 +1023,8 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> Edit(int id)
         {
             // Include deleted products but do not load a deleted order.
-            var order = await _db.Orders
-                .IgnoreQueryFilters()
+            var order = await _db
+                .Orders.IgnoreQueryFilters()
                 .IncludeCustomer(true)
                 .IncludeOrderItems()
                 .IncludeShipments()
@@ -940,7 +1066,16 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Read)]
         public IActionResult Print(int orderId, bool pdf = false)
         {
-            return RedirectToAction("Print", "Order", new { id = orderId, pdf, area = string.Empty });
+            return RedirectToAction(
+                "Print",
+                "Order",
+                new
+                {
+                    id = orderId,
+                    pdf,
+                    area = string.Empty,
+                }
+            );
         }
 
         [HttpPost, ActionName("Edit")]
@@ -959,13 +1094,19 @@ namespace Smartstore.Admin.Controllers
                 order.CardType = _encryptor.EncryptText(model.CardType);
                 order.CardName = _encryptor.EncryptText(model.CardName);
                 order.CardNumber = _encryptor.EncryptText(model.CardNumber);
-                order.MaskedCreditCardNumber = _encryptor.EncryptText(_paymentService.GetMaskedCreditCardNumber(model.CardNumber));
+                order.MaskedCreditCardNumber = _encryptor.EncryptText(
+                    _paymentService.GetMaskedCreditCardNumber(model.CardNumber)
+                );
                 order.CardCvv2 = _encryptor.EncryptText(model.CardCvv2);
                 order.CardExpirationMonth = _encryptor.EncryptText(model.CardExpirationMonth);
                 order.CardExpirationYear = _encryptor.EncryptText(model.CardExpirationYear);
 
                 await _db.SaveChangesAsync();
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
 
             return RedirectToAction(nameof(Edit), new { id });
@@ -984,8 +1125,12 @@ namespace Smartstore.Admin.Controllers
 
             if (order.AllowStoringDirectDebit)
             {
-                order.DirectDebitAccountHolder = _encryptor.EncryptText(model.DirectDebitAccountHolder);
-                order.DirectDebitAccountNumber = _encryptor.EncryptText(model.DirectDebitAccountNumber);
+                order.DirectDebitAccountHolder = _encryptor.EncryptText(
+                    model.DirectDebitAccountHolder
+                );
+                order.DirectDebitAccountNumber = _encryptor.EncryptText(
+                    model.DirectDebitAccountNumber
+                );
                 order.DirectDebitBankCode = _encryptor.EncryptText(model.DirectDebitBankCode);
                 order.DirectDebitBankName = _encryptor.EncryptText(model.DirectDebitBankName);
                 order.DirectDebitBIC = _encryptor.EncryptText(model.DirectDebitBIC);
@@ -993,7 +1138,11 @@ namespace Smartstore.Admin.Controllers
                 order.DirectDebitIban = _encryptor.EncryptText(model.DirectDebitIban);
 
                 await _db.SaveChangesAsync();
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
             }
 
             return RedirectToAction(nameof(Edit), new { id });
@@ -1026,18 +1175,23 @@ namespace Smartstore.Admin.Controllers
             order.OrderTotal = model.OrderTotal;
 
             await _db.SaveChangesAsync();
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                order.GetOrderNumber()
+            );
 
             return RedirectToAction(nameof(Edit), new { id });
         }
 
         [HttpPost]
         [Permission(Permissions.Order.EditItem)]
-        public async Task<IActionResult> EditOrderItem(UpdateOrderItemModel model, IFormCollection form)
+        public async Task<IActionResult> EditOrderItem(
+            UpdateOrderItemModel model,
+            IFormCollection form
+        )
         {
-            var orderItem = await _db.OrderItems
-                .Include(x => x.Order)
-                .FindByIdAsync(model.Id);
+            var orderItem = await _db.OrderItems.Include(x => x.Order).FindByIdAsync(model.Id);
 
             if (orderItem == null)
             {
@@ -1057,15 +1211,22 @@ namespace Smartstore.Admin.Controllers
                 NewDiscountInclTax = model.NewDiscountInclTax,
                 NewDiscountExclTax = model.NewDiscountExclTax,
                 NewPriceInclTax = model.NewPriceInclTax,
-                NewPriceExclTax = model.NewPriceExclTax
+                NewPriceExclTax = model.NewPriceExclTax,
             };
 
             // INFO: UpdateOrderDetailsAsync performs commit.
             await _orderProcessingService.UpdateOrderDetailsAsync(orderItem, context);
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), orderItem.Order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                orderItem.Order.GetOrderNumber()
+            );
 
-            TempData[UpdateOrderDetailsContext.InfoKey] = await InvokePartialViewAsync("OrderItemUpdateInfo", context);
+            TempData[UpdateOrderDetailsContext.InfoKey] = await InvokePartialViewAsync(
+                "OrderItemUpdateInfo",
+                context
+            );
 
             return RedirectToAction(nameof(Edit), new { id = orderItem.OrderId });
         }
@@ -1074,8 +1235,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.EditItem)]
         public async Task<IActionResult> DeleteOrderItem(UpdateOrderItemModel model)
         {
-            var orderItem = await _db.OrderItems
-                .Include(x => x.Order)
+            var orderItem = await _db
+                .OrderItems.Include(x => x.Order)
                 .Include(x => x.Product)
                 .FindByIdAsync(model.Id);
 
@@ -1084,8 +1245,10 @@ namespace Smartstore.Admin.Controllers
                 return NotFound();
             }
 
-            if (orderItem.Product.IsGiftCard &&
-                await _db.GiftCards.AnyAsync(x => x.PurchasedWithOrderItemId == orderItem.Id))
+            if (
+                orderItem.Product.IsGiftCard
+                && await _db.GiftCards.AnyAsync(x => x.PurchasedWithOrderItemId == orderItem.Id)
+            )
             {
                 NotifyError(T("Admin.Orders.OrderItem.CannotDeleteAssociatedGiftCards"));
 
@@ -1097,7 +1260,7 @@ namespace Smartstore.Admin.Controllers
                 NewQuantity = 0,
                 AdjustInventory = model.AdjustInventory,
                 UpdateRewardPoints = model.UpdateRewardPoints,
-                UpdateTotals = model.UpdateTotals
+                UpdateTotals = model.UpdateTotals,
             };
 
             await _orderProcessingService.UpdateOrderDetailsAsync(orderItem, context);
@@ -1108,9 +1271,16 @@ namespace Smartstore.Admin.Controllers
             _db.OrderItems.Remove(orderItem);
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), orderNumber);
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                orderNumber
+            );
 
-            TempData[UpdateOrderDetailsContext.InfoKey] = await InvokePartialViewAsync("OrderItemUpdateInfo", context);
+            TempData[UpdateOrderDetailsContext.InfoKey] = await InvokePartialViewAsync(
+                "OrderItemUpdateInfo",
+                context
+            );
 
             return RedirectToAction(nameof(Edit), new { id = orderId });
         }
@@ -1118,8 +1288,8 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.ReturnRequest.Create)]
         public async Task<IActionResult> AddReturnRequest(int orderId, int orderItemId)
         {
-            var order = await _db.Orders
-                .AsSplitQuery()
+            var order = await _db
+                .Orders.AsSplitQuery()
                 .Include(x => x.OrderItems)
                 .Include(x => x.Customer)
                 .ThenInclude(x => x.ReturnRequests)
@@ -1130,9 +1300,7 @@ namespace Smartstore.Admin.Controllers
                 return NotFound();
             }
 
-            var orderItem = order.OrderItems
-                .Where(x => x.Id == orderItemId)
-                .FirstOrDefault();
+            var orderItem = order.OrderItems.Where(x => x.Id == orderItemId).FirstOrDefault();
 
             if (orderItem == null)
             {
@@ -1150,7 +1318,7 @@ namespace Smartstore.Admin.Controllers
                     ReasonForReturn = string.Empty,
                     RequestedAction = string.Empty,
                     StaffNotes = string.Empty,
-                    ReturnRequestStatus = ReturnRequestStatus.Pending
+                    ReturnRequestStatus = ReturnRequestStatus.Pending,
                 };
 
                 order.Customer.ReturnRequests.Add(returnRequest);
@@ -1165,18 +1333,14 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Update)]
         public async Task<IActionResult> ResetDownloadCount(int orderId, int orderItemId)
         {
-            var order = await _db.Orders
-                .Include(x => x.OrderItems)
-                .FindByIdAsync(orderId);
+            var order = await _db.Orders.Include(x => x.OrderItems).FindByIdAsync(orderId);
 
             if (order == null)
             {
                 return NotFound();
             }
 
-            var orderItem = order.OrderItems
-                .Where(x => x.Id == orderItemId)
-                .FirstOrDefault();
+            var orderItem = order.OrderItems.Where(x => x.Id == orderItemId).FirstOrDefault();
 
             if (orderItem == null)
             {
@@ -1186,7 +1350,11 @@ namespace Smartstore.Admin.Controllers
             orderItem.DownloadCount = 0;
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                order.GetOrderNumber()
+            );
 
             return RedirectToAction(nameof(Edit), new { id = order.Id });
         }
@@ -1194,18 +1362,14 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Update)]
         public async Task<IActionResult> ActivateDownloadOrderItem(int orderId, int orderItemId)
         {
-            var order = await _db.Orders
-                .Include(x => x.OrderItems)
-                .FindByIdAsync(orderId);
+            var order = await _db.Orders.Include(x => x.OrderItems).FindByIdAsync(orderId);
 
             if (order == null)
             {
                 return NotFound();
             }
 
-            var orderItem = order.OrderItems
-                .Where(x => x.Id == orderItemId)
-                .FirstOrDefault();
+            var orderItem = order.OrderItems.Where(x => x.Id == orderItemId).FirstOrDefault();
 
             if (orderItem == null)
             {
@@ -1215,17 +1379,24 @@ namespace Smartstore.Admin.Controllers
             orderItem.IsDownloadActivated = !orderItem.IsDownloadActivated;
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                order.GetOrderNumber()
+            );
 
             return RedirectToAction(nameof(Edit), new { id = order.Id });
         }
 
         [Permission(Permissions.Order.Read)]
-        public async Task<IActionResult> UploadLicenseFilePopup(string btnId, string formId, int id, int orderItemId)
+        public async Task<IActionResult> UploadLicenseFilePopup(
+            string btnId,
+            string formId,
+            int id,
+            int orderItemId
+        )
         {
-            var order = await _db.Orders
-                .IncludeOrderItems()
-                .FindByIdAsync(id, false);
+            var order = await _db.Orders.IncludeOrderItems().FindByIdAsync(id, false);
 
             if (order == null)
             {
@@ -1248,7 +1419,7 @@ namespace Smartstore.Admin.Controllers
                 LicenseDownloadId = orderItem.LicenseDownloadId ?? 0,
                 OldLicenseDownloadId = orderItem.LicenseDownloadId ?? 0,
                 OrderId = order.Id,
-                OrderItemId = orderItem.Id
+                OrderItemId = orderItem.Id,
             };
 
             return View(model);
@@ -1257,11 +1428,13 @@ namespace Smartstore.Admin.Controllers
         [HttpPost]
         [FormValueRequired("uploadlicense")]
         [Permission(Permissions.Order.Update)]
-        public async Task<IActionResult> UploadLicenseFilePopup(string btnId, string formId, OrderModel.UploadLicenseModel model)
+        public async Task<IActionResult> UploadLicenseFilePopup(
+            string btnId,
+            string formId,
+            OrderModel.UploadLicenseModel model
+        )
         {
-            var order = await _db.Orders
-                .IncludeOrderItems()
-                .FindByIdAsync(model.OrderId);
+            var order = await _db.Orders.IncludeOrderItems().FindByIdAsync(model.OrderId);
 
             if (order == null)
             {
@@ -1274,13 +1447,20 @@ namespace Smartstore.Admin.Controllers
                 return NotFound();
             }
 
-            var isUrlDownload = Request.Form["is-url-download-" + model.LicenseDownloadId] == "true";
+            var isUrlDownload =
+                Request.Form["is-url-download-" + model.LicenseDownloadId] == "true";
             var setOldFileToTransient = false;
 
-            if (model.LicenseDownloadId != model.OldLicenseDownloadId && model.LicenseDownloadId != 0 && !isUrlDownload)
+            if (
+                model.LicenseDownloadId != model.OldLicenseDownloadId
+                && model.LicenseDownloadId != 0
+                && !isUrlDownload
+            )
             {
                 // Insert download if a new file was uploaded.
-                var mediaFileInfo = await Services.MediaService.GetFileByIdAsync(model.LicenseDownloadId);
+                var mediaFileInfo = await Services.MediaService.GetFileByIdAsync(
+                    model.LicenseDownloadId
+                );
 
                 var download = new Download
                 {
@@ -1291,7 +1471,7 @@ namespace Smartstore.Admin.Controllers
                     UseDownloadUrl = false,
                     DownloadUrl = string.Empty,
                     UpdatedOnUtc = DateTime.UtcNow,
-                    IsTransient = false
+                    IsTransient = false,
                 };
 
                 _db.Downloads.Add(download);
@@ -1322,7 +1502,11 @@ namespace Smartstore.Admin.Controllers
 
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                order.GetOrderNumber()
+            );
 
             ViewBag.RefreshPage = true;
             ViewBag.BtnId = btnId;
@@ -1334,11 +1518,13 @@ namespace Smartstore.Admin.Controllers
         [HttpPost, ActionName("UploadLicenseFilePopup")]
         [FormValueRequired("deletelicense")]
         [Permission(Permissions.Order.Update)]
-        public async Task<IActionResult> DeleteLicenseFilePopup(string btnId, string formId, OrderModel.UploadLicenseModel model)
+        public async Task<IActionResult> DeleteLicenseFilePopup(
+            string btnId,
+            string formId,
+            OrderModel.UploadLicenseModel model
+        )
         {
-            var order = await _db.Orders
-                .IncludeOrderItems()
-                .FindByIdAsync(model.OrderId);
+            var order = await _db.Orders.IncludeOrderItems().FindByIdAsync(model.OrderId);
 
             if (order == null)
             {
@@ -1360,7 +1546,11 @@ namespace Smartstore.Admin.Controllers
 
             await _db.SaveChangesAsync();
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                order.GetOrderNumber()
+            );
 
             ViewBag.RefreshPage = true;
             ViewBag.BtnId = btnId;
@@ -1377,8 +1567,8 @@ namespace Smartstore.Admin.Controllers
                 return NotFound();
             }
 
-            var address = await _db.Addresses
-                .Include(x => x.Country)
+            var address = await _db
+                .Addresses.Include(x => x.Country)
                 .Include(x => x.StateProvince)
                 .FindByIdAsync(addressId);
 
@@ -1387,10 +1577,7 @@ namespace Smartstore.Admin.Controllers
                 return NotFound();
             }
 
-            var model = new OrderAddressModel
-            {
-                OrderId = orderId
-            };
+            var model = new OrderAddressModel { OrderId = orderId };
 
             await address.MapAsync(model.Address);
 
@@ -1419,11 +1606,18 @@ namespace Smartstore.Admin.Controllers
                 await _db.SaveChangesAsync();
 
                 await Services.EventPublisher.PublishOrderUpdatedAsync(order);
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.EditOrder,
+                    T("ActivityLog.EditOrder"),
+                    order.GetOrderNumber()
+                );
                 NotifySuccess(T("Admin.Common.DataSuccessfullySaved"));
 
                 return continueEditing
-                    ? RedirectToAction(nameof(AddressEdit), new { addressId = address.Id, orderId = order.Id })
+                    ? RedirectToAction(
+                        nameof(AddressEdit),
+                        new { addressId = address.Id, orderId = order.Id }
+                    )
                     : RedirectToAction(nameof(Edit), new { id = order.Id });
             }
 
@@ -1440,24 +1634,25 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Read)]
         public async Task<IActionResult> OrderNoteList(int orderId)
         {
-            var order = await _db.Orders
-                .Include(x => x.OrderNotes)
-                .FindByIdAsync(orderId);
+            var order = await _db.Orders.Include(x => x.OrderNotes).FindByIdAsync(orderId);
 
             if (order == null)
             {
                 return NotFound();
             }
 
-            var rows = order.OrderNotes
-                .OrderByDescending(x => x.CreatedOnUtc)
+            var rows = order
+                .OrderNotes.OrderByDescending(x => x.CreatedOnUtc)
                 .Select(x => new OrderModel.OrderNote
                 {
                     Id = x.Id,
                     OrderId = x.OrderId,
                     DisplayToCustomer = x.DisplayToCustomer,
                     Note = x.FormatOrderNoteText(),
-                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(x.CreatedOnUtc, DateTimeKind.Utc)
+                    CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                        x.CreatedOnUtc,
+                        DateTimeKind.Utc
+                    ),
                 })
                 .ToList();
 
@@ -1467,20 +1662,20 @@ namespace Smartstore.Admin.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            return Json(new GridModel<OrderModel.OrderNote>
-            {
-                Rows = rows,
-                Total = order.OrderNotes.Count
-            });
+            return Json(
+                new GridModel<OrderModel.OrderNote> { Rows = rows, Total = order.OrderNotes.Count }
+            );
         }
 
         [HttpPost]
         [Permission(Permissions.Order.Update)]
-        public async Task<IActionResult> OrderNoteInsert(int orderId, bool displayToCustomer, string message)
+        public async Task<IActionResult> OrderNoteInsert(
+            int orderId,
+            bool displayToCustomer,
+            string message
+        )
         {
-            var order = await _db.Orders
-                .Include(x => x.Customer)
-                .FindByIdAsync(orderId);
+            var order = await _db.Orders.Include(x => x.Customer).FindByIdAsync(orderId);
             if (order == null)
             {
                 return NotFound();
@@ -1498,10 +1693,17 @@ namespace Smartstore.Admin.Controllers
 
             if (displayToCustomer)
             {
-                await _messageFactory.SendNewOrderNoteAddedCustomerNotificationAsync(orderNote, Services.WorkContext.WorkingLanguage.Id);
+                await _messageFactory.SendNewOrderNoteAddedCustomerNotificationAsync(
+                    orderNote,
+                    Services.WorkContext.WorkingLanguage.Id
+                );
             }
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                order.GetOrderNumber()
+            );
 
             return Json(new { Result = true });
         }
@@ -1511,9 +1713,7 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> OrderNoteDelete(GridSelection selection, int orderId)
         {
             var success = false;
-            var order = await _db.Orders
-                .Include(x => x.OrderNotes)
-                .FindByIdAsync(orderId);
+            var order = await _db.Orders.Include(x => x.OrderNotes).FindByIdAsync(orderId);
 
             if (order != null)
             {
@@ -1525,7 +1725,11 @@ namespace Smartstore.Admin.Controllers
                     _db.OrderNotes.RemoveRange(orderNotes);
                     await _db.SaveChangesAsync();
 
-                    Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+                    Services.ActivityLogger.LogActivity(
+                        KnownActivityLogTypes.EditOrder,
+                        T("ActivityLog.EditOrder"),
+                        order.GetOrderNumber()
+                    );
 
                     success = true;
                 }
@@ -1541,12 +1745,10 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.EditItem)]
         public async Task<IActionResult> AddProductToOrder(int orderId, int productId)
         {
-            var order = await _db.Orders
-                .Include(x => x.Customer)
-                .FindByIdAsync(orderId);
+            var order = await _db.Orders.Include(x => x.Customer).FindByIdAsync(orderId);
 
-            var product = await _db.Products
-                .Include(x => x.ProductVariantAttributes)
+            var product = await _db
+                .Products.Include(x => x.ProductVariantAttributes)
                 .ThenInclude(x => x.ProductAttribute)
                 .FindByIdAsync(productId);
 
@@ -1559,15 +1761,18 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Order.EditItem)]
-        public async Task<IActionResult> AddProductToOrder(AddOrderProductModel model, ProductVariantQuery query)
+        public async Task<IActionResult> AddProductToOrder(
+            AddOrderProductModel model,
+            ProductVariantQuery query
+        )
         {
-            var order = await _db.Orders
-                .IncludeCustomer()
+            var order = await _db
+                .Orders.IncludeCustomer()
                 .IncludeOrderItems()
                 .FindByIdAsync(model.OrderId);
 
-            var product = await _db.Products
-                .Include(x => x.ProductVariantAttributes)
+            var product = await _db
+                .Products.Include(x => x.ProductVariantAttributes)
                 .ThenInclude(x => x.ProductAttribute)
                 .Include(x => x.ProductVariantAttributes)
                 .ThenInclude(x => x.RuleSet)
@@ -1580,20 +1785,23 @@ namespace Smartstore.Admin.Controllers
 
             if (product.ProductType == ProductType.BundledProduct)
             {
-                throw new NotSupportedException("Adding a product bundle to an existing order is not supported.");
+                throw new NotSupportedException(
+                    "Adding a product bundle to an existing order is not supported."
+                );
             }
 
             var utcNow = DateTime.UtcNow;
             var warnings = new List<string>();
-            var attributes = product.ProductVariantAttributes
-                .OrderBy(x => x.DisplayOrder)
-                .ToList();
+            var attributes = product.ProductVariantAttributes.OrderBy(x => x.DisplayOrder).ToList();
 
-            var giftCardInfo = product.IsGiftCard
-                ? query.GetGiftCardInfo(product.Id, 0)
-                : null;
+            var giftCardInfo = product.IsGiftCard ? query.GetGiftCardInfo(product.Id, 0) : null;
 
-            var (selection, _) = await _productAttributeMaterializer.CreateAttributeSelectionAsync(query, attributes, product.Id, 0);
+            var (selection, _) = await _productAttributeMaterializer.CreateAttributeSelectionAsync(
+                query,
+                attributes,
+                product.Id,
+                0
+            );
             if (giftCardInfo != null)
             {
                 selection.AddGiftCardInfo(giftCardInfo);
@@ -1605,7 +1813,8 @@ namespace Smartstore.Admin.Controllers
                 order.StoreId,
                 warnings,
                 model.Quantity,
-                order.Customer);
+                order.Customer
+            );
 
             _shoppingCartValidator.Value.ValidateGiftCardInfo(product, selection, warnings);
 
@@ -1620,14 +1829,22 @@ namespace Smartstore.Admin.Controllers
 
             await _productAttributeMaterializer.MergeWithCombinationAsync(product, selection);
 
-            var attributeDescription = await _productAttributeFormatter.Value.FormatAttributesAsync(selection, product, ProductAttributeFormatOptions.Default, order.Customer);
-            var productCost = await _priceCalculationService.Value.CalculateProductCostAsync(product, selection);
+            var attributeDescription = await _productAttributeFormatter.Value.FormatAttributesAsync(
+                selection,
+                product,
+                ProductAttributeFormatOptions.Default,
+                order.Customer
+            );
+            var productCost = await _priceCalculationService.Value.CalculateProductCostAsync(
+                product,
+                selection
+            );
 
             var displayDeliveryTime =
-                _shoppingCartSettings.DeliveryTimesInShoppingCart != DeliveryTimesPresentation.None &&
-                product.DeliveryTimeId.HasValue &&
-                product.IsShippingEnabled &&
-                product.DisplayDeliveryTimeAccordingToStock(_catalogSettings);
+                _shoppingCartSettings.DeliveryTimesInShoppingCart != DeliveryTimesPresentation.None
+                && product.DeliveryTimeId.HasValue
+                && product.IsShippingEnabled
+                && product.DisplayDeliveryTimeAccordingToStock(_catalogSettings);
 
             var orderItem = new OrderItem
             {
@@ -1650,28 +1867,33 @@ namespace Smartstore.Admin.Controllers
                 LicenseDownloadId = 0,
                 ProductCost = productCost.Amount,
                 DeliveryTimeId = product.GetDeliveryTimeIdAccordingToStock(_catalogSettings),
-                DisplayDeliveryTime = displayDeliveryTime
+                DisplayDeliveryTime = displayDeliveryTime,
             };
 
             order.OrderItems.Add(orderItem);
 
             if (product.IsGiftCard)
             {
-                _db.GiftCards.AddRange(Enumerable.Repeat(new GiftCard
-                {
-                    GiftCardType = product.GiftCardType,
-                    PurchasedWithOrderItem = orderItem,
-                    Amount = model.UnitPriceExclTax,
-                    IsGiftCardActivated = false,
-                    GiftCardCouponCode = _giftCardService.Value.GenerateGiftCardCode(),
-                    RecipientName = giftCardInfo.RecipientName,
-                    RecipientEmail = giftCardInfo.RecipientEmail,
-                    SenderName = giftCardInfo.SenderName,
-                    SenderEmail = giftCardInfo.SenderEmail,
-                    Message = giftCardInfo.Message,
-                    IsRecipientNotified = false,
-                    CreatedOnUtc = utcNow
-                }, orderItem.Quantity));
+                _db.GiftCards.AddRange(
+                    Enumerable.Repeat(
+                        new GiftCard
+                        {
+                            GiftCardType = product.GiftCardType,
+                            PurchasedWithOrderItem = orderItem,
+                            Amount = model.UnitPriceExclTax,
+                            IsGiftCardActivated = false,
+                            GiftCardCouponCode = _giftCardService.Value.GenerateGiftCardCode(),
+                            RecipientName = giftCardInfo.RecipientName,
+                            RecipientEmail = giftCardInfo.RecipientEmail,
+                            SenderName = giftCardInfo.SenderName,
+                            SenderEmail = giftCardInfo.SenderEmail,
+                            Message = giftCardInfo.Message,
+                            IsRecipientNotified = false,
+                            CreatedOnUtc = utcNow,
+                        },
+                        orderItem.Quantity
+                    )
+                );
             }
 
             await _db.SaveChangesAsync();
@@ -1685,15 +1907,22 @@ namespace Smartstore.Admin.Controllers
                     OldPriceInclTax = decimal.Zero,
                     OldPriceExclTax = decimal.Zero,
                     AdjustInventory = model.AdjustInventory,
-                    UpdateTotals = model.UpdateTotals
+                    UpdateTotals = model.UpdateTotals,
                 };
 
                 await _orderProcessingService.UpdateOrderDetailsAsync(orderItem, context);
 
-                TempData[UpdateOrderDetailsContext.InfoKey] = await InvokePartialViewAsync("OrderItemUpdateInfo", context);
+                TempData[UpdateOrderDetailsContext.InfoKey] = await InvokePartialViewAsync(
+                    "OrderItemUpdateInfo",
+                    context
+                );
             }
 
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.EditOrder, T("ActivityLog.EditOrder"), order.GetOrderNumber());
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.EditOrder,
+                T("ActivityLog.EditOrder"),
+                order.GetOrderNumber()
+            );
 
             return RedirectToAction(nameof(Edit), new { id = order.Id });
         }
@@ -1705,15 +1934,18 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Order.Read)]
         public async Task<IActionResult> BestsellersReport()
         {
-            var countries = await _db.Countries
-                .AsNoTracking()
+            var countries = await _db
+                .Countries.AsNoTracking()
                 .Where(x => x.AllowsBilling)
                 .ToListAsync();
 
             var countryItems = countries
                 .Select(x => new SelectListItem { Text = x.Name, Value = x.Id.ToString() })
                 .ToList();
-            countryItems.Insert(0, new SelectListItem { Text = T("Admin.Address.SelectCountry"), Value = "0" });
+            countryItems.Insert(
+                0,
+                new SelectListItem { Text = T("Admin.Address.SelectCountry"), Value = "0" }
+            );
 
             ViewBag.Countries = countryItems;
             ViewBag.DisplayProductPictures = _adminAreaSettings.DisplayProductPictures;
@@ -1722,18 +1954,16 @@ namespace Smartstore.Admin.Controllers
         }
 
         [Permission(Permissions.Order.Read)]
-        public async Task<IActionResult> BestsellersReportList(GridCommand command, BestsellersReportModel model)
+        public async Task<IActionResult> BestsellersReportList(
+            GridCommand command,
+            BestsellersReportModel model
+        )
         {
             var currentUser = _workContext.CurrentCustomer;
 
-            var merchantRoleId = await _db.CustomerRoles
-                .Where(r => r.SystemName == "Merchant")
-                .Select(r => r.Id)
-                .FirstOrDefaultAsync();
-
-            bool isMerchant = merchantRoleId != 0 &&
-                await _db.CustomerRoleMappings
-                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
 
             var dtHelper = Services.DateTimeHelper;
             var sorting = ReportSorting.ByAmountDesc;
@@ -1755,34 +1985,52 @@ namespace Smartstore.Admin.Controllers
                 }
             }
 
-            DateTime? startDate = model.StartDate == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone);
+            DateTime? startDate =
+                model.StartDate == null
+                    ? null
+                    : dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone);
 
-            DateTime? endDate = model.EndDate == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone).AddDays(1);
+            DateTime? endDate =
+                model.EndDate == null
+                    ? null
+                    : dtHelper
+                        .ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone)
+                        .AddDays(1);
 
             var orderStatusId = model.OrderStatusId == 0 ? null : new[] { model.OrderStatusId };
-            var paymentStatusId = model.PaymentStatusId == 0 ? null : new[] { model.PaymentStatusId };
-            var shippingStatusId = model.ShippingStatusId == 0 ? null : new[] { model.ShippingStatusId };
+            var paymentStatusId =
+                model.PaymentStatusId == 0 ? null : new[] { model.PaymentStatusId };
+            var shippingStatusId =
+                model.ShippingStatusId == 0 ? null : new[] { model.ShippingStatusId };
             var countryId = model.BillingCountryId == 0 ? (int?)null : model.BillingCountryId;
 
-            var orderItemQuery = _db.OrderItems
-                .AsNoTracking()
-                .ApplyOrderFilter(0, startDate, endDate, orderStatusId, paymentStatusId, shippingStatusId, countryId)
+            var orderItemQuery = _db
+                .OrderItems.AsNoTracking()
+                .ApplyOrderFilter(
+                    0,
+                    startDate,
+                    endDate,
+                    orderStatusId,
+                    paymentStatusId,
+                    shippingStatusId,
+                    countryId
+                )
                 .ApplyProductFilter(null, true);
 
             if (isMerchant)
             {
-                var merchantProductIds = await _db.GenericAttributes
-                    .Where(a => a.KeyGroup == "Product" &&
-                                a.Key == "CreatedByUserId" &&
-                                a.Value == currentUser.Id.ToString())
+                var merchantProductIds = await _db
+                    .GenericAttributes.Where(a =>
+                        a.KeyGroup == "Product"
+                        && a.Key == "CreatedByUserId"
+                        && a.Value == currentUser.Id.ToString()
+                    )
                     .Select(a => a.EntityId)
                     .ToListAsync();
 
-                orderItemQuery = orderItemQuery.Where(p => merchantProductIds.Contains(p.ProductId));
+                orderItemQuery = orderItemQuery.Where(p =>
+                    merchantProductIds.Contains(p.ProductId)
+                );
             }
 
             var reportLines = await orderItemQuery
@@ -1792,11 +2040,13 @@ namespace Smartstore.Admin.Controllers
 
             var rows = await reportLines.MapAsync(Services, true);
 
-            return Json(new GridModel<BestsellersReportLineModel>
-            {
-                Rows = rows,
-                Total = await reportLines.GetTotalCountAsync()
-            });
+            return Json(
+                new GridModel<BestsellersReportLineModel>
+                {
+                    Rows = rows,
+                    Total = await reportLines.GetTotalCountAsync(),
+                }
+            );
         }
 
         [Permission(Permissions.Order.Read)]
@@ -1808,54 +2058,63 @@ namespace Smartstore.Admin.Controllers
         }
 
         [Permission(Permissions.Order.Read)]
-        public async Task<IActionResult> NeverSoldReportList(GridCommand command, NeverSoldReportModel model)
+        public async Task<IActionResult> NeverSoldReportList(
+            GridCommand command,
+            NeverSoldReportModel model
+        )
         {
             var currentUser = _workContext.CurrentCustomer;
 
-            var merchantRoleId = await _db.CustomerRoles
-                .Where(r => r.SystemName == "Merchant")
-                .Select(r => r.Id)
-                .FirstOrDefaultAsync();
-
-            bool isMerchant = merchantRoleId != 0 &&
-                await _db.CustomerRoleMappings
-                    .AnyAsync(m => m.CustomerId == currentUser.Id && m.CustomerRoleId == merchantRoleId);
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
 
             var dtHelper = Services.DateTimeHelper;
             var groupedProductId = (int)ProductType.GroupedProduct;
 
-            DateTime? startDate = model.StartDate == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone);
+            DateTime? startDate =
+                model.StartDate == null
+                    ? null
+                    : dtHelper.ConvertToUtcTime(model.StartDate.Value, dtHelper.CurrentTimeZone);
 
-            DateTime? endDate = model.EndDate == null
-                ? null
-                : dtHelper.ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone).AddDays(1);
+            DateTime? endDate =
+                model.EndDate == null
+                    ? null
+                    : dtHelper
+                        .ConvertToUtcTime(model.EndDate.Value, dtHelper.CurrentTimeZone)
+                        .AddDays(1);
 
             var subQuery =
                 from oi in _db.OrderItems
                 join o in _db.Orders on oi.OrderId equals o.Id
                 where
-                    (!startDate.HasValue || startDate.Value <= o.CreatedOnUtc) &&
-                    (!endDate.HasValue || endDate.Value >= o.CreatedOnUtc)
+                    (!startDate.HasValue || startDate.Value <= o.CreatedOnUtc)
+                    && (!endDate.HasValue || endDate.Value >= o.CreatedOnUtc)
                 select oi.ProductId;
 
             var productQuery =
                 from p in _db.Products.AsNoTracking()
-                where !subQuery.Distinct().Contains(p.Id) && p.ProductTypeId != groupedProductId && !p.IsSystemProduct
+                where
+                    !subQuery.Distinct().Contains(p.Id)
+                    && p.ProductTypeId != groupedProductId
+                    && !p.IsSystemProduct
                 orderby p.Name
                 select p;
 
             if (isMerchant)
             {
-                var merchantProductIds = await _db.GenericAttributes
-                    .Where(a => a.KeyGroup == "Product" &&
-                                a.Key == "CreatedByUserId" &&
-                                a.Value == currentUser.Id.ToString())
+                var merchantProductIds = await _db
+                    .GenericAttributes.Where(a =>
+                        a.KeyGroup == "Product"
+                        && a.Key == "CreatedByUserId"
+                        && a.Value == currentUser.Id.ToString()
+                    )
                     .Select(a => a.EntityId)
                     .ToListAsync();
 
-                productQuery = productQuery.Where(p => merchantProductIds.Contains(p.Id)).OrderBy(p => p.Name);
+                productQuery = productQuery
+                    .Where(p => merchantProductIds.Contains(p.Id))
+                    .OrderBy(p => p.Name);
             }
 
             var products = await productQuery
@@ -1865,11 +2124,9 @@ namespace Smartstore.Admin.Controllers
 
             var rows = await products.MapAsync(Services.MediaService);
 
-            return Json(new GridModel<ProductOverviewModel>
-            {
-                Rows = rows,
-                Total = products.TotalCount
-            });
+            return Json(
+                new GridModel<ProductOverviewModel> { Rows = rows, Total = products.TotalCount }
+            );
         }
 
         #endregion
@@ -1881,7 +2138,10 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> OrderSettings(int storeScope, OrderSettings settings)
         {
             var allStores = Services.StoreContext.GetAllStores();
-            var store = storeScope == 0 ? Services.StoreContext.CurrentStore : allStores.FirstOrDefault(x => x.Id == storeScope);
+            var store =
+                storeScope == 0
+                    ? Services.StoreContext.CurrentStore
+                    : allStores.FirstOrDefault(x => x.Id == storeScope);
             var model = await MapperFactory.MapAsync<OrderSettings, OrderSettingsModel>(settings);
 
             model.PrimaryStoreCurrencyCode = Services.CurrencyService.PrimaryCurrency.CurrencyCode;
@@ -1894,14 +2154,30 @@ namespace Smartstore.Admin.Controllers
 
             if (settings.GiftCards_Deactivated_OrderStatusId > 0)
             {
-                model.GiftCardsDeactivatedOrderStatusId = settings.GiftCards_Deactivated_OrderStatusId;
+                model.GiftCardsDeactivatedOrderStatusId =
+                    settings.GiftCards_Deactivated_OrderStatusId;
             }
 
-            AddLocales(model.Locales, (locale, languageId) =>
-            {
-                locale.ReturnRequestActions = settings.GetLocalizedSetting(x => x.ReturnRequestActions, languageId, storeScope, false, false);
-                locale.ReturnRequestReasons = settings.GetLocalizedSetting(x => x.ReturnRequestReasons, languageId, storeScope, false, false);
-            });
+            AddLocales(
+                model.Locales,
+                (locale, languageId) =>
+                {
+                    locale.ReturnRequestActions = settings.GetLocalizedSetting(
+                        x => x.ReturnRequestActions,
+                        languageId,
+                        storeScope,
+                        false,
+                        false
+                    );
+                    locale.ReturnRequestReasons = settings.GetLocalizedSetting(
+                        x => x.ReturnRequestReasons,
+                        languageId,
+                        storeScope,
+                        false,
+                        false
+                    );
+                }
+            );
 
             model.OrderIdent = _db.DataProvider.GetTableIdent<Order>();
 
@@ -1910,7 +2186,11 @@ namespace Smartstore.Admin.Controllers
 
         [Permission(Permissions.Configuration.Setting.Update)]
         [HttpPost, SaveSetting]
-        public async Task<IActionResult> OrderSettings(OrderSettings settings, OrderSettingsModel model, int storeScope)
+        public async Task<IActionResult> OrderSettings(
+            OrderSettings settings,
+            OrderSettingsModel model,
+            int storeScope
+        )
         {
             if (!ModelState.IsValid)
             {
@@ -1920,13 +2200,29 @@ namespace Smartstore.Admin.Controllers
             ModelState.Clear();
 
             await MapperFactory.MapAsync(model, settings);
-            settings.GiftCards_Activated_OrderStatusId = Convert.ToInt32(model.GiftCardsActivatedOrderStatusId);
-            settings.GiftCards_Deactivated_OrderStatusId = Convert.ToInt32(model.GiftCardsDeactivatedOrderStatusId);
+            settings.GiftCards_Activated_OrderStatusId = Convert.ToInt32(
+                model.GiftCardsActivatedOrderStatusId
+            );
+            settings.GiftCards_Deactivated_OrderStatusId = Convert.ToInt32(
+                model.GiftCardsDeactivatedOrderStatusId
+            );
 
             foreach (var localized in model.Locales)
             {
-                await _localizedEntityService.ApplyLocalizedSettingAsync(settings, x => x.ReturnRequestActions, localized.ReturnRequestActions, localized.LanguageId, storeScope);
-                await _localizedEntityService.ApplyLocalizedSettingAsync(settings, x => x.ReturnRequestReasons, localized.ReturnRequestReasons, localized.LanguageId, storeScope);
+                await _localizedEntityService.ApplyLocalizedSettingAsync(
+                    settings,
+                    x => x.ReturnRequestActions,
+                    localized.ReturnRequestActions,
+                    localized.LanguageId,
+                    storeScope
+                );
+                await _localizedEntityService.ApplyLocalizedSettingAsync(
+                    settings,
+                    x => x.ReturnRequestReasons,
+                    localized.ReturnRequestReasons,
+                    localized.LanguageId,
+                    storeScope
+                );
             }
 
             await _db.SaveChangesAsync();
@@ -1957,8 +2253,11 @@ namespace Smartstore.Admin.Controllers
             await MapperFactory.MapAsync(order, model);
 
             model.OrderNumber = order.GetOrderNumber();
-            model.StoreName = Services.StoreContext.GetStoreById(order.StoreId)?.Name ?? StringExtensions.NotAvailable;
-            model.CustomerName = order.BillingAddress?.GetFullName()?.NullEmpty()
+            model.StoreName =
+                Services.StoreContext.GetStoreById(order.StoreId)?.Name
+                ?? StringExtensions.NotAvailable;
+            model.CustomerName =
+                order.BillingAddress?.GetFullName()?.NullEmpty()
                 ?? order.ShippingAddress?.GetFullName()?.NullEmpty()
                 ?? order.Customer.FormatUserName(_customerSettings, T, false);
             model.CustomerEmail = order.BillingAddress?.Email ?? order.Customer?.FindEmail();
@@ -1966,15 +2265,27 @@ namespace Smartstore.Admin.Controllers
             model.OrderTotalString = Format(order.OrderTotal);
             model.OrderStatusString = Services.Localization.GetLocalizedEnum(order.OrderStatus);
             model.PaymentStatusString = Services.Localization.GetLocalizedEnum(order.PaymentStatus);
-            model.ShippingStatusString = Services.Localization.GetLocalizedEnum(order.ShippingStatus);
+            model.ShippingStatusString = Services.Localization.GetLocalizedEnum(
+                order.ShippingStatus
+            );
             model.ShippingMethod = order.ShippingMethod.NaIfEmpty();
-            model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(order.CreatedOnUtc, DateTimeKind.Utc);
-            model.UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(order.UpdatedOnUtc, DateTimeKind.Utc);
+            model.CreatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                order.CreatedOnUtc,
+                DateTimeKind.Utc
+            );
+            model.UpdatedOn = Services.DateTimeHelper.ConvertToUserTime(
+                order.UpdatedOnUtc,
+                DateTimeKind.Utc
+            );
             model.EditUrl = Url.Action(nameof(Edit), "Order", new { id = order.Id });
 
             if (!model.CustomerDeleted)
             {
-                model.CustomerEditUrl = Url.Action("Edit", "Customer", new { id = order.CustomerId });
+                model.CustomerEditUrl = Url.Action(
+                    "Edit",
+                    "Customer",
+                    new { id = order.CustomerId }
+                );
             }
         }
 
@@ -1992,11 +2303,12 @@ namespace Smartstore.Admin.Controllers
 
             if (order.AffiliateId != 0)
             {
-                var affiliate = await _db.Affiliates
-                    .Include(x => x.Address)
+                var affiliate = await _db
+                    .Affiliates.Include(x => x.Address)
                     .FindByIdAsync(order.AffiliateId);
 
-                model.AffiliateFullName = affiliate?.Address?.GetFullName()?.NullEmpty() ?? StringExtensions.NotAvailable;
+                model.AffiliateFullName =
+                    affiliate?.Address?.GetFullName()?.NullEmpty() ?? StringExtensions.NotAvailable;
             }
 
             model.OrderSubtotalInclTaxString = Format(order.OrderSubtotalInclTax, true);
@@ -2004,20 +2316,46 @@ namespace Smartstore.Admin.Controllers
 
             if (order.OrderSubTotalDiscountInclTax > decimal.Zero)
             {
-                model.OrderSubTotalDiscountInclTaxString = Format(order.OrderSubTotalDiscountInclTax, true);
+                model.OrderSubTotalDiscountInclTaxString = Format(
+                    order.OrderSubTotalDiscountInclTax,
+                    true
+                );
             }
             if (order.OrderSubTotalDiscountExclTax > decimal.Zero)
             {
-                model.OrderSubTotalDiscountExclTaxString = Format(order.OrderSubTotalDiscountExclTax, false);
+                model.OrderSubTotalDiscountExclTaxString = Format(
+                    order.OrderSubTotalDiscountExclTax,
+                    false
+                );
             }
 
-            model.OrderShippingInclTaxString = Format(order.OrderShippingInclTax, true, null, PricingTarget.ShippingCharge);
-            model.OrderShippingExclTaxString = Format(order.OrderShippingExclTax, false, null, PricingTarget.ShippingCharge);
+            model.OrderShippingInclTaxString = Format(
+                order.OrderShippingInclTax,
+                true,
+                null,
+                PricingTarget.ShippingCharge
+            );
+            model.OrderShippingExclTaxString = Format(
+                order.OrderShippingExclTax,
+                false,
+                null,
+                PricingTarget.ShippingCharge
+            );
 
             if (order.PaymentMethodAdditionalFeeInclTax != decimal.Zero)
             {
-                model.PaymentMethodAdditionalFeeInclTaxString = Format(order.PaymentMethodAdditionalFeeInclTax, true, null, PricingTarget.PaymentFee);
-                model.PaymentMethodAdditionalFeeExclTaxString = Format(order.PaymentMethodAdditionalFeeExclTax, false, null, PricingTarget.PaymentFee);
+                model.PaymentMethodAdditionalFeeInclTaxString = Format(
+                    order.PaymentMethodAdditionalFeeInclTax,
+                    true,
+                    null,
+                    PricingTarget.PaymentFee
+                );
+                model.PaymentMethodAdditionalFeeExclTaxString = Format(
+                    order.PaymentMethodAdditionalFeeExclTax,
+                    false,
+                    null,
+                    PricingTarget.PaymentFee
+                );
             }
 
             model.OrderTaxString = Format(order.OrderTax);
@@ -2025,7 +2363,7 @@ namespace Smartstore.Admin.Controllers
                 .Select(x => new OrderModel.TaxRate
                 {
                     Rate = _taxService.FormatTaxRate(x.Key),
-                    Value = Format(x.Value)
+                    Value = Format(x.Value),
                 })
                 .ToList();
 
@@ -2039,19 +2377,21 @@ namespace Smartstore.Admin.Controllers
                 model.OrderTotalRoundingString = Format(order.OrderTotalRounding);
             }
 
-            model.GiftCards = order.GiftCardUsageHistory
-                .Select(x => new OrderModel.GiftCard
+            model.GiftCards = order
+                .GiftCardUsageHistory.Select(x => new OrderModel.GiftCard
                 {
                     CouponCode = x.GiftCard.GiftCardCouponCode,
                     Amount = Format(-x.UsedValue),
-                    GiftCardId = x.GiftCardId
+                    GiftCardId = x.GiftCardId,
                 })
                 .ToList();
 
             if (order.RedeemedRewardPointsEntry != null)
             {
                 model.RedeemedRewardPoints = -order.RedeemedRewardPointsEntry.Points;
-                model.RedeemedRewardPointsAmountString = Format(-order.RedeemedRewardPointsEntry.UsedAmount);
+                model.RedeemedRewardPointsAmountString = Format(
+                    -order.RedeemedRewardPointsEntry.UsedAmount
+                );
             }
 
             if (order.CreditBalance > decimal.Zero)
@@ -2071,7 +2411,9 @@ namespace Smartstore.Admin.Controllers
                 model.CardNumber = _encryptor.DecryptText(order.CardNumber);
                 model.CardCvv2 = _encryptor.DecryptText(order.CardCvv2);
 
-                var cardExpirationMonthDecrypted = _encryptor.DecryptText(order.CardExpirationMonth);
+                var cardExpirationMonthDecrypted = _encryptor.DecryptText(
+                    order.CardExpirationMonth
+                );
                 if (cardExpirationMonthDecrypted.HasValue() && cardExpirationMonthDecrypted != "0")
                 {
                     model.CardExpirationMonth = cardExpirationMonthDecrypted;
@@ -2084,7 +2426,9 @@ namespace Smartstore.Admin.Controllers
             }
             else
             {
-                var maskedCreditCardNumberDecrypted = _encryptor.DecryptText(order.MaskedCreditCardNumber);
+                var maskedCreditCardNumberDecrypted = _encryptor.DecryptText(
+                    order.MaskedCreditCardNumber
+                );
                 if (maskedCreditCardNumberDecrypted.HasValue())
                 {
                     model.CardNumber = maskedCreditCardNumberDecrypted;
@@ -2093,8 +2437,12 @@ namespace Smartstore.Admin.Controllers
 
             if (order.AllowStoringDirectDebit)
             {
-                model.DirectDebitAccountHolder = _encryptor.DecryptText(order.DirectDebitAccountHolder);
-                model.DirectDebitAccountNumber = _encryptor.DecryptText(order.DirectDebitAccountNumber);
+                model.DirectDebitAccountHolder = _encryptor.DecryptText(
+                    order.DirectDebitAccountHolder
+                );
+                model.DirectDebitAccountNumber = _encryptor.DecryptText(
+                    order.DirectDebitAccountNumber
+                );
                 model.DirectDebitBankCode = _encryptor.DecryptText(order.DirectDebitBankCode);
                 model.DirectDebitBankName = _encryptor.DecryptText(order.DirectDebitBankName);
                 model.DirectDebitBIC = _encryptor.DecryptText(order.DirectDebitBIC);
@@ -2102,10 +2450,14 @@ namespace Smartstore.Admin.Controllers
                 model.DirectDebitIban = _encryptor.DecryptText(order.DirectDebitIban);
             }
 
-            var pm = await _paymentService.LoadPaymentProviderBySystemNameAsync(order.PaymentMethodSystemName);
+            var pm = await _paymentService.LoadPaymentProviderBySystemNameAsync(
+                order.PaymentMethodSystemName
+            );
             if (pm != null)
             {
-                model.DisplayCompletePaymentNote = order.PaymentStatus == PaymentStatus.Pending && await pm.Value.CanRePostProcessPaymentAsync(order);
+                model.DisplayCompletePaymentNote =
+                    order.PaymentStatus == PaymentStatus.Pending
+                    && await pm.Value.CanRePostProcessPaymentAsync(order);
                 model.PaymentMethod = _moduleManager.GetLocalizedFriendlyName(pm.Metadata);
             }
             if (model.PaymentMethod.IsEmpty())
@@ -2119,7 +2471,10 @@ namespace Smartstore.Admin.Controllers
             model.CanMarkOrderAsPaid = order.CanMarkOrderAsPaid();
             model.CanRefund = await _orderProcessingService.CanRefundAsync(order);
             model.CanRefundOffline = order.CanRefundOffline();
-            model.CanPartiallyRefund = await _orderProcessingService.CanPartiallyRefundAsync(order, decimal.Zero);
+            model.CanPartiallyRefund = await _orderProcessingService.CanPartiallyRefundAsync(
+                order,
+                decimal.Zero
+            );
             model.CanPartiallyRefundOffline = order.CanPartiallyRefundOffline(decimal.Zero);
             model.CanVoid = await _orderProcessingService.CanVoidAsync(order);
             model.CanVoidOffline = order.CanVoidOffline();
@@ -2127,8 +2482,8 @@ namespace Smartstore.Admin.Controllers
             //model.MaxAmountToRefund = order.OrderTotal - order.RefundedAmount;
             //model.MaxAmountToRefundString = Format(model.MaxAmountToRefund);
 
-            model.RecurringPaymentId = await _db.RecurringPayments
-                .ApplyStandardFilter(order.Id, null, null, true)
+            model.RecurringPaymentId = await _db
+                .RecurringPayments.ApplyStandardFilter(order.Id, null, null, true)
                 .Select(x => x.Id)
                 .FirstOrDefaultAsync();
 
@@ -2144,19 +2499,28 @@ namespace Smartstore.Admin.Controllers
                 {
                     model.ShippingAddress = await shipTo.MapAsync();
 
-                    var googleAddressQuery = $"{shipTo.Address1} {shipTo.ZipPostalCode} {shipTo.City} {shipTo.Country?.Name ?? string.Empty}";
+                    var googleAddressQuery =
+                        $"{shipTo.Address1} {shipTo.ZipPostalCode} {shipTo.City} {shipTo.Country?.Name ?? string.Empty}";
 
-                    model.ShippingAddressGoogleMapsUrl = Services.ApplicationContext.AppConfiguration.Google.MapsUrl.FormatInvariant(
-                        language.UniqueSeoCode.EmptyNull().ToLower(),
-                        googleAddressQuery.UrlEncode());
+                    model.ShippingAddressGoogleMapsUrl =
+                        Services.ApplicationContext.AppConfiguration.Google.MapsUrl.FormatInvariant(
+                            language.UniqueSeoCode.EmptyNull().ToLower(),
+                            googleAddressQuery.UrlEncode()
+                        );
                 }
 
-                model.CanAddNewShipments = await _orderProcessingService.CanAddItemsToShipmentAsync(order);
+                model.CanAddNewShipments = await _orderProcessingService.CanAddItemsToShipmentAsync(
+                    order
+                );
             }
 
             // Purchase order number (we have to find a better to inject this information because it's related to a certain plugin).
-            model.DisplayPurchaseOrderNumber = order.PaymentMethodSystemName.EqualsNoCase("Payments.PurchaseOrderNumber");
-            model.CheckoutAttributeInfo = HtmlUtility.ConvertPlainTextToTable(HtmlUtility.ConvertHtmlToPlainText(order.CheckoutAttributeDescription));
+            model.DisplayPurchaseOrderNumber = order.PaymentMethodSystemName.EqualsNoCase(
+                "Payments.PurchaseOrderNumber"
+            );
+            model.CheckoutAttributeInfo = HtmlUtility.ConvertPlainTextToTable(
+                HtmlUtility.ConvertHtmlToPlainText(order.CheckoutAttributeDescription)
+            );
             model.HasDownloadableProducts = order.OrderItems.Any(x => x.Product.IsDownload);
             model.UpdateOrderItemInfo = TempData[UpdateOrderDetailsContext.InfoKey] as string;
 
@@ -2166,21 +2530,27 @@ namespace Smartstore.Admin.Controllers
                 ShowUpdateTotals = order.OrderStatusId <= (int)OrderStatus.Pending,
                 UpdateTotals = order.OrderStatusId <= (int)OrderStatus.Pending,
                 // UpdateRewardPoints only visible for unpending orders (see RewardPointsSettingsValidator).
-                ShowUpdateRewardPoints = order.OrderStatusId > (int)OrderStatus.Pending && order.RewardPointsWereAdded,
-                UpdateRewardPoints = order.RewardPointsWereAdded
+                ShowUpdateRewardPoints =
+                    order.OrderStatusId > (int)OrderStatus.Pending && order.RewardPointsWereAdded,
+                UpdateRewardPoints = order.RewardPointsWereAdded,
             };
 
             model.Items = await CreateOrderItemsModels(order);
 
             ViewBag.DisplayPdfInvoice = _pdfSettings.Enabled;
-            ViewBag.AllowCustomersToSelectTaxDisplayType = _taxSettings.AllowCustomersToSelectTaxDisplayType;
+            ViewBag.AllowCustomersToSelectTaxDisplayType =
+                _taxSettings.AllowCustomersToSelectTaxDisplayType;
             ViewBag.TaxDisplayType = _taxSettings.TaxDisplayType;
             ViewBag.DisplayTaxRates = _taxSettings.DisplayTaxRates;
             ViewBag.IsSingleStoreMode = Services.StoreContext.IsSingleStoreMode();
             ViewBag.PrimaryStoreCurrencyCode = _primaryCurrency.CurrencyCode;
         }
 
-        private async Task PrepareAddOrderProductModel(AddOrderProductModel model, Product product, Order order)
+        private async Task PrepareAddOrderProductModel(
+            AddOrderProductModel model,
+            Product product,
+            Order order
+        )
         {
             if (product == null)
             {
@@ -2188,15 +2558,23 @@ namespace Smartstore.Admin.Controllers
             }
 
             var customer = Services.WorkContext.CurrentCustomer;
-            var currency = await _db.Currencies
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.CurrencyCode == order.CustomerCurrencyCode) ?? _primaryCurrency;
+            var currency =
+                await _db
+                    .Currencies.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.CurrencyCode == order.CustomerCurrencyCode)
+                ?? _primaryCurrency;
 
-            var calculationOptions = _priceCalculationService.Value.CreateDefaultOptions(false, customer, currency);
+            var calculationOptions = _priceCalculationService.Value.CreateDefaultOptions(
+                false,
+                customer,
+                currency
+            );
             calculationOptions.IgnoreDiscounts = true;
 
             var calculationContext = new PriceCalculationContext(product, calculationOptions);
-            var unitPrice = await _priceCalculationService.Value.CalculatePriceAsync(calculationContext);
+            var unitPrice = await _priceCalculationService.Value.CalculatePriceAsync(
+                calculationContext
+            );
             var priceTax = unitPrice.Tax.Value;
 
             model.OrderId = order.Id;
@@ -2214,21 +2592,24 @@ namespace Smartstore.Admin.Controllers
 
             model.UpdateTotals = model.ShowUpdateTotals;
 
-            var attributes = product.ProductVariantAttributes
-                .OrderBy(x => x.DisplayOrder)
-                .ToList();
+            var attributes = product.ProductVariantAttributes.OrderBy(x => x.DisplayOrder).ToList();
 
             var linkedProducts = new Dictionary<int, Product>();
             var linkedProductIds = attributes
                 .SelectMany(x => x.ProductVariantAttributeValues)
-                .Where(x => x.ValueType == ProductVariantAttributeValueType.ProductLinkage && x.LinkedProductId != 0)
+                .Where(x =>
+                    x.ValueType == ProductVariantAttributeValueType.ProductLinkage
+                    && x.LinkedProductId != 0
+                )
                 .ToDistinctArray(x => x.LinkedProductId);
 
             if (linkedProductIds.Length > 0)
             {
-                linkedProducts = await _db.Products
-                    .AsNoTracking()
-                    .Where(x => linkedProductIds.Contains(x.Id) && x.Visibility != ProductVisibility.Hidden)
+                linkedProducts = await _db
+                    .Products.AsNoTracking()
+                    .Where(x =>
+                        linkedProductIds.Contains(x.Id) && x.Visibility != ProductVisibility.Hidden
+                    )
                     .ToDictionaryAsync(x => x.Id);
             }
 
@@ -2247,13 +2628,13 @@ namespace Smartstore.Admin.Controllers
                     CustomData = attribute.CustomData,
                     IsRequired = attribute.IsRequired,
                     AttributeControlType = attribute.AttributeControlType,
-                    AllowedFileExtensions = _catalogSettings.FileUploadAllowedExtensions
+                    AllowedFileExtensions = _catalogSettings.FileUploadAllowedExtensions,
                 };
 
                 if (attribute.IsListTypeAttribute())
                 {
-                    var valueModels = await attribute.ProductVariantAttributeValues
-                        .SelectAwait(async x =>
+                    var valueModels = await attribute
+                        .ProductVariantAttributeValues.SelectAwait(async x =>
                         {
                             var m = new AddOrderProductModel.ProductVariantAttributeValueModel
                             {
@@ -2263,11 +2644,16 @@ namespace Smartstore.Admin.Controllers
                                 Alias = x.Alias,
                                 Color = x.Color,
                                 IsPreSelected = x.IsPreSelected,
-                                DisplayOrder = x.DisplayOrder
+                                DisplayOrder = x.DisplayOrder,
                             };
 
-                            if (x.ValueType == ProductVariantAttributeValueType.ProductLinkage &&
-                                linkedProducts.TryGetValue(x.LinkedProductId, out var linkedProduct))
+                            if (
+                                x.ValueType == ProductVariantAttributeValueType.ProductLinkage
+                                && linkedProducts.TryGetValue(
+                                    x.LinkedProductId,
+                                    out var linkedProduct
+                                )
+                            )
                             {
                                 m.SeName = await linkedProduct.GetActiveSlugAsync();
                             }
@@ -2276,10 +2662,13 @@ namespace Smartstore.Admin.Controllers
                         })
                         .ToListAsync();
 
-                    attributeModel.Values = [.. valueModels
-                        .Select(x => (ChoiceItemModel)x)
-                        .OrderBy(x => x.DisplayOrder)
-                        .ThenNaturalBy(x => x.Name)];
+                    attributeModel.Values =
+                    [
+                        .. valueModels
+                            .Select(x => (ChoiceItemModel)x)
+                            .OrderBy(x => x.DisplayOrder)
+                            .ThenNaturalBy(x => x.Name),
+                    ];
                 }
 
                 model.ProductVariantAttributes.Add(attributeModel);
@@ -2298,20 +2687,19 @@ namespace Smartstore.Admin.Controllers
 
             if (orderItemIds.Length > 0)
             {
-                var returnRequests = await _db.ReturnRequests
-                    .AsNoTracking()
+                var returnRequests = await _db
+                    .ReturnRequests.AsNoTracking()
                     .ApplyStandardFilter(orderItemIds)
                     .ToListAsync();
 
-                var giftCards = await _db.GiftCards
-                    .AsNoTracking()
-                    .Where(x => x.PurchasedWithOrderItemId != null && orderItemIds.Contains(x.PurchasedWithOrderItemId.Value))
+                var giftCards = await _db
+                    .GiftCards.AsNoTracking()
+                    .Where(x =>
+                        x.PurchasedWithOrderItemId != null
+                        && orderItemIds.Contains(x.PurchasedWithOrderItemId.Value)
+                    )
                     .OrderBy(x => x.Id)
-                    .Select(x => new
-                    {
-                        x.Id,
-                        OrderItemId = x.PurchasedWithOrderItemId.Value
-                    })
+                    .Select(x => new { x.Id, OrderItemId = x.PurchasedWithOrderItemId.Value })
                     .ToListAsync();
 
                 returnRequestsMap = returnRequests.ToMultimap(x => x.OrderItemId, x => x);
@@ -2319,22 +2707,26 @@ namespace Smartstore.Admin.Controllers
             }
 
             var recurringPaymentIds = new Dictionary<int, int>();
-            var rpOrderIds = order.OrderItems
-                .Where(x => x.Product.IsRecurring)
+            var rpOrderIds = order
+                .OrderItems.Where(x => x.Product.IsRecurring)
                 .ToDistinctArray(x => x.OrderId);
             if (rpOrderIds.Length > 0)
             {
-                recurringPaymentIds = (await _db.RecurringPayments
-                    .Where(x => rpOrderIds.Contains(x.InitialOrderId))
-                    .Select(x => new { x.Id, x.InitialOrderId })
-                    .ToListAsync())
-                    .ToDictionarySafe(x => x.InitialOrderId, x => x.Id);
+                recurringPaymentIds = (
+                    await _db
+                        .RecurringPayments.Where(x => rpOrderIds.Contains(x.InitialOrderId))
+                        .Select(x => new { x.Id, x.InitialOrderId })
+                        .ToListAsync()
+                ).ToDictionarySafe(x => x.InitialOrderId, x => x.Id);
             }
 
             foreach (var item in order.OrderItems)
             {
                 var product = item.Product;
-                await _productAttributeMaterializer.MergeWithCombinationAsync(product, item.AttributeSelection);
+                await _productAttributeMaterializer.MergeWithCombinationAsync(
+                    product,
+                    item.AttributeSelection
+                );
 
                 var model = await mapper.MapAsync(item);
                 model.IsProductSoftDeleted = product.Deleted;
@@ -2355,7 +2747,11 @@ namespace Smartstore.Admin.Controllers
                 if (product.IsRecurring)
                 {
                     model.RecurringPaymentId = recurringPaymentIds.Get(item.OrderId);
-                    model.RecurringInfo = T("ShoppingCart.RecurringPeriod", product.RecurringCycleLength, product.RecurringCyclePeriod.GetLocalizedEnum());
+                    model.RecurringInfo = T(
+                        "ShoppingCart.RecurringPeriod",
+                        product.RecurringCycleLength,
+                        product.RecurringCyclePeriod.GetLocalizedEnum()
+                    );
                 }
 
                 if (returnRequestsMap.ContainsKey(item.Id))
@@ -2366,7 +2762,9 @@ namespace Smartstore.Admin.Controllers
                             Id = x.Id,
                             Quantity = x.Quantity,
                             Status = x.ReturnRequestStatus,
-                            StatusString = Services.Localization.GetLocalizedEnum(x.ReturnRequestStatus)
+                            StatusString = Services.Localization.GetLocalizedEnum(
+                                x.ReturnRequestStatus
+                            ),
                         })
                         .ToList();
                 }
@@ -2395,7 +2793,7 @@ namespace Smartstore.Admin.Controllers
                             AttributesInfo = x.AttributesInfo,
                             PriceWithDiscount = model.BundlePerItemShoppingCart
                                 ? Format(x.PriceWithDiscount, false, true)
-                                : null
+                                : null,
                         })
                         .ToList();
                 }
@@ -2406,9 +2804,19 @@ namespace Smartstore.Admin.Controllers
             return result;
         }
 
-        private string Format(decimal value, bool priceIncludesTax, bool? displayTaxSuffix = null, PricingTarget target = PricingTarget.Product)
+        private string Format(
+            decimal value,
+            bool priceIncludesTax,
+            bool? displayTaxSuffix = null,
+            PricingTarget target = PricingTarget.Product
+        )
         {
-            var format = _taxService.GetTaxFormat(displayTaxSuffix, priceIncludesTax, target, Services.WorkContext.WorkingLanguage);
+            var format = _taxService.GetTaxFormat(
+                displayTaxSuffix,
+                priceIncludesTax,
+                target,
+                Services.WorkContext.WorkingLanguage
+            );
 
             return new Money(value, _primaryCurrency, false, format).ToString(true);
         }

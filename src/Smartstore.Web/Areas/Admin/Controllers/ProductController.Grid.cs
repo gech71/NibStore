@@ -16,11 +16,15 @@ namespace Smartstore.Admin.Controllers
         public async Task<IActionResult> ProductList(GridCommand command, ProductListModel model)
         {
             var currentUser = _workContext.CurrentCustomer;
-            var isMerchant = await _db.CustomerRoleMappings
-                .AnyAsync(m => m.CustomerId == currentUser.Id &&
-                              m.CustomerRole.SystemName == "Merchant");
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+            );
 
-            var searchQuery = CreateSearchQuery(command, model, _searchSettings.UseCatalogSearchInBackend);
+            var searchQuery = CreateSearchQuery(
+                command,
+                model,
+                _searchSettings.UseCatalogSearchInBackend
+            );
             IPagedList<Product> products;
 
             if (_searchSettings.UseCatalogSearchInBackend)
@@ -30,15 +34,16 @@ namespace Smartstore.Admin.Controllers
             }
             else
             {
-                var query = _catalogSearchService.Value
-                    .PrepareQuery(searchQuery);
+                var query = _catalogSearchService.Value.PrepareQuery(searchQuery);
 
                 if (isMerchant)
                 {
-                    var merchantProductIds = await _db.GenericAttributes
-                        .Where(a => a.KeyGroup == "Product" &&
-                                    a.Key == "CreatedByUserId" &&
-                                    a.Value == currentUser.Id.ToString())
+                    var merchantProductIds = await _db
+                        .GenericAttributes.Where(a =>
+                            a.KeyGroup == "Product"
+                            && a.Key == "CreatedByUserId"
+                            && a.Value == currentUser.Id.ToString()
+                        )
                         .Select(a => a.EntityId)
                         .ToListAsync();
 
@@ -62,14 +67,16 @@ namespace Smartstore.Admin.Controllers
 
             var rows = await products.MapAsync(Services.MediaService);
 
-            return Json(new GridModel<ProductOverviewModel>
-            {
-                Rows = rows,
-                Total = products.TotalCount
-            });
+            return Json(
+                new GridModel<ProductOverviewModel> { Rows = rows, Total = products.TotalCount }
+            );
         }
 
-        private CatalogSearchQuery CreateSearchQuery(GridCommand command, ProductListModel model, bool useCatalogSearch)
+        private CatalogSearchQuery CreateSearchQuery(
+            GridCommand command,
+            ProductListModel model,
+            bool useCatalogSearch
+        )
         {
             var fields = new List<string> { "name" };
             if (_searchSettings.SearchFields.Contains("sku"))
@@ -137,13 +144,25 @@ namespace Smartstore.Admin.Controllers
                     switch (sort.Member)
                     {
                         case nameof(ProductModel.Name):
-                            query = query.SortBy(sort.Descending ? ProductSortingEnum.NameDesc : ProductSortingEnum.NameAsc);
+                            query = query.SortBy(
+                                sort.Descending
+                                    ? ProductSortingEnum.NameDesc
+                                    : ProductSortingEnum.NameAsc
+                            );
                             break;
                         case nameof(ProductModel.Price):
-                            query = query.SortBy(sort.Descending ? ProductSortingEnum.PriceDesc : ProductSortingEnum.PriceAsc);
+                            query = query.SortBy(
+                                sort.Descending
+                                    ? ProductSortingEnum.PriceDesc
+                                    : ProductSortingEnum.PriceAsc
+                            );
                             break;
                         case nameof(ProductModel.CreatedOn):
-                            query = query.SortBy(sort.Descending ? ProductSortingEnum.CreatedOn : ProductSortingEnum.CreatedOnAsc);
+                            query = query.SortBy(
+                                sort.Descending
+                                    ? ProductSortingEnum.CreatedOn
+                                    : ProductSortingEnum.CreatedOnAsc
+                            );
                             break;
                     }
                 }
@@ -170,7 +189,8 @@ namespace Smartstore.Admin.Controllers
                 Services.ActivityLogger.LogActivity(
                     KnownActivityLogTypes.DeleteProduct,
                     T("ActivityLog.DeleteProduct"),
-                    string.Join(", ", entities.Select(x => x.Name)));
+                    string.Join(", ", entities.Select(x => x.Name))
+                );
             }
 
             return Json(new { Success = true, entities.Count });
@@ -190,9 +210,17 @@ namespace Smartstore.Admin.Controllers
             try
             {
                 // INFO: SmartTempDataSerializer already handles proper deserialization. No need for conversion here.
-                if (TempData.TryGetValueAs<Dictionary<int, int>>("OriginalStockQuantities", out var originalStockQuantities)
-                    && originalStockQuantities.TryGetValue(product.Id, out var originalStockQuantity)
-                    && CheckStockQuantityUpdate(product, originalStockQuantity, model.StockQuantity))
+                if (
+                    TempData.TryGetValueAs<Dictionary<int, int>>(
+                        "OriginalStockQuantities",
+                        out var originalStockQuantities
+                    )
+                    && originalStockQuantities.TryGetValue(
+                        product.Id,
+                        out var originalStockQuantity
+                    )
+                    && CheckStockQuantityUpdate(product, originalStockQuantity, model.StockQuantity)
+                )
                 {
                     product.StockQuantity = model.StockQuantity;
                 }

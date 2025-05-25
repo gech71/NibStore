@@ -13,9 +13,7 @@ namespace Smartstore.Web.Models.DataGrid
 
     public class GridModel<T> : IGridModel
     {
-        public GridModel()
-        {
-        }
+        public GridModel() { }
 
         public GridModel(IEnumerable<T> rows)
         {
@@ -26,13 +24,15 @@ namespace Smartstore.Web.Models.DataGrid
         public IEnumerable<T> Rows { get; set; }
 
         [IgnoreDataMember]
-        IEnumerable IGridModel.Rows
-            => this.Rows;
+        IEnumerable IGridModel.Rows => this.Rows;
 
         [JsonProperty("total")]
         public int Total { get; set; }
 
         [JsonProperty("aggregates")]
         public object Aggregates { get; set; }
+
+        [JsonProperty("lowStockCount")]
+        public int lowStockCount { get; set; }
     }
 }

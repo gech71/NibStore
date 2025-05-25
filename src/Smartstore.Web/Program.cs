@@ -38,35 +38,41 @@ using Serilog.Filters;
 using Smartstore;
 using Smartstore.Core.Data.Migrations;
 using Smartstore.Core.Logging.Serilog;
-using Smartstore.Core.Platform.Identity.Services;
 using Smartstore.Utilities;
 
-var rgSystemSource = new Regex("^File|^System|^Microsoft|^Serilog|^Autofac|^Castle|^MiniProfiler|^Newtonsoft|^Pipelines|^Azure|^StackExchange|^Superpower|^Dasync", RegexOptions.Compiled);
-var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environments.Production;
+var rgSystemSource = new Regex(
+    "^File|^System|^Microsoft|^Serilog|^Autofac|^Castle|^MiniProfiler|^Newtonsoft|^Pipelines|^Azure|^StackExchange|^Superpower|^Dasync",
+    RegexOptions.Compiled
+);
+var environmentName =
+    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environments.Production;
 var isDevEnvironment = IsDevEnvironment();
 var baseDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
 
 // Create the application builder
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-{
-    Args = args,
-    ContentRootPath = isDevEnvironment ? null : baseDirectory
-});
+var builder = WebApplication.CreateBuilder(
+    new WebApplicationOptions
+    {
+        Args = args,
+        ContentRootPath = isDevEnvironment ? null : baseDirectory,
+    }
+);
 
 // Add connections.json and usersettings.json to configuration manager
-var configuration = (IConfiguration)builder.Configuration
-    .AddJsonFile("Config/connections.json", optional: true, reloadOnChange: true)
-    .AddJsonFile($"Config/connections.{environmentName}.json", optional: true)
-    .AddJsonFile("Config/usersettings.json", optional: true, reloadOnChange: true)
-    .AddJsonFile($"Config/usersettings.{environmentName}.json", optional: true);
+var configuration = (IConfiguration)
+    builder
+        .Configuration.AddJsonFile("Config/connections.json", optional: true, reloadOnChange: true)
+        .AddJsonFile($"Config/connections.{environmentName}.json", optional: true)
+        .AddJsonFile("Config/usersettings.json", optional: true, reloadOnChange: true)
+        .AddJsonFile($"Config/usersettings.{environmentName}.json", optional: true);
 
 // Setup Serilog logging
 Log.Logger = SetupSerilog(configuration);
 
 var maxRequestBodySize = configuration["Smartstore:MaxRequestBodySize"];
 
-builder.Host
-    .UseServiceProviderFactory(new AutofacServiceProviderFactory())
+builder
+    .Host.UseServiceProviderFactory(new AutofacServiceProviderFactory())
     .ConfigureLogging(SetupLogging)
     .UseSerilog(dispose: true);
 
@@ -74,9 +80,6 @@ var startupLogger = new SerilogLoggerFactory(Log.Logger).CreateLogger("File");
 var appContext = new SmartApplicationContext(builder.Environment, configuration, startupLogger);
 var engine = EngineFactory.Create(appContext.AppConfiguration);
 var engineStarter = engine.Start(appContext);
-
-// Add services to the container.
-builder.Services.AddScoped<IUserPhoneStore, UserPhoneStore>();
 
 // Configure RequestSizeLimit and RequestFormLimits
 if (appContext.AppConfiguration.MaxRequestBodySize != null)
@@ -112,7 +115,8 @@ providerContainer.ApplicationServices = app.Services;
 engine.Scope = new ScopedServiceContainer(
     app.Services.GetRequiredService<ILifetimeScopeAccessor>(),
     app.Services.GetRequiredService<IHttpContextAccessor>(),
-    app.Services.AsLifetimeScope());
+    app.Services.AsLifetimeScope()
+);
 
 // Build request pipeline
 app.Lifetime.ApplicationStarted.Register(() =>
@@ -131,8 +135,6 @@ engineStarter.ConfigureApplication(app);
 // Run application
 app.Run();
 
-
-
 #region Setup helpers
 
 async Task InitializeDatabases()
@@ -146,7 +148,9 @@ async Task InitializeDatabases()
             if (initializer != null)
             {
                 var appLifetime = scope.ResolveOptional<IHostApplicationLifetime>();
-                await initializer.InitializeDatabasesAsync(appLifetime?.ApplicationStopping ?? CancellationToken.None);
+                await initializer.InitializeDatabasesAsync(
+                    appLifetime?.ApplicationStopping ?? CancellationToken.None
+                );
             }
         }
     }
@@ -205,17 +209,23 @@ Logger SetupSerilog(IConfiguration configuration)
 
     builder
         // Build INSTALL logger
-        .WriteTo.Conditional(Matching.FromSource("Install"), a => a.Async(logger =>
-        {
-            logger.File("App_Data/Logs/install-.log",
-                //restrictedToMinimumLevel: LogEventLevel.Debug,
-                outputTemplate: "{Timestamp:G} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
-                fileSizeLimitBytes: 100000000,
-                rollOnFileSizeLimit: true,
-                shared: true,
-                rollingInterval: RollingInterval.Day,
-                flushToDiskInterval: TimeSpan.FromSeconds(5));
-        }))
+        .WriteTo.Conditional(
+            Matching.FromSource("Install"),
+            a =>
+                a.Async(logger =>
+                {
+                    logger.File(
+                        "App_Data/Logs/install-.log",
+                        //restrictedToMinimumLevel: LogEventLevel.Debug,
+                        outputTemplate: "{Timestamp:G} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                        fileSizeLimitBytes: 100000000,
+                        rollOnFileSizeLimit: true,
+                        shared: true,
+                        rollingInterval: RollingInterval.Day,
+                        flushToDiskInterval: TimeSpan.FromSeconds(5)
+                    );
+                })
+        )
         // Build FILE logger (also replaces the Smartstore classic "TraceLogger")
         .WriteTo.Logger(logger =>
         {
@@ -225,29 +235,46 @@ Logger SetupSerilog(IConfiguration configuration)
                 .Filter.ByIncludingOnly(IsFileSource)
                 // Extracts path from source and adds it as log event property name.
                 .Enrich.With<LogFilePathEnricher>()
-                .WriteTo.Map(LogFilePathEnricher.LogFilePathPropertyName, (logFilePath, wt) =>
-                {
-                    wt.Async(c => c.File($"{logFilePath}",
-                        //restrictedToMinimumLevel: LogEventLevel.Debug,
-                        outputTemplate: "{Timestamp:G} [{Level:u3}] {Message:lj} {RequestPath} (UserId: {CustomerId}, Username: {UserName}){NewLine}{Exception}",
-                        fileSizeLimitBytes: 100000000,
-                        rollOnFileSizeLimit: true,
-                        shared: true,
-                        rollingInterval: RollingInterval.Day,
-                        flushToDiskInterval: TimeSpan.FromSeconds(5)));
-                }, sinkMapCountLimit: 10);
+                .WriteTo.Map(
+                    LogFilePathEnricher.LogFilePathPropertyName,
+                    (logFilePath, wt) =>
+                    {
+                        wt.Async(c =>
+                            c.File(
+                                $"{logFilePath}",
+                                //restrictedToMinimumLevel: LogEventLevel.Debug,
+                                outputTemplate: "{Timestamp:G} [{Level:u3}] {Message:lj} {RequestPath} (UserId: {CustomerId}, Username: {UserName}){NewLine}{Exception}",
+                                fileSizeLimitBytes: 100000000,
+                                rollOnFileSizeLimit: true,
+                                shared: true,
+                                rollingInterval: RollingInterval.Day,
+                                flushToDiskInterval: TimeSpan.FromSeconds(5)
+                            )
+                        );
+                    },
+                    sinkMapCountLimit: 10
+                );
         })
         // Build "SmartDbContext" logger
-        .WriteTo.Logger(logger =>
-        {
-            logger
-                .Enrich.FromLogContext()
-                // Do not allow system/3rdParty noise less than WRN level
-                .Filter.ByIncludingOnly(IsDbSource)
-                .Filter.ByExcluding(IsFileSource)
-                .Filter.ByExcluding(IsApiQueryWarning)
-                .WriteTo.DbContext(period: TimeSpan.FromSeconds(5), batchSize: 50, eagerlyEmitFirstEvent: false, queueLimit: 1000);
-        }, restrictedToMinimumLevel: dbMinLevel, levelSwitch: null);
+        .WriteTo.Logger(
+            logger =>
+            {
+                logger
+                    .Enrich.FromLogContext()
+                    // Do not allow system/3rdParty noise less than WRN level
+                    .Filter.ByIncludingOnly(IsDbSource)
+                    .Filter.ByExcluding(IsFileSource)
+                    .Filter.ByExcluding(IsApiQueryWarning)
+                    .WriteTo.DbContext(
+                        period: TimeSpan.FromSeconds(5),
+                        batchSize: 50,
+                        eagerlyEmitFirstEvent: false,
+                        queueLimit: 1000
+                    );
+            },
+            restrictedToMinimumLevel: dbMinLevel,
+            levelSwitch: null
+        );
 
     return builder.CreateLogger();
 }
@@ -266,9 +293,11 @@ bool IsFileSource(LogEvent e)
 
 bool IsApiQueryWarning(LogEvent e)
 {
-    if (e.Level <= LogEventLevel.Warning
+    if (
+        e.Level <= LogEventLevel.Warning
         && e.GetPropertyValue<string>("RequestPath").EmptyNull().StartsWithNoCase("/odata/")
-        && e.GetSourceContext().EqualsNoCase("Microsoft.EntityFrameworkCore.Query"))
+        && e.GetSourceContext().EqualsNoCase("Microsoft.EntityFrameworkCore.Query")
+    )
     {
         return true;
     }
@@ -277,4 +306,3 @@ bool IsApiQueryWarning(LogEvent e)
 }
 
 #endregion
-

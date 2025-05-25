@@ -37,33 +37,37 @@
                 //item.Selected = true;
             }
 
-        <li data-id="nav-@item.Id" class="nav-item@(node.HasChildren ? " dropdown" : "")@(item.Id == "dashboard" ? " dropdown d-none d-md-block" : "")">
-            <a class="nav-link@(node.HasChildren ? " dropdown-toggle" : "")" href="@itemUrl" attr-data-toggle='(node.HasChildren, "dropdown")'>
-                @if (item.Icon.HasValue())
-                {
-                    if (item.IconLibrary == "bi")
+            <li data-id="nav-@item.Id"
+                class="nav-item@(node.HasChildren ? " dropdown" : "")@(item.Id == "dashboard" ? " dropdown d-none d-md-block" : "")">
+                <a class="nav-link@(node.HasChildren ? " dropdown-toggle" : "")" href="@itemUrl"
+                    attr-data-toggle='(node.HasChildren, "dropdown")'>
+                    @if (item.Icon.HasValue())
                     {
-                        <bootstrap-icon name="@item.Icon" class="navbar-icon" attr-class='@(item.IconClass.HasValue(), item.IconClass)' />
+                        if (item.IconLibrary == "bi")
+                        {
+                            <bootstrap-icon name="@item.Icon" class="navbar-icon"
+                                attr-class='@(item.IconClass.HasValue(), item.IconClass)' />
+                        }
+                        else
+                        {
+                            <i class="@item.Icon navbar-icon" attr-class='@(item.IconClass.HasValue(), item.IconClass)'></i>
+                        }
                     }
                     else
                     {
-                        <i class="@item.Icon navbar-icon" attr-class='@(item.IconClass.HasValue(), item.IconClass)'></i>
+                        <img class="sm-icon" src="@Url.Content(imageUrl)" alt="" />
                     }
-                }
-                else
+                    <span class="navbar-label d-none d-lg-block">@itemText</span>
+                </a>
+                @if (node.HasChildren)
                 {
-                    <img class="sm-icon" src="@Url.Content(imageUrl)" alt="" />
+                    await CreateDropdown(node.Children, true);
                 }
-                <span class="navbar-label d-none d-lg-block">@itemText</span>
-            </a>
-            @if (node.HasChildren)
-            {
-                await CreateDropdown(node.Children, true);
-            }
-        </li>
+            </li>
         }
     }
 </ul>
+
 
 @{
     string GetNodeLink(TreeNode<MenuItem> node)
@@ -96,7 +100,8 @@
                 if (item.IsGroupHeader)
                 {
                     <li sm-if="!isFirst" class="dropdown-divider"></li>
-                    <li sm-if="@(item.Text.HasValue() && item.Text != "[SKIP]")" data-id="@item.Id" class="dropdown-header h6">@itemText</li>
+                    <li sm-if="@(item.Text.HasValue() && item.Text != "[SKIP]")" data-id="@item.Id" class="dropdown-header h6">@itemText
+                    </li>
                     isFirst = false;
                     continue;
                 }
@@ -109,7 +114,8 @@
                             {
                                 if (item.IconLibrary == "bi")
                                 {
-                                    <bootstrap-icon name="@item.Icon" class="dropdown-icon bi-fw" attr-class='@(item.IconClass.HasValue(), item.IconClass)' />
+                                    <bootstrap-icon name="@item.Icon" class="dropdown-icon bi-fw"
+                                        attr-class='@(item.IconClass.HasValue(), item.IconClass)' />
                                 }
                                 else
                                 {
@@ -134,3 +140,55 @@
         </ul>
     }
 }
+
+<div id="lowStockAlert" class="alert alert-danger d-none">
+    <div class="d-flex align-items-center">
+        <span id="lowStockMessage" class="fw-medium flex-grow-1"></span>
+        <a href="@Url.Action("LowStockReport", "Product")" class="btn btn-sm btn-danger ms-2">
+            <i class="fa fa-arrow-right"></i>
+        </a>
+    </div>
+</div>
+
+<script>
+    $(function () {
+        $.post('@Url.Action("LowStockReportList", "Product")', function (data) {
+            if (data.lowStockCount > 0) {
+                const msg = `${data.lowStockCount} product(s) need restocking`;
+                $('#lowStockMessage').text(msg);
+                const $alert = $('#lowStockAlert').removeClass('d-none');
+
+                $alert.css('animation', 'pulse 2s infinite');
+            }
+        });
+    });
+</script>
+
+<style>
+    #lowStockAlert {
+        position: relative;
+        top: 5px;
+        left: 5%;
+    }
+
+    #lowStockMessage {
+        color: #8b0000 !important;
+        font-weight: 500;
+        margin-right: 1rem;
+    }
+
+    @@keyframes pulse
+    {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>

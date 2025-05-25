@@ -1,4 +1,4 @@
-﻿@using Smartstore.Web.Models.Customers
+﻿﻿@using Smartstore.Web.Models.Customers
 @using Smartstore.Core.Checkout.Cart 
 
 @model CustomerInfoModel
@@ -47,14 +47,14 @@
                 <span asp-validation-for="Title"></span>
             </div>
         </div>
-        <div class="form-group row d-none">
+        <div class="form-group row">
             <label asp-for="FirstName" class="col-lg-3 col-form-label" attr-class='(Model.FirstNameRequired, "required")'></label>
             <div class="col-lg-9">
                 <input asp-for="FirstName" sm-required="Model.FirstNameRequired" autocomplete="given-name" />
                 <span asp-validation-for="FirstName"></span>
             </div>
         </div>
-        <div class="form-group row d-none">
+        <div class="form-group row">
             <label asp-for="LastName" class="col-lg-3 col-form-label" attr-class='(Model.LastNameRequired, "required")'></label>
             <div class="col-lg-9">
                 <input asp-for="LastName" sm-required="Model.LastNameRequired" autocomplete="family-name" />
@@ -78,7 +78,7 @@
         <div class="form-group row">
             <label asp-for="Email" class="col-lg-3 col-form-label required"></label>
             <div class="col-lg-9">
-                <input asp-for="Email" sm-required="true" autocomplete="email" readonly  />
+                <input asp-for="Email" sm-required="true" autocomplete="email" />
                 <span asp-validation-for="Email"></span>
             </div>
         </div>
@@ -238,7 +238,7 @@
     </fieldset>
 
     <fieldset sm-if="Model.PhoneEnabled || Model.FaxEnabled" class="content-group">
-        @*<legend><span>@T("Account.YourContactInformation")</span></legend>*@
+        <legend><span>@T("Account.YourContactInformation")</span></legend>
         <div sm-if="Model.PhoneEnabled" class="form-group row">
             <label asp-for="Phone" class="col-lg-3 col-form-label" attr-class='(Model.PhoneRequired, "required")'></label>
             <div class="col-lg-9">

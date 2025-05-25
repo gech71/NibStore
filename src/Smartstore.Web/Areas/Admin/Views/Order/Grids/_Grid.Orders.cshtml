@@ -1,10 +1,12 @@
 ﻿@model OrderOverviewModel
-
+@inject Smartstore.Core.Security.IPermissionService permissionService
+@using Smartstore.Core.Security
 @{
     var parentModel = ViewData["Parent"] as OrderListModel;
     var productId = (int?)ViewData["ProductId"];
     var customerId = (int?)ViewData["CustomerId"];
     var isOrderListPage = productId == null && customerId == null;
+    var canCreate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Create);
 }
 
 <datagrid id="orders-grid" version="2" attr-class='(!isOrderListPage, "h-100")' allow-resize="true"
@@ -75,8 +77,17 @@
         <column for="CustomerName" sortable="false" title="@T("Admin.Orders.Fields.Customer")">
             <display-template>
                 <div class="dg-cell-value">
-                    <a v-if="!item.row.CustomerDeleted" :href="item.row.CustomerEditUrl" class="text-truncate">{{
-                        item.row.CustomerName }}</a>
+                    @if (canCreate)
+                    {
+                        <a v-if="!item.row.CustomerDeleted" :href="item.row.CustomerEditUrl" class="text-truncate">{{
+                            item.row.CustomerName }}</a>
+                    }
+                    else
+                    {
+                        <span>{{
+                            item.row.CustomerName }}</span>
+                    }
+
                     <div v-if="item.row.CustomerDeleted" class="text-truncate">{{ item.row.CustomerName }}</div>
                     <div class="text-truncate">{{ item.row.CustomerEmail }}</div>
                 </div>
