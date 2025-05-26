@@ -2,3 +2,264 @@
 //
 // Copy variables from `_variables.scss` to this file to override default values
 // without modifying source files.
+
+/// <reference path="../../../wwwroot/lib/bootstrap/scss/_functions.scss" />
+/// <reference path="../../../wwwroot/shared/_functions.scss" />
+/// <reference path="../../../wwwroot/shared/_variables-shared-bootstrap.scss" />
+/// <reference path="_variables-configured.scss" />
+/// <reference path="_variables-custom.scss" />
+
+// Theme specific (non-bootstrap) variables
+// ========================================
+
+$primary:                       #f7b715 !default; // Brand primary color
+$secondary:                     #9c653d !default; // Brand secondary color
+$primary-light:                 #f9c94d !default; // Lightened primary for backgrounds
+$primary-dark:                  #c69210 !default; // Darkened primary for active states
+$secondary-light:               #b3815b !default; // Lightened secondary for subtle elements
+$secondary-dark:                 #7a4a2e !default; // Darkened secondary for borders/text
+
+$btn-secondary-border:          rgba($secondary-dark, 0.15) !default; // Updated to use secondary dark
+$header-hover-bg:               rgba($primary-light, 0.1) !default; // Subtle primary-based hover
+$header-border-color:           $secondary-light !default; // Softer secondary for borders
+$header-inverse-color:          $white !default;
+$header-inverse-color-muted:    rgba($white, 0.5) !default;
+$header-inverse-hover-bg:       rgba($primary-light, 0.15) !default; // Primary-based inverse hover
+$header-inverse-border-color:   rgba($white, 0.15) !default;
+$header-selected-color:         $primary !default; // Primary for selected state
+$header-inverse-selected-color: $primary !default;
+
+$megamenu-navlink-font-size:    1rem !default;
+
+$shopbar-color:                 $secondary !default; // Secondary for shopbar
+$shopbar-color-muted:           rgba($secondary, 0.5) !default;
+$shopbar-inverse-color:         $white !default;
+$shopbar-inverse-color-muted:   rgba($white, 0.5) !default;
+
+$facet-control-size:            20px !default;
+
+$enable-rfs:                    true !default; // Declared in _rfs.scss
+$font-size-root-md:             16px !default;
+$font-size-root-sm:             16px !default;
+
+//
+// Checkout Steps
+// --------------------------------------------------
+
+$costep-border:                 $secondary-light !default; // Softer secondary for borders
+$costep-bg:                     $white !default;
+$costep-color:                  $secondary !default; // Secondary for inactive steps
+$costep-label-color:            $body-color !default;
+
+$costep-progress-color:         $primary !default; // Primary for progress indicators
+$costep-visited-border:         $costep-progress-color !default;
+$costep-visited-bg:             $primary-light !default; // Light primary for visited steps
+$costep-visited-color:          rgba($white, 0.85) !default;
+$costep-visited-label-color:    $body-color !default;
+
+$costep-active-border:          $primary-dark !default; // Dark primary for active borders
+$costep-active-bg:              $white !default;
+$costep-active-color:           $body-color !default;
+$costep-active-label-color:     $body-color !default;
+
+// Bootstrap variable overrides
+// ========================================
+
+$yiq-contrasted-threshold:      164 !default;
+$color-contrast-dark:           $body-color !default; // Typically #212529
+$color-contrast-light:          $white !default;
+
+$gray-150:                      #e9ecef !default; // Adjusted to complement brand colors
+$gray-650:                      #5c636a !default; // Slightly darker gray for contrast
+
+$grays: (
+    "150": $gray-150,
+    "650": $gray-650
+) !default;
+
+$spacer:                        1.25rem !default;
+$spacers: (
+    6: ($spacer * 4.5)
+) !default;
+
+$theme-colors: (
+    "primary": $primary,
+    "secondary": $secondary,
+    "gray": $gray-650 // Updated to use new gray
+) !default;
+
+$theme-colors-text: (
+    "primary": $primary-dark, // Darker primary for better text contrast
+    "secondary": $secondary-dark, // Darker secondary for text
+    "gray": $gray-650
+) !default;
+
+$theme-colors-bg-subtle: (
+    "primary": $primary-light, // Light primary for subtle backgrounds
+    "secondary": $secondary-light, // Light secondary for subtle backgrounds
+    "gray": $gray-150
+) !default;
+
+$theme-colors-border-subtle: (
+    "primary": $primary-dark, // Dark primary for borders
+    "secondary": $secondary-dark, // Dark secondary for borders
+    "gray": $gray-650
+) !default;
+
+$line-height-base:              1.4 !default; // 21px
+$line-height-sm:                1.429 !default; // 20px
+$line-height-lg:                1.375 !default; // 22px
+
+$font-weight-base:              $font-weight-normal !default;
+
+$lead-font-size:                1.125rem !default;
+$lead-font-weight:              $font-weight-light !default;
+$small-font-size:               90% !default;
+
+$display1-size:                 5.5rem !default;
+$display2-size:                 5rem !default;
+$display3-size:                 4.5rem !default;
+$display4-size:                 3rem !default;
+
+$display1-weight:               $font-weight-light !default;
+$display2-weight:               $font-weight-light !default;
+$display3-weight:               $font-weight-light !default;
+$display4-weight:               $font-weight-light !default;
+
+// Buttons + Forms
+
+$input-btn-font-size:           $font-size-base !default;
+$input-btn-line-height:         1.6 !default; // 24px - 42px
+$input-btn-line-height-sm:      22 / 14 !default; // 22px - 36px
+$input-btn-line-height-lg:      1.625 !default; // 26px - 48px
+$input-btn-focus-color:         rgba($primary, 0.25) !default; // Primary-based focus
+$input-btn-font-size-sm:        $font-size-sm !default; // 14px
+$input-btn-border-width:        $border-width !default;
+$input-border-radius:           $border-radius !default;
+$input-border-radius-lg:        $border-radius !default;
+$input-border-radius-sm:        $border-radius !default;
+$input-focus-border-color:      $primary-dark !default; // Dark primary for focus
+$input-group-addon-bg:          $gray-150 !default;
+$input-border-color:            $secondary-light !default; // Light secondary for input borders
+$input-disabled-bg:             $gray-150 !default;
+
+// Buttons
+
+$btn-font-weight:               $font-weight-medium !default;
+$btn-focus-width:               $input-btn-focus-width !default;
+$btn-box-shadow:                0 1px 0 rgba($gray-900, 0.04), inset 0 1px 0 rgba($white, 0.25) !default;
+$btn-focus-box-shadow:          inset 0 0 0 $btn-focus-width $primary-light !default; // Primary light focus
+$btn-border-radius:             $input-border-radius !default;
+$btn-border-radius-lg:          $input-border-radius-lg !default;
+$btn-border-radius-sm:          $input-border-radius-sm !default;
+
+// Badge
+
+$badge-font-size:               (12 / 15) * 1em !default;
+$badge-font-weight:             $font-weight-medium !default;
+$badge-border-radius:           $border-radius-sm !default;
+
+// Dropdown
+
+$dropdown-padding-x:            .5rem !default;
+$dropdown-padding-y:            .5rem !default;
+$dropdown-spacer:               .125rem !default;
+$dropdown-font-size:            14px !default;
+$dropdown-font-weight:          $font-weight-normal !default;
+$dropdown-divider-margin-y:     $dropdown-padding-y !default;
+$dropdown-shadow-intensity:     0.64 !default;
+
+$dropdown-link-active-color:    $primary-dark !default; // Dark primary for active links
+$dropdown-link-active-bg:       $primary-light !default; // Light primary for active background
+$dropdown-link-hover-color:     $primary-dark !default; // Dark primary for hover
+$dropdown-link-hover-bg:        $primary-light !default; // Light primary for hover background
+
+$dropdown-item-padding-y:       0.5rem !default;
+$dropdown-item-padding-x:       1rem !default;
+
+// Modal
+
+//$modal-content-box-shadow-xs:       $box-shadow !default;
+//$modal-content-box-shadow-sm-up:    $box-shadow-lg !default;
+//$modal-content-border-radius:       $border-radius-lg !default;
+
+// Popover
+
+$popover-box-shadow:            $dropdown-box-shadow !default;
+$popover-border-color:          $secondary-light !default; // Light secondary for popover borders
+
+// Pagination
+
+$pagination-padding-y:          0 !default;
+$pagination-padding-x:          0.75rem !default;
+$pagination-padding-y-sm:       0 !default;
+$pagination-padding-x-sm:       0.5rem !default;
+$pagination-padding-y-lg:       0 !default;
+$pagination-padding-x-lg:       1rem !default;
+
+$pagination-line-height:        1.5 !default;
+
+$pagination-focus-box-shadow:   none !default;
+$pagination-focus-outline:      0 !default;
+
+$pagination-color:              $body-color !default;
+$pagination-bg:                 $gray-150 !default;
+$pagination-border-width:       1px !default;
+$pagination-border-color:       transparent !default;
+
+$pagination-hover-color:        $primary-dark !default; // Dark primary for hover
+$pagination-hover-bg:           $primary-light !default; // Light primary for hover background
+$pagination-hover-border-color: $primary-dark !default; // Dark primary for hover border
+
+$pagination-active-color:       $white !default;
+$pagination-active-bg:          $primary !default; // Primary for active background
+$pagination-active-border-color: $primary-dark !default; // Dark primary for active border
+
+$pagination-disabled-color:     $gray-400 !default;
+$pagination-disabled-bg:        $gray-150 !default;
+$pagination-disabled-border-color: $pagination-border-color !default;
+
+// Cards
+
+$card-border-color:             rgba($secondary-dark, 0.1) !default; // Secondary dark for card borders
+
+// List Group
+
+$list-group-bg:                 $white !default;
+$list-group-border-color:       rgba($secondary-dark, 0.1) !default; // Secondary dark for borders
+
+$list-group-item-padding-y:     1rem !default;
+
+$list-group-hover-bg:           $primary-light !default; // Light primary for hover
+$list-group-active-color:       $body-color !default;
+$list-group-active-bg:          $primary-light !default; // Light primary for active background
+$list-group-active-border-color: $primary-dark !default; // Dark primary for active border
+
+$list-group-disabled-color:     $gray-400 !default;
+$list-group-disabled-bg:        $list-group-bg !default;
+
+$list-group-action-color:       $secondary !default; // Secondary for action color
+$list-group-action-hover-color: $secondary-dark !default; // Dark secondary for hover
+
+$list-group-action-active-color: $body-color !default;
+$list-group-action-active-bg:   $primary-light !default; // Light primary for active background
+
+// Nav
+
+$nav-tabs-border-color:         $secondary-light !default; // Light secondary for tab borders
+$nav-tabs-link-active-color:    $primary-dark !default; // Dark primary for active tabs
+$nav-pills-link-active-color:   $white !default;
+$nav-pills-link-active-bg:      $primary !default; // Primary for active pills
+
+// Breadcrumb
+
+$breadcrumb-padding-x:          0 !default;
+$breadcrumb-padding-y:          0 !default;
+$breadcrumb-bg:                 transparent !default;
+$breadcrumb-border-radius:      0 !default;
+
+// Misc
+
+$card-deck-margin:              10px !default;
+$alert-border-radius:           $border-radius !default;
+$alert-link-font-weight:        $font-weight-medium !default;
