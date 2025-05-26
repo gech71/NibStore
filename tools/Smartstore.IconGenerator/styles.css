@@ -11,7 +11,7 @@
     --secondary-color: var(--body-bg);
     --secondary-bg: #1d9f0a;
     --secondary-hover-bg: #107e00;
-    --box-bg: #e9ecef;
+    --box-bg: #f8f9fa;
     --box-hover-color: #0a58ca;
     --box-hover-bg: #dee2e6;
     --box-active-bg: #d7ecfa;
@@ -48,6 +48,10 @@ body {
     line-height: 1.4;
     background-color: var(--body-bg);
     color: var(--color);
+    background-image: url('/images/bg.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 button, input, optgroup, select, textarea {

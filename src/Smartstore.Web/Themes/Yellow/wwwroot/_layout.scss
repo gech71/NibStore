@@ -30,9 +30,13 @@ html {
 }
 
 body { 
-    background: $site-bg;
+    background-image: url('/images/bg.jpg');
+    background-size: cover;
+    background-repeat: repeat;
+    background-position: center;
     // INFO: Sticky elements won't work anymore with overflow-x: hidden on #page element
     overflow-x: hidden; 
+
 
     &.popup { 
         padding: 1.25rem; 
@@ -76,7 +80,10 @@ body {
 .page-main {
     position: relative;
     z-index: 1;
-    background: $body-bg;
+    background-image: url('/images/bg2.jpg');
+    
+    background-repeat: repeat;
+    background-position: center;
     box-shadow: 0 0 24px rgba($black, 0.2);
     min-height: 100vh;
 }
