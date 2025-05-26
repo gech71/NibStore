@@ -17918,7 +17918,8 @@ html {
   height: 100%; }
 
 body {
-  background-color: #f1f3f5; }
+  background: #f5f5f5 url("/images/bg.jpg") no-repeat center center fixed;
+  background-size: cover; }
   body.popup {
     background-color: #fff; }
   body.popup .dispensable {
@@ -17947,9 +17948,18 @@ body {
       --sticky-header-left: var(--content-padding-x);
       --sticky-header-right: var(--content-padding-x); } }
 #header {
-  background-color: #18509f;
+  background-color: #8a4d21;
   grid-column: 1 / -1;
-  grid-row: 1 / span 2; }
+  grid-row: 1 / span 2;
+  color: #fff; }
+
+#header * {
+  color: #fff !important; }
+
+#header .dropdown-menu,
+#header .dropdown-menu * {
+  color: #222 !important;
+  background-color: #fff !important; }
 
 .sidebar-left {
   grid-column: 1 / 2; }
@@ -19021,6 +19031,31 @@ a.editable {
 .ai-dialog-opener-root .fu-remove {
   margin-inline-end: 2.25em; }
 
+#header *:hover {
+  color: #feb914 !important;
+  transition: color 0.2s; }
+
+#header .nav-link:hover,
+#header .navbar-tool:hover,
+#header .navbar-label:hover,
+#header .navbar-icon:hover {
+  background-color: #feb914 !important;
+  color: #222 !important;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s; }
+
+#header .dropdown-menu *,
+#header .dropdown-menu *:hover {
+  color: #222 !important;
+  background-color: #fff !important; }
+
+#header .dropdown-menu .dropdown-item:hover,
+#header .dropdown-menu .dropdown-item:focus {
+  background-color: #feb914 !important;
+  color: #222 !important;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s; }
+
 .chart-colors {
   --chart-color-danger: #ffbca9;
   --chart-color-warning: #ffcd6f;
@@ -19130,19 +19165,19 @@ a.editable {
     font-weight: 700;
     color: #aab5bf;
     font-size: 1.5rem;
-    padding-bottom: .1em; }
+    padding-bottom: 0.1em; }
   .report .incomplete-orders-amount {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
     max-width: 50%;
     font-size: 1.25rem;
-    padding-top: .1rem;
+    padding-top: 0.1rem;
     color: #596167; }
   .report .table {
     white-space: nowrap; }
     .report .table .display-row {
-      padding: .75rem 1rem; }
+      padding: 0.75rem 1rem; }
     .report .table td.display-row {
       padding: 1rem; }
   .report .statistics-value {
@@ -19178,8 +19213,8 @@ a.editable {
     min-height: 10px;
     border-radius: 50%; }
   .report .btn-dashboard {
-    font-size: .75rem;
-    padding: .33rem .66rem; }
+    font-size: 0.75rem;
+    padding: 0.33rem 0.66rem; }
   .report .canvas-container {
     position: relative; }
   .report #orders-chart-legend > ul {
@@ -19207,7 +19242,7 @@ a.editable {
     display: inline-block;
     height: 11px;
     width: 11px;
-    margin-inline-end: .3rem; }
+    margin-inline-end: 0.3rem; }
   .report #orders-chart-legend .hidden > .legend {
     background-color: #ced4da !important; }
   .report .chevron {
@@ -19302,9 +19337,14 @@ a.editable {
 
 .news-feed {
   grid-column: 1 / 13;
-  grid-row: 8 / 9; }
+  grid-row: 8 / 9;
+  align-self: start;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  right: 0; }
 
-.report-orders {
+.report-latest-orders {
   grid-column: 1 / 13;
   grid-row: 2 / 3; }
 
@@ -19320,7 +19360,7 @@ a.editable {
   grid-column: 1 / 13;
   grid-row: 5 / 6; }
 
-.report-latest-orders {
+.report-orders {
   grid-column: 1 / 13;
   grid-row: 6 / 7; }
 
@@ -19337,7 +19377,7 @@ a.editable {
     width: 25% !important; }
   .news-feed {
     grid-row: 7 / 8; }
-  .report-orders {
+  .report-latest-orders {
     grid-row: 2 / 3; }
   .report-bestsellers {
     grid-column: 1 / 7;
@@ -19347,7 +19387,7 @@ a.editable {
     grid-row: 3 / 4; }
   .report-customer-registrations {
     grid-row: 4 / 5; }
-  .report-latest-orders {
+  .report-orders {
     grid-row: 5 / 6; }
   .report-store-statistics {
     grid-row: 6 / 7; } }
@@ -19415,7 +19455,7 @@ a.editable {
     inset-inline-end: 1rem; }
 
 .newsfeed-item-title {
-  margin-bottom: .5rem;
+  margin-bottom: 0.5rem;
   font-weight: 600; }
   .newsfeed-item-title > a {
     display: block;

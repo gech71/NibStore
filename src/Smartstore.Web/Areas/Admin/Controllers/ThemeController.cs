@@ -55,6 +55,7 @@ namespace Smartstore.Admin.Controllers
         {
             var selectedStoreId = storeId ?? Services.StoreContext.CurrentStore.Id;
             var themeSettings = await Services.SettingFactory.LoadSettingsAsync<ThemeSettings>(selectedStoreId);
+      
             var model = await MapperFactory.MapAsync<ThemeSettings, ThemeListModel>(themeSettings);
 
             var bundlingOptions = new List<SelectListItem>

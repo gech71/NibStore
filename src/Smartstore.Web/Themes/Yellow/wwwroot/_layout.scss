@@ -59,9 +59,48 @@ body {
     overflow-x: hidden;
 }  
 
-#header {
-    background-color: $header-bg;
+// #header {
+    // background-color: $header-bg;
+
+    // background-image: url('/images/yellow bg.png');
+    // background-size: cover;
+    // background-repeat: no-repeat;
+    // background-position: center;
+body #header,
+body #header .shopbar {
+    background-image: url('/Themes/Yellow/images/yellow bg.png') !important;
+    background-repeat: repeat !important;
+    background-size: cover !important;
+    background-position: center !important;
 }
+
+ #header,
+ #header .shopbar,
+ #header .shopbar-inverse,
+ .shopbar-inverse {
+     background-image: url('/Themes/Yellow/images/yellow bg.png') !important;
+     background-repeat: repeat !important;
+     background-size: cover !important;
+     background-position: center !important;
+     background-color: transparent !important;
+}
+
+#footer, .footer {
+    background-image: url('/Themes/Yellow/images/yellow bg.png');
+    background-repeat: repeat;
+    background-size: cover;
+    background-position: center;
+}
+
+.menubar, .navbar, .main-navbar {
+    //  background-image: url('/Themes/Yellow/images/yellow bg.png') !important;
+    background-repeat: repeat !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-color: transparent !important;
+}
+
+
 
 #content-wrapper {
     min-height: 300px;
