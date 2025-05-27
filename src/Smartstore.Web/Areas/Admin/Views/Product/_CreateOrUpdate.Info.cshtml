@@ -6,7 +6,7 @@
 @model ProductModel
 
 <script sm-target-zone="Scripts" data-origin="product-info">
-	$(function () {
+    $(function () {
         $('#@Html.IdFor(model => model.ProductTypeId)').on('change', function () {
             var selectedProductTypeId = $(this).val();
             if (selectedProductTypeId == '@((int)ProductType.SimpleProduct)') {
@@ -33,15 +33,15 @@
             }
             else if (selectedProductTypeId == '@((int)ProductType.BundledProduct)') {
                 $('#product-type-config').hide();
-        	    //$('a[href="#tab-inventory"]').parent().addClass("hide"); // specified in _CreateOrUpdate.cshtml
+                //$('a[href="#tab-inventory"]').parent().addClass("hide"); // specified in _CreateOrUpdate.cshtml
             }
         })
-        .trigger('change');
+            .trigger('change');
 
-		// Reset required product ids.
-		$("#reset-required-productids").on("click", function (e) {
-			e.preventDefault();
-			$("#@Html.IdFor(model => model.RequiredProductIds)").val("");
+        // Reset required product ids.
+        $("#reset-required-productids").on("click", function (e) {
+            e.preventDefault();
+            $("#@Html.IdFor(model => model.RequiredProductIds)").val("");
         });
 
         $('#btn-edit-product-type').on('click', function (e) {
@@ -80,7 +80,7 @@
                 }
             }
         });
-	});
+    });
 </script>
 
 <div class="adminContent mb-2">
@@ -141,10 +141,11 @@
             <smart-label asp-for="Visibility" />
         </div>
         <div class="adminData">
-            <select asp-for="Visibility" asp-items="Html.GetLocalizedEnumSelectList(typeof(ProductVisibility))"></select>
+            <select asp-for="Visibility"
+                asp-items="Html.GetLocalizedEnumSelectList(typeof(ProductVisibility))"></select>
             <span asp-validation-for="Visibility"></span>
         </div>
-    </div>   
+    </div>
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="ProductTypeId" />
@@ -152,7 +153,8 @@
         <div class="adminData">
             <div class="row flex-nowrap xs-gutters">
                 <div class="col">
-                    <select asp-for="ProductTypeId" asp-items="Html.GetLocalizedEnumSelectList(typeof(ProductType))"></select>
+                    <select asp-for="ProductTypeId"
+                        asp-items="Html.GetLocalizedEnumSelectList(typeof(ProductType))"></select>
                 </div>
                 <div id="product-type-config" class="col-auto">
                     <button id="btn-edit-product-type" type="button" class="btn btn-secondary">
@@ -162,18 +164,20 @@
             </div>
             <span asp-validation-for="ProductTypeId"></span>
         </div>
-    </div>  
+    </div>
     <div sm-if="Model.Id > 0 && Model.AssociatedToProductId > 0" class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="AssociatedToProductName" />
         </div>
         <div class="adminData">
             <div class="form-control-plaintext">
-                @Html.ActionLink(Model.AssociatedToProductName, "Edit", "Product", new { id = Model.AssociatedToProductId }, new { })
+                @Html.ActionLink(Model.AssociatedToProductName, "Edit", "Product", new { id =
+                Model.AssociatedToProductId }, new { })
             </div>
         </div>
     </div>
-    <div class="adminRow" attr-class='(ViewBag.AvailableProductTemplates.Count < 2, "hide hidden-xs-up d-none")' attr-hidden='(ViewBag.AvailableProductTemplates.Count < 2, "hidden")'>
+    <div class="adminRow" attr-class='(ViewBag.AvailableProductTemplates.Count < 2, "hide hidden-xs-up d-none")'
+        attr-hidden='(ViewBag.AvailableProductTemplates.Count < 2, "hidden")'>
         <div class="adminTitle">
             <smart-label asp-for="ProductTemplateId" />
         </div>
@@ -190,78 +194,77 @@
 }
 
 @(Html.LocalizedEditor<ProductModel, ProductLocalizedModel>("product-info-localized",
-	@<text>
-        <div class="adminContent">
-		    <div class="adminRow">
-			    <div class="adminTitle">
-				    <smart-label asp-for="Locales[item].Name" />
-			    </div>
-			    <div class="adminData">
-				    @*IMPORTANT: Do not delete, this hidden element contains the id to assign localized values to the corresponding language *@
-                    <input asp-for="Locales[item].LanguageId" type="hidden" />
-                    <input asp-for="Locales[item].Name" />
-				    <span asp-validation-for="Locales[item].Name"></span>
-			    </div>
-		    </div>
-		    <div class="adminRow">
-			    <div class="adminTitle">
-                    <smart-label asp-for="Locales[item].ShortDescription" />
-			    </div>
-			    <div class="adminData">
-                    <textarea asp-for="Locales[item].ShortDescription"></textarea>
-				    <span asp-validation-for="Locales[item].ShortDescription"></span>
-			    </div>
-		    </div>
-		    <div class="adminRow">
-			    <div class="adminTitle">
-                    <smart-label asp-for="Locales[item].FullDescription" />
-			    </div>
-                <div class="adminData wide">
-                    <html-editor asp-for="Locales[item].FullDescription" 
-                                 save-url="@(Url.PatchLocalizedEntity<Product>(nameof(Product.FullDescription), Model.Id, Model.Locales[item].LanguageId))" />
-                    <span asp-validation-for="Locales[item].FullDescription"></span>
-                </div>
-		    </div>
-	    </div>
-    </text>
-    ,
-	@<text>
-        <div class="adminContent">
-		    <div class="adminRow">
-			    <div class="adminTitle">
-				    <smart-label asp-for="Name" />
-			    </div>
-                <div class="adminData">
-                    <input asp-for="Name" />
-                    <span asp-validation-for="Name"></span>
-                </div>
-		    </div>
-		    <div class="adminRow">
-			    <div class="adminTitle">
-                    <smart-label asp-for="ShortDescription" />
-			    </div>
-			    <div class="adminData">
-                    <ai-text asp-for="ShortDescription" 
-                             entity-name="@Model.Name" 
-                             entity-type="Product">
-                        <textarea asp-for="ShortDescription"></textarea>
-                    </ai-text>
-				    <span asp-validation-for="ShortDescription"></span>
-			    </div>
-		    </div>
-		    <div class="adminRow">
-			    <div class="adminTitle">
-                    <smart-label asp-for="FullDescription" />
-			    </div>
-                <div class="adminData wide">
-                    <ai-rich-text asp-for="FullDescription" entity-name="@Model.Name" entity-type="Product">
-                        <html-editor asp-for="FullDescription" save-url="@(Url.PatchEntity<Product>(nameof(Product.FullDescription), Model.Id))" />
-                    </ai-rich-text>
-                    <span asp-validation-for="FullDescription"></span>
-                </div>
-		    </div>
-	    </div>
-	</text>)
+@<text>
+    <div class="adminContent">
+        <div class="adminRow">
+            <div class="adminTitle">
+                <smart-label asp-for="Locales[item].Name" />
+            </div>
+            <div class="adminData">
+                @*IMPORTANT: Do not delete, this hidden element contains the id to assign localized values to the corresponding language *@
+                <input asp-for="Locales[item].LanguageId" type="hidden" />
+                <input asp-for="Locales[item].Name" />
+                <span asp-validation-for="Locales[item].Name"></span>
+            </div>
+        </div>
+        <div class="adminRow">
+            <div class="adminTitle">
+                <smart-label asp-for="Locales[item].ShortDescription" />
+            </div>
+            <div class="adminData">
+                <textarea asp-for="Locales[item].ShortDescription"></textarea>
+                <span asp-validation-for="Locales[item].ShortDescription"></span>
+            </div>
+        </div>
+        <div class="adminRow">
+            <div class="adminTitle">
+                <smart-label asp-for="Locales[item].FullDescription" />
+            </div>
+            <div class="adminData wide">
+                <html-editor asp-for="Locales[item].FullDescription"
+                    save-url="@(Url.PatchLocalizedEntity<Product>(nameof(Product.FullDescription), Model.Id, Model.Locales[item].LanguageId))" />
+                <span asp-validation-for="Locales[item].FullDescription"></span>
+            </div>
+        </div>
+    </div>
+</text>
+,
+@<text>
+    <div class="adminContent">
+        <div class="adminRow">
+            <div class="adminTitle">
+                <smart-label asp-for="Name" />
+            </div>
+            <div class="adminData">
+                <input asp-for="Name" />
+                <span asp-validation-for="Name"></span>
+            </div>
+        </div>
+        <div class="adminRow">
+            <div class="adminTitle">
+                <smart-label asp-for="ShortDescription" />
+            </div>
+            <div class="adminData">
+                <ai-text asp-for="ShortDescription" entity-name="@Model.Name" entity-type="Product">
+                    <textarea asp-for="ShortDescription"></textarea>
+                </ai-text>
+                <span asp-validation-for="ShortDescription"></span>
+            </div>
+        </div>
+        <div class="adminRow">
+            <div class="adminTitle">
+                <smart-label asp-for="FullDescription" />
+            </div>
+            <div class="adminData wide">
+                <ai-rich-text asp-for="FullDescription" entity-name="@Model.Name" entity-type="Product">
+                    <html-editor asp-for="FullDescription"
+                        save-url="@(Url.PatchEntity<Product>(nameof(Product.FullDescription), Model.Id))" />
+                </ai-rich-text>
+                <span asp-validation-for="FullDescription"></span>
+            </div>
+        </div>
+    </div>
+</text>)
 )
 
 <div class="adminContent">
@@ -282,7 +285,7 @@
             <input asp-for="ManufacturerPartNumber" />
             <span asp-validation-for="ManufacturerPartNumber"></span>
         </div>
-    </div>  
+    </div>
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="Gtin" />
@@ -291,7 +294,7 @@
             <input asp-for="Gtin" />
             <span asp-validation-for="Gtin"></span>
         </div>
-    </div>  
+    </div>
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="CustomsTariffNumber" />
@@ -300,7 +303,7 @@
             <input asp-for="CustomsTariffNumber" />
             <span asp-validation-for="CustomsTariffNumber"></span>
         </div>
-    </div>  
+    </div>
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="DisplayOrder" />
@@ -327,7 +330,7 @@
             <editor asp-for="CountryOfOriginId" asp-template="Countries" />
             <span asp-validation-for="CountryOfOriginId"></span>
         </div>
-    </div>  
+    </div>
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="AdminComment" />
@@ -342,7 +345,8 @@
             <smart-label asp-for="ProductTagNames" />
         </div>
         <div class="adminData">
-            <select asp-for="ProductTagNames" asp-items="ViewBag.SelectedProductTags" class="noskin" multiple="multiple" data-tags="true"></select>
+            <select asp-for="ProductTagNames" asp-items="ViewBag.SelectedProductTags" class="noskin" multiple="multiple"
+                data-tags="true"></select>
             <span asp-validation-for="ProductTagNames"></span>
         </div>
     </div>
@@ -371,8 +375,8 @@
         <div class="adminData">
             <input asp-for="AllowCustomerReviews" />
             <span asp-validation-for="AllowCustomerReviews"></span>
-        </div> 
-    </div> 
+        </div>
+    </div>
     <div class="adminRow">
         <div class="adminTitle">
             <smart-label asp-for="ShowOnHomePage" />
@@ -381,7 +385,7 @@
             <input asp-for="ShowOnHomePage" data-toggler-for="#pnlHomePageDisplayOrder" />
             <span asp-validation-for="ShowOnHomePage"></span>
         </div>
-    </div> 
+    </div>
     <div class="adminRow" id="pnlHomePageDisplayOrder">
         <div class="adminTitle">
             <smart-label asp-for="HomePageDisplayOrder" />
@@ -435,15 +439,14 @@
                     <div class="input-group col">
                         <input asp-for="RequiredProductIds" readonly />
                         <span class="input-group-append">
-                            <entity-picker button-id="reset-required-productids"
-                                           asp-for="RequiredProductIds"
-                                           icon-css-class="fa fa-plus"
-                                           max-items="10"
-                                           dialog-title="@T("Admin.Catalog.Products.Fields.RequireOtherProducts")" />
+                            <entity-picker button-id="reset-required-productids" asp-for="RequiredProductIds"
+                                icon-css-class="fa fa-plus" max-items="10"
+                                dialog-title="@T("Admin.Catalog.Products.Fields.RequireOtherProducts")" />
                         </span>
                     </div>
                     <div class="col-auto">
-                        <a class="btn btn-secondary btn-to-danger btn-icon" id="reset-required-productids" title="@T("Admin.Common.Reset")">
+                        <a class="btn btn-secondary btn-to-danger btn-icon" id="reset-required-productids"
+                            title="@T("Admin.Common.Reset")">
                             <i class="far fa-trash-can"></i>
                         </a>
                     </div>
@@ -461,7 +464,7 @@
             </div>
         </div>
     </div>
-</div>  
+</div>
 
 <div class="adminContent" id="group-giftcard">
     <div class="adminRow">
@@ -519,7 +522,8 @@
                 <smart-label asp-for="RecurringCyclePeriodId" />
             </div>
             <div class="adminData">
-                <select asp-for="RecurringCyclePeriodId" asp-items="Html.GetLocalizedEnumSelectList(typeof(RecurringProductCyclePeriod))"></select>
+                <select asp-for="RecurringCyclePeriodId"
+                    asp-items="Html.GetLocalizedEnumSelectList(typeof(RecurringProductCyclePeriod))"></select>
                 <span asp-validation-for="RecurringCyclePeriodId"></span>
             </div>
         </div>
@@ -565,7 +569,8 @@
                 <smart-label asp-for="IsFreeShipping" />
             </div>
             <div class="adminData">
-                <input asp-for="IsFreeShipping" data-toggler-for="#ShippingChargeContainer" data-toggler-reverse="true" />
+                <input asp-for="IsFreeShipping" data-toggler-for="#ShippingChargeContainer"
+                    data-toggler-reverse="true" />
                 <span asp-validation-for="IsFreeShipping"></span>
             </div>
         </div>
@@ -583,7 +588,8 @@
                 <smart-label asp-for="QuantityUnitId" />
             </div>
             <div class="adminData">
-                <select asp-for="QuantityUnitId" asp-items="ViewBag.AvailableQuantityUnits" asp-placeholder="@T("Common.Unspecified")"></select>
+                <select asp-for="QuantityUnitId" asp-items="ViewBag.AvailableQuantityUnits"
+                    asp-placeholder="@T("Common.Unspecified")"></select>
                 <span asp-validation-for="QuantityUnitId"></span>
             </div>
         </div>

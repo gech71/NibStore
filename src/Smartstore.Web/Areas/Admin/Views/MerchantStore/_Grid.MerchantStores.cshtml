@@ -1,0 +1,41 @@
+@using Smartstore.Admin.Models.MerchantStores
+@model MerchantStoreModel
+
+@{
+    ViewBag.Title = T("Admin.Catalog.MerchantStores").Value;
+}
+
+<div class="alert alert-info alert-dismissible">
+    @T("Admin.Catalog.MerchantStores.Description")
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+</div>
+
+<datagrid id="merchantstores-grid" allow-resize="true" allow-row-selection="true" allow-column-reordering="true"
+    onrowclass="merchantStoresGrid_onRowClass">
+    <datasource read="@Url.Action("MerchantStoreList")" />
+    <paging position="Bottom" show-size-chooser="true" />
+    <sorting enabled="true">
+        <sort by="DisplayOrder" />
+    </sorting>
+    <columns>
+        <column for="Name" hideable="false" />
+        <column for="Address" width="2fr" />
+        <column for="OpeningHours" width="1fr" />
+        <column for="OpeningTime" width="1fr" />
+        <column for="ClosingTime" width="1fr" />
+        <column for="Published" halign="center" />
+    </columns>
+    <row-commands>
+        <a datarow-action="DataRowAction.Custom" class="merchantstores-edit"
+            v-bind:href="item.row.EditUrl">@T("Common.Edit")</a>
+        <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
+    </row-commands>
+</datagrid>
+
+<script>
+    function merchantStoresGrid_onRowClass(row) {
+        return {
+            "text-muted": !row.Published
+        };
+    }
+</script>

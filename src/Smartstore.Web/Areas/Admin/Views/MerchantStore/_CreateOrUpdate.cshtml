@@ -1,0 +1,96 @@
+@using Smartstore.Admin.Models.MerchantStores
+@model MerchantStoreModel
+
+@{
+    ViewBag.Title = T("Admin.Catalog.MerchantStores").Value;
+}
+
+<div asp-validation-summary="All"></div>
+
+<tabstrip id="merchantstore-edit" sm-nav-style="Material">
+    <tab sm-title="@T("Admin.Common.General")" sm-selected="true">
+        <div class="adminContent">
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="Name" />
+                </div>
+                <div class="adminData">
+                    <input asp-for="Name" />
+                    <span asp-validation-for="Name"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="Description" />
+                </div>
+                <div class="adminData">
+                    <editor asp-for="Description" />
+                    <span asp-validation-for="Description"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="Address" />
+                </div>
+                <div class="adminData">
+                    <textarea asp-for="Address" rows="4"></textarea>
+                    <span asp-validation-for="Address"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="OpeningHours" />
+                </div>
+                <div class="adminData">
+                    <input asp-for="OpeningHours" />
+                    <span asp-validation-for="OpeningHours"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="OpeningTime" />
+                </div>
+                <div class="adminData">
+                    <input asp-for="OpeningTime" type="time" />
+                    <span asp-validation-for="OpeningTime"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="ClosingTime" />
+                </div>
+                <div class="adminData">
+                    <input asp-for="ClosingTime" type="time" />
+                    <span asp-validation-for="ClosingTime"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="DisplayOrder" />
+                </div>
+                <div class="adminData">
+                    <editor asp-for="DisplayOrder" />
+                    <span asp-validation-for="DisplayOrder"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="Published" />
+                </div>
+                <div class="adminData">
+                    <input asp-for="Published" />
+                    <span asp-validation-for="Published"></span>
+                </div>
+            </div>
+            <div class="adminRow">
+                <div class="adminTitle">
+                    <smart-label asp-for="MediaFileId" />
+                </div>
+                <div class="adminData">
+                    <editor asp-for="MediaFileId" />
+                    <span asp-validation-for="MediaFileId"></span>
+                </div>
+            </div>
+        </div>
+    </tab>
+</tabstrip>
