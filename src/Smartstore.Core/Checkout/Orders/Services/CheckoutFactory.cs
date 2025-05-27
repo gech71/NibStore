@@ -17,7 +17,7 @@ namespace Smartstore.Core.Checkout.Orders
                 _isTerminalCheckout = true;
 
                 _handlers = handlers
-                    .Where(x => x.Metadata.HandlerType.Equals(typeof(ConfirmHandler)))
+                    .Where(x => x.Metadata.HandlerType.Equals(typeof(ConfirmHandler)) || x.Metadata.HandlerType.Equals(typeof(ShippingMethodHandler)))
                     .OrderBy(x => x.Metadata.Order);
             }
             else if (shoppingCartSettings.CheckoutProcess.EqualsNoCase(CheckoutProcess.TerminalWithPayment))
@@ -25,7 +25,7 @@ namespace Smartstore.Core.Checkout.Orders
                 _isTerminalCheckout = true;
 
                 _handlers = handlers
-                    .Where(x => x.Metadata.HandlerType.Equals(typeof(ConfirmHandler)) || x.Metadata.HandlerType.Equals(typeof(PaymentMethodHandler)))
+                    .Where(x => x.Metadata.HandlerType.Equals(typeof(ConfirmHandler)) || x.Metadata.HandlerType.Equals(typeof(PaymentMethodHandler)) || x.Metadata.HandlerType.Equals(typeof(ShippingMethodHandler)))
                     .OrderBy(x => x.Metadata.Order);
             }
             else

@@ -198,7 +198,7 @@ namespace Smartstore.Web.Controllers
                 return RedirectToRoute("Login", new { checkoutAsGuest = _orderSettings.AnonymousCheckoutAllowed, returnUrl = Url.RouteUrl("ShoppingCart") });
             }
 
-            return RedirectToRoute("Checkout");
+            return RedirectToAction("ShippingMethod", "Checkout");
         }
 
         /// <summary>

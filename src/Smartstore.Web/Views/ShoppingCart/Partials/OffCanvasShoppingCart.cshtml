@@ -10,7 +10,7 @@
 
     var checkoutUrl = Model.AnonymousCheckoutAllowed && Model.CurrentCustomerIsGuest
         ? Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("ShoppingCart") })
-        : Url.RouteUrl("Checkout");
+        : Url.Action("ShippingMethod", "Checkout");
 }
 
 <div class="offcanvas-cart-body offcanvas-scrollable">

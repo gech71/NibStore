@@ -299,30 +299,28 @@ namespace Smartstore.Core.Installation
 
         public IList<ShippingMethod> ShippingMethods(bool includeSamples)
         {
-            var entities = new List<ShippingMethod>
+            var entities = new List<ShippingMethod>();
+
+            void AddIfNotExists(string name, string description, int displayOrder, bool ignoreCharges = false)
             {
-                new ShippingMethod
+                if (!_db.ShippingMethods.Any(x => x.Name == name))
                 {
-                    Name = "In-Store Pickup",
-                    Description ="Pick up your items at the store",
-                    DisplayOrder = 0
-                },
-                new ShippingMethod
-                {
-                    Name = "By Ground",
-                    Description ="Compared to other shipping methods, like by flight or over seas, ground shipping is carried out closer to the earth",
-                    DisplayOrder = 1
-                },
-            };
+                    entities.Add(new ShippingMethod
+                    {
+                        Name = name,
+                        Description = description,
+                        DisplayOrder = displayOrder,
+                        IgnoreCharges = ignoreCharges
+                    });
+                }
+            }
+
+            AddIfNotExists("In-Store Pickup", "Pick up your items at the store", 0);
+            AddIfNotExists("By Ground", "Compared to other shipping methods, like by flight or over seas, ground shipping is carried out closer to the earth", 1);
 
             if (includeSamples)
             {
-                entities.Add(new ShippingMethod
-                {
-                    Name = "Free shipping",
-                    DisplayOrder = 2,
-                    IgnoreCharges = true
-                });
+                AddIfNotExists("Free shipping", "", 2, true);
             }
 
             Alter(entities);
@@ -499,107 +497,33 @@ namespace Smartstore.Core.Installation
 
         public IList<Topic> Topics()
         {
-            var entities = new List<Topic>
-            {
-                new Topic
-                    {
-                        SystemName = "AboutUs",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        Title = "About Us",
-                        Body = "<p>Put your &quot;About Us&quot; information here. You can edit this in the admin site.</p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "CheckoutAsGuestOrRegister",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        RenderAsWidget = true,
-                        WidgetWrapContent = false,
-                        Title = "",
-                        Body = "<p><strong>Register and save time!</strong><br />Register with us for future convenience:</p><ul><li>Fast and easy check out</li><li>Easy access to your order history and status</li></ul>"
-                    },
-                new Topic
-                    {
-                        SystemName = "ConditionsOfUse",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        Title = "Conditions of use",
-                        Body = "<p>Put your conditions of use information here. You can edit this in the admin site.</p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "ContactUs",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        RenderAsWidget = true,
-                        WidgetWrapContent = false,
-                        Title = "Contact us",
-                        Body = "<p>Put your contact information here. You can edit this in the admin site.</p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "HomePageText",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        RenderAsWidget = true,
-                        WidgetWrapContent = false,
-                        Title = "Welcome to our store",
-                        Body = "<p>Online shopping is the process consumers go through to purchase products or services over the Internet. You can edit this in the admin site.</p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "LoginRegistrationInfo",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        RenderAsWidget = true,
-                        WidgetWrapContent = false,
-                        Title = "About login / registration",
-                        Body = "<p><strong>Not registered yet?</strong></p><p>Create your own account now and experience our diversity. With an account you can place orders faster and will always have a&nbsp;perfect overview of your current and previous orders.</p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "PrivacyInfo",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        ShortTitle = "Privacy",
-                        Title = "Privacy policy",
-                        Body = "<p><strong></strong></p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "ShippingInfo",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        Title = "Shipping & Returns",
-                        Body = "<p>Put your shipping &amp; returns information here. You can edit this in the admin site.</p>"
-                    },
+            var entities = new List<Topic>();
 
-                new Topic
+            void AddTopicIfNotExists(string systemName, string title, string body)
+            {
+                if (!_db.Topics.Any(x => x.SystemName == systemName))
+                {
+                    entities.Add(new Topic
                     {
-                        SystemName = "Imprint",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        Title = "Imprint",
-                        Body = "<p>Put your imprint information here. You can edit this in the admin site.</p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "Disclaimer",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        Title = "Disclaimer",
-                        Body = "<p>Put your disclaimer information here. You can edit this in the admin site.</p>"
-                    },
-                new Topic
-                    {
-                        SystemName = "PaymentInfo",
-                        IncludeInSitemap = false,
-                        IsPasswordProtected = false,
-                        Title = "Payment info",
-                        Body = "<p>Put your payment information here. You can edit this in the admin site.</p>"
-                    },
-            };
+                        SystemName = systemName,
+                        Title = title,
+                        Body = body
+                    });
+                }
+            }
+
+            AddTopicIfNotExists("AboutUs", "About Us", "<p>Put your &quot;About Us&quot; information here. You can edit this in the admin site.</p>");
+            AddTopicIfNotExists("CheckoutAsGuestOrRegister", "Checkout as Guest or Register", "<p><strong>Register and save time!</strong><br />Register with us for future convenience:</p><ul><li>Fast and easy check out</li><li>Easy access to your order history and status</li></ul>");
+            AddTopicIfNotExists("ConditionsOfUse", "Conditions of use", "<p>Put your conditions of use information here. You can edit this in the admin site.</p>");
+            AddTopicIfNotExists("ContactUs", "Contact us", "<p>Put your contact information here. You can edit this in the admin site.</p>");
+            AddTopicIfNotExists("HomePageText", "Welcome to our store", "<p>Online shopping is the process consumers go through to purchase products or services over the Internet. You can edit this in the admin site.</p>");
+            AddTopicIfNotExists("LoginRegistrationInfo", "About login / registration", "<p><strong>Not registered yet?</strong></p><p>Create your own account now and experience our diversity. With an account you can place orders faster and will always have a&nbsp;perfect overview of your current and previous orders.</p>");
+            AddTopicIfNotExists("PrivacyInfo", "Privacy policy", "<p><strong></strong></p>");
+            AddTopicIfNotExists("ShippingInfo", "Shipping & Returns", "<p>Put your shipping &amp; returns information here. You can edit this in the admin site.</p>");
+            AddTopicIfNotExists("Imprint", "Imprint", "<p>Put your imprint information here. You can edit this in the admin site.</p>");
+            AddTopicIfNotExists("Disclaimer", "Disclaimer", "<p>Put your disclaimer information here. You can edit this in the admin site.</p>");
+            AddTopicIfNotExists("PaymentInfo", "Payment info", "<p>Put your payment information here. You can edit this in the admin site.</p>");
+
             Alter(entities);
             return entities;
         }
