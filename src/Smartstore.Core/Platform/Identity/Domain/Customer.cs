@@ -255,6 +255,9 @@ namespace Smartstore.Core.Identity
         /// <inheritdoc/>
         public bool LimitedToStores { get; set; }
 
+        // public string OTPCode { get; set; } 
+        // public DateTime OtpCodeCreationDate { get; set; } = DateTime.UtcNow;
+
         #region Navigation properties
 
         private Address _billingAddress;

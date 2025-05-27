@@ -176,6 +176,9 @@ namespace Smartstore.Admin.Models.Customers
         [LocalizedDisplay("Admin.Common.Store.LimitedTo")]
         public bool LimitedToStores { get; set; }
 
+        public string OTPCode { get; set; } 
+        public DateTime OtpCodeCreationDate { get; set; } = DateTime.UtcNow;
+
         #region Nested classes
 
         [LocalizedDisplay("Admin.Customers.Customers.AssociatedExternalAuth.Fields.")]
