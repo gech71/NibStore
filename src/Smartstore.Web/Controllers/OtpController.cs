@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-using Smartstore.Services.Otp;
+using Smartstore.Core.Common.Services;
 
 [Route("otp")]
 public class OtpController : Controller

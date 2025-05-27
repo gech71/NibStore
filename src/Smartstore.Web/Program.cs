@@ -40,6 +40,7 @@ using Smartstore.Core.Data.Migrations;
 using Smartstore.Core.Logging.Serilog;
 using Smartstore.Core.Platform.Identity.Services;
 using Smartstore.Utilities;
+using Smartstore.Core.Common.Services;
 
 var rgSystemSource = new Regex("^File|^System|^Microsoft|^Serilog|^Autofac|^Castle|^MiniProfiler|^Newtonsoft|^Pipelines|^Azure|^StackExchange|^Superpower|^Dasync", RegexOptions.Compiled);
 var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environments.Production;
@@ -77,8 +78,8 @@ var engineStarter = engine.Start(appContext);
 
 // Add services to the container.
 builder.Services.AddScoped<IUserPhoneStore, UserPhoneStore>();
-builder.Services.AddSingleton<IOtpService, OtpService>();
-builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache(); // Make sure this is added too
+builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddControllers();    // Required for MVC controllers
 builder.Services.AddSession(); 
 
@@ -111,7 +112,8 @@ var app = builder.Build();
 
 //tade
 app.UseSession();         // ✅ Add this line to enable session support
-app.UseRouting();   
+app.UseRouting();  
+
 
 // At this stage we can access IServiceProvider.
 var providerContainer = appContext as IServiceProviderContainer;
@@ -286,4 +288,3 @@ bool IsApiQueryWarning(LogEvent e)
 }
 
 #endregion
-

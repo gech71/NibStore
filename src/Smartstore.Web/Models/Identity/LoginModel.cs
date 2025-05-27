@@ -10,6 +10,7 @@ namespace Smartstore.Web.Models.Identity
 
         [LocalizedDisplay("*PhoneNumber", Prompt = "*PhoneNumber")]
         public string PhoneNumber { get; set; }
+        public string OtpCode { get; set; }
 
         [LocalizedDisplay("*RememberMe")]
         public bool RememberMe { get; set; }
@@ -24,6 +25,8 @@ namespace Smartstore.Web.Models.Identity
                 .WithMessage("Phone number is required.")
                 .Matches(@"^(?:\+251|0)(?:9|7)\d{8}$")
                 .WithMessage("Invalid phone number format. Example: +251912345678 or 0912345678");
+            RuleFor(x => x.OtpCode).NotEmpty().WithMessage("OTP is required.");
+       
         }
     }
 }

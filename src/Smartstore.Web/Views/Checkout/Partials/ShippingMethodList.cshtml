@@ -1,6 +1,15 @@
 ﻿@using Smartstore.Web.Models.Checkout
-
 @model CheckoutShippingMethodModel
+
+@{
+    // Simulated in-store list
+    var dummyStores = new List<dynamic>
+    {
+        new { StoreId = 1, StoreName = "Addis Ababa Branch" },
+        new { StoreId = 2, StoreName = "Bahir Dar Branch" },
+        new { StoreId = 3, StoreName = "Gondar Branch" }
+    };
+}
 
 <zone name="checkout_shipping_method_content_before" />
 
@@ -22,13 +31,13 @@ else
         {
             var shippingMethod = Model.ShippingMethods[i];
 
-            <li class="list-group-item opt-list-item shipping-option-item" attr-class='(shippingMethod.Selected, "active")'>
+            <li class="list-group-item opt-list-item shipping-option-item @(shippingMethod.Selected ? "active" : "")">
                 <div class="opt-data">
                     <div class="form-check opt-control option-name radio">
                         <input id="shippingoption_@(i)" type="radio" name="shippingoption"
-                                class="opt-radio form-check-input"
-                                attr-checked='(shippingMethod.Selected, "checked")'
-                                value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)" />
+                               class="opt-radio form-check-input"
+                               @(shippingMethod.Selected ? "checked" : "")
+                               value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)" />
                         <label class="form-check-label" for="shippingoption_@(i)">
                             <span class="opt-name">@Html.Raw(shippingMethod.Name.HtmlDecode())</span>
                         </label>
@@ -53,9 +62,23 @@ else
                     }
                     else
                     {
-                        @Html.Raw(shippingMethod.Description);
+                        @Html.Raw(shippingMethod.Description)
                     }
                 </div>
+
+                @* Only show dropdown if InStore is selected *@
+                @if (shippingMethod.ShippingRateComputationMethodSystemName == "InStore" || shippingMethod.Selected)
+                {
+                    <div class="form-group mt-2">
+                        <label for="storeSelect_@(i)">Select a Store</label>
+                        <select id="storeSelect_@(i)" name="SelectedStoreId" class="form-control">
+                            @foreach (var store in dummyStores)
+                            {
+                                <option value="@store.StoreId">@store.StoreName</option>
+                            }
+                        </select>
+                    </div>
+                }
             </li>
         }
     </ul>

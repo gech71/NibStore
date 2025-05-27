@@ -5,7 +5,7 @@ using Smartstore.ComponentModel;
 using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Checkout.Tax;
 using Smartstore.Core.Common.Configuration;
-using Smartstore.Core.Common.Services;
+
 using Smartstore.Core.Identity;
 using Smartstore.Core.Localization;
 using Smartstore.Core.Localization.Routing;
@@ -20,7 +20,7 @@ using Smartstore.Engine.Modularity;
 using Smartstore.Web.Models.Customers;
 using Smartstore.Web.Models.Identity;
 using Smartstore.Web.Rendering;
-
+using Smartstore.Core.Common.Services;
 namespace Smartstore.Web.Controllers
 {
     public class IdentityController : PublicController
@@ -44,27 +44,28 @@ namespace Smartstore.Web.Controllers
         private readonly ExternalAuthenticationSettings _externalAuthenticationSettings;
         private readonly RewardPointsSettings _rewardPointsSettings;
         private  readonly IUserPhoneStore _userPhoneStore;
-
+        private readonly IOtpService _otpService;
         public IdentityController(
-            SmartDbContext db,
-            UserManager<Customer> userManager,
-            SignInManager<Customer> signInManager,
-            RoleManager<CustomerRole> roleManager,
-            IProviderManager providerManager,
-            ITaxService taxService,
-            IAddressService addressService,
-            IShoppingCartService shoppingCartService,
-            IMessageFactory messageFactory,
-            IWebHelper webHelper,
-            IDateTimeHelper dateTimeHelper,
-            CustomerSettings customerSettings,
-            CaptchaSettings captchaSettings,
-            DateTimeSettings dateTimeSettings,
-            TaxSettings taxSettings,
-            LocalizationSettings localizationSettings,
-            ExternalAuthenticationSettings externalAuthenticationSettings,
-            RewardPointsSettings rewardPointsSettings,
-            IUserPhoneStore userPhoneStore)
+       SmartDbContext db,
+       UserManager<Customer> userManager,
+       SignInManager<Customer> signInManager,
+       RoleManager<CustomerRole> roleManager,
+       IProviderManager providerManager,
+       ITaxService taxService,
+       IAddressService addressService,
+       IShoppingCartService shoppingCartService,
+       IMessageFactory messageFactory,
+       IWebHelper webHelper,
+       IDateTimeHelper dateTimeHelper,
+       CustomerSettings customerSettings,
+       CaptchaSettings captchaSettings,
+       DateTimeSettings dateTimeSettings,
+       TaxSettings taxSettings,
+       LocalizationSettings localizationSettings,
+       ExternalAuthenticationSettings externalAuthenticationSettings,
+       RewardPointsSettings rewardPointsSettings,
+       IUserPhoneStore userPhoneStore,
+       IOtpService otpService)
         {
             _db = db;
             _userManager = userManager;
@@ -85,6 +86,7 @@ namespace Smartstore.Web.Controllers
             _externalAuthenticationSettings = externalAuthenticationSettings;
             _rewardPointsSettings = rewardPointsSettings;
             _userPhoneStore = userPhoneStore;
+            _otpService = otpService;
         }
 
         #region Login / Logout / Register
@@ -152,6 +154,7 @@ namespace Smartstore.Web.Controllers
             return Redirect(returnUrl);
         }
 
+
         [NeverAuthorize, CheckStoreClosed(false)]
         [DisallowRobot(true)]
         [LocalizedRoute("/logout", Name = "Logout")]
@@ -199,7 +202,7 @@ namespace Smartstore.Web.Controllers
 
             return View(model);
         }
-        [HttpPost]
+       [HttpPost]
         [AllowAnonymous, NeverAuthorize]
         [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnRegistrationPage))]
         [ValidateAntiForgeryToken, ValidateHoneypot]
@@ -291,7 +294,6 @@ namespace Smartstore.Web.Controllers
             await PrepareRegisterModelAsync(model);
             return View(model);
         }
-
         [HttpGet]
         [AllowAnonymous, NeverAuthorize]
         [LocalizedRoute("/registerresult", Name = "RegisterResult")]

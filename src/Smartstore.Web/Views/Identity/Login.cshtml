@@ -26,32 +26,28 @@
 
         <div asp-validation-summary="ModelOnly">@T("Account.Login.Unsuccessful")</div>
 
-        <!-- SignIn Form -->
         <form asp-route="Login" asp-route-returnurl="@returnUrl" method="post" autocomplete="off">
-            <!-- Phone Number Field -->
+            <!-- Phone Number Input -->
             <div class="form-floating mb-3">
                 <input asp-for="PhoneNumber" class="form-control" autofocus="autofocus" autocomplete="tel" placeholder="@Html.DisplayNameFor(x => x.PhoneNumber)" />
                 <label asp-for="PhoneNumber"></label>
-                <span asp-validation-for="PhoneNumber"></span>
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
             </div>
 
-            <!--tade -->
-            <!-- OTP Request Button -->
+            <!-- Send OTP Button -->
             <div class="mb-3">
                 <button type="button" id="btn-send-otp" class="btn btn-outline-secondary" onclick="sendOtp()">Get OTP</button>
                 <span id="otp-message" class="text-success ms-2"></span>
             </div>
 
-            <!-- OTP Code (hidden initially) -->
+            <!-- OTP Input (Initially hidden) -->
             <div class="form-floating mb-3 d-none" id="otp-code-section">
                 <input asp-for="OtpCode" class="form-control" placeholder="Enter OTP" />
                 <label asp-for="OtpCode"></label>
-                <span asp-validation-for="OtpCode"></span>
+                <span asp-validation-for="OtpCode" class="text-danger"></span>
             </div>
 
-            <!--tade -->
-
-            <!-- Remember Me (optional, can be removed too if not needed) -->
+            <!-- Remember Me & Forgot Password -->
             <div class="form-group d-flex justify-content-between align-items-center">
                 <input asp-for="RememberMe" sm-switch="false" />
                 <div class="forgot-password">
@@ -59,7 +55,7 @@
                 </div>
             </div>
 
-            <!-- Submit Button -->
+            <!-- Submit -->
             <div class="form-group">
                 <button type="submit" class="btn btn-primary btn-lg btn-block btn-login btn-prevent-multiclick">
                     @T("Account.Login.LoginButton")
@@ -67,75 +63,63 @@
             </div>
         </form>
 
-                 <!--tade -->
-         
         @section Scripts {
-            <!-- jQuery must be loaded first -->
-        <script src="/lib/jquery/jquery-3.7.1.js"></script>
-
-        <!-- Then load the megaMenu plugin -->
-        <script src="/lib/jquery-plugins/megaMenu.js"></script>
+            <script src="/lib/jquery/jquery-3.7.1.js"></script>
+            <script src="/lib/jquery-plugins/megaMenu.js"></script>
             <script>
-            let countdownDuration = 60; // seconds
-            let countdownInterval;
+                let countdownDuration = 60;
+                let countdownInterval;
 
-            function sendOtp() {
-                var phoneNumber = document.querySelector('[name="PhoneNumber"]').value;
-                if (!phoneNumber) {
-                    alert("Please enter your phone number first.");
-                    return;
+                function sendOtp() {
+                    var phoneNumber = document.querySelector('[name="PhoneNumber"]').value;
+                    if (!phoneNumber) {
+                        alert("Please enter your phone number first.");
+                        return;
+                    }
+
+                    disableOtpButton();
+
+                    fetch('/otp/send', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: 'phoneNumber=' + encodeURIComponent(phoneNumber)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        document.getElementById('otp-message').innerText = `Your OTP is: ${data.otp}`;
+                        document.getElementById('otp-code-section').classList.remove('d-none');
+                    })
+                    .catch(err => {
+                        alert('Error sending OTP.');
+                        enableOtpButton();
+                    });
                 }
 
-                // Disable the button immediately after click
-                disableOtpButton();
-
-                fetch('/otp/send', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: 'phoneNumber=' + encodeURIComponent(phoneNumber)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log(data);
-                    document.getElementById('otp-message').innerText = `${data.message} Your OTP is: ${data.otp}`;
-
-                    // Show OTP input
-                    document.getElementById('otp-code-section').classList.remove('d-none');
-                })
-                .catch(err => {
-                    alert('Error sending OTP.');
-                    // Re-enable button if error occurs
-                    enableOtpButton();
-                });
-            }
-
-            function disableOtpButton() {
-                const btn = document.getElementById('btn-send-otp');
-                btn.disabled = true;
-                let timeLeft = countdownDuration;
-                btn.innerText = `Resend OTP (${timeLeft}s)`;
-
-                countdownInterval = setInterval(() => {
-                    timeLeft--;
+                function disableOtpButton() {
+                    const btn = document.getElementById('btn-send-otp');
+                    btn.disabled = true;
+                    let timeLeft = countdownDuration;
                     btn.innerText = `Resend OTP (${timeLeft}s)`;
-                    if (timeLeft <= 0) {
-                        clearInterval(countdownInterval);
-                        enableOtpButton();
-                    }
-                }, 1000);
-            }
 
-            function enableOtpButton() {
-                const btn = document.getElementById('btn-send-otp');
-                btn.disabled = false;
-                btn.innerText = "Get OTP";
-            }
-        </script>
+                    countdownInterval = setInterval(() => {
+                        timeLeft--;
+                        btn.innerText = `Resend OTP (${timeLeft}s)`;
+                        if (timeLeft <= 0) {
+                            clearInterval(countdownInterval);
+                            enableOtpButton();
+                        }
+                    }, 1000);
+                }
 
+                function enableOtpButton() {
+                    const btn = document.getElementById('btn-send-otp');
+                    btn.disabled = false;
+                    btn.innerText = "Get OTP";
+                }
+            </script>
         }
-
     }
 
     async Task RegisterBlock()
@@ -148,6 +132,7 @@
             @if (Model.CheckoutAsGuest)
             {
                 @await Component.InvokeAsync("TopicBlock", new { systemName = "CheckoutAsGuestOrRegister", bodyOnly = true })
+
                 <div class="row g-2">
                     <div class="col-12">
                         <a class="btn btn-warning btn-lg btn-block register-button" href="@registerUrl">
@@ -177,7 +162,6 @@
 }
 
 <div class="page login-page">
-	
     <div class="row mb-4">
         <div class="col-12 col-md-10 offset-md-1 col-xl-8 offset-xl-2">
             <div class="page-title">
