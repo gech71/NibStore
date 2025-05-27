@@ -1,3 +1,4 @@
+﻿
 ﻿@using Smartstore.Web.Models.Checkout
 
 @model CheckoutShippingMethodModel
@@ -22,13 +23,14 @@ else
         {
             var shippingMethod = Model.ShippingMethods[i];
 
-            <li class="list-group-item opt-list-item shipping-option-item" attr-class='(shippingMethod.Selected, "active")'>
+            <li class="list-group-item opt-list-item shipping-option-item" data-index="@i">
                 <div class="opt-data">
                     <div class="form-check opt-control option-name radio">
                         <input id="shippingoption_@(i)" type="radio" name="shippingoption"
                                 class="opt-radio form-check-input"
-                                attr-checked='(shippingMethod.Selected, "checked")'
-                                value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)" />
+                                @(shippingMethod.Selected ? "checked" : "")
+                                value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)" 
+                                data-shipping-name="@shippingMethod.Name" />
                         <label class="form-check-label" for="shippingoption_@(i)">
                             <span class="opt-name">@Html.Raw(shippingMethod.Name.HtmlDecode())</span>
                         </label>
@@ -38,6 +40,16 @@ else
                         @shippingMethod.Fee
                     </div>
                 </div>
+
+                @* Custom UI for "By Ground" shipping method, hidden by default, shown only when selected *@
+                @if (shippingMethod.Name == "By Ground")
+                {
+                    <div class="by-ground-extra mt-2" style="display:@(shippingMethod.Selected ? "flex" : "none"); align-items:center;">
+                        <button type="button" class="btn btn-sm btn-primary mr-2 current-location-btn">Current Location</button>
+                        <input type="text" class="form-control mr-2 map-address-input" style="max-width:250px;" placeholder="Enter address or use current location" />
+                        <a class="google-map-link" href="#" target="_blank" style="display:none;">Open in Google Maps</a>
+                    </div>
+                }
 
                 <div sm-if="shippingMethod.Description.HasValue()" class="opt-info text-muted shipping-option-description">
                     @if (shippingMethod.BrandUrl.HasValue())
@@ -62,3 +74,59 @@ else
 }
 
 <zone name="checkout_shipping_method_content_after" />
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Show/hide By Ground extra fields on radio change
+  document.body.addEventListener('change', e => {
+    if (!e.target.matches('input[type=radio][name=shippingoption]')) return;
+    document.querySelectorAll('.by-ground-extra').forEach(el => el.style.display = 'none');
+    // Only show if By Ground is selected
+    if (e.target.dataset.shippingName === 'By Ground') {
+      const container = e.target.closest('[data-index]');
+      const extra = container.querySelector('.by-ground-extra');
+      if (extra) extra.style.display = 'flex';
+    }
+  });
+
+  // Current Location button logic
+  document.body.addEventListener('click', async e => {
+    if (!e.target.classList.contains('current-location-btn')) return;
+    const container = e.target.closest('[data-index]');
+    const addressInput = container.querySelector('.map-address-input');
+    const link        = container.querySelector('.google-map-link');
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+    e.target.disabled = true;
+    e.target.innerText = 'Locating…';
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      addressInput.value = `${lat},${lng}`;
+      link.href = `https://www.google.com/maps?q=${encodeURIComponent(addressInput.value)}`;
+      link.style.display = 'inline';
+      e.target.innerText = 'Current Location';
+      e.target.disabled  = false;
+    }, err => {
+      alert('Could not get location: ' + err.message);
+      e.target.innerText = 'Current Location';
+      e.target.disabled  = false;
+    });
+  });
+
+  // Update Google Maps link when address field changes
+  document.body.addEventListener('input', e => {
+    if (!e.target.classList.contains('map-address-input')) return;
+    const container = e.target.closest('[data-index]');
+    const link      = container.querySelector('.google-map-link');
+    if (e.target.value.trim()) {
+       link.href   = `https://www.google.com/maps?q=${encodeURIComponent(e.target.value)}`;
+       link.style.display = 'inline';
+    } else {
+       link.style.display = 'none';
+    }
+  });
+});
+</script>
