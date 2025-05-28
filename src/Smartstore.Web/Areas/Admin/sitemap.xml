@@ -71,6 +71,16 @@
                 permissionNames="catalog.manufacturer"
             />
             <siteMapNode
+                id="merchantstores"
+                icon="bi:shop"
+                title="Merchant Stores"
+                resKey="Admin.Catalog.MerchantStores"
+                controller="MerchantStore"
+                action="List"
+                area="Admin"
+                permissionNames="catalog.merchantstore"
+            />
+            <siteMapNode
                 id="tags"
                 icon="bi:tags"
                 title="Product tags"

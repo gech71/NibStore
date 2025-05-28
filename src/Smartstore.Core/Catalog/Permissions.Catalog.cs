@@ -56,6 +56,15 @@
                 public const string EditProduct = "catalog.manufacturer.editproduct";
             }
 
+            public static class MerchantStore
+            {
+                public const string Self = "catalog.merchantstore";
+                public const string Read = "catalog.merchantstore.read";
+                public const string Update = "catalog.merchantstore.update";
+                public const string Create = "catalog.merchantstore.create";
+                public const string Delete = "catalog.merchantstore.delete";
+            }
+
             public static class Variant
             {
                 public const string Self = "catalog.variant";
