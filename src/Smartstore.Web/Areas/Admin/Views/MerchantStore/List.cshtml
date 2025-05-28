@@ -1,0 +1,17 @@
+@using Smartstore.Admin.Models.MerchantStores
+@model MerchantStoreModel
+@{
+    ViewBag.Title = T("Admin.Catalog.MerchantStores").Value;
+}
+
+<div class="section-header">
+    <div class="title">
+        <i class="fa fa-store"></i>
+        <span>@ViewBag.Title</span>
+    </div>
+    <div class="options"></div>
+    <zone name="admin_button_toolbar_before" />
+    <zone name="admin_button_toolbar_after" />
+</div>
+
+<partial name="_Grid.MerchantStores" model="null" />

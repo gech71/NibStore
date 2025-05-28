@@ -1,0 +1,31 @@
+@using Smartstore.Admin.Models.MerchantStores
+@model MerchantStoreModel
+
+@{
+    ViewBag.Title = T("Admin.Catalog.MerchantStores.Edit").Value + " - " + Model.Name;
+}
+
+<form asp-action="Edit">
+    <div class="section-header">
+        <div class="title">
+            <i class="fa fa-store"></i>
+            <span>@ViewBag.Title</span>
+            <a asp-action="List">(@T("Admin.Common.BackToList"))</a>
+        </div>
+        <div class="options">
+            <button type="submit" name="save" value="save" class="btn btn-warning">
+                <i class="fa fa-check"></i>
+                <span>@T("Admin.Common.Save")</span>
+            </button>
+            <button type="submit" name="save" value="save-continue" class="btn btn-secondary">
+                <span>@T("Admin.Common.SaveContinue")</span>
+            </button>
+            <a href="@Url.Action("Delete", new { id = Model.Id })" class="btn btn-danger">
+                <i class="far fa-trash-alt"></i>
+                <span>@T("Admin.Common.Delete")</span>
+            </a>
+        </div>
+    </div>
+
+    <partial name="_CreateOrUpdate" model="Model" />
+</form>

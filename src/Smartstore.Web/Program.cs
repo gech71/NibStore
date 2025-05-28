@@ -39,6 +39,7 @@ using Smartstore;
 using Smartstore.Core.Data.Migrations;
 using Smartstore.Core.Logging.Serilog;
 using Smartstore.Utilities;
+using Smartstore.Core.Content.MerchantStores;
 
 var rgSystemSource = new Regex(
     "^File|^System|^Microsoft|^Serilog|^Autofac|^Castle|^MiniProfiler|^Newtonsoft|^Pipelines|^Azure|^StackExchange|^Superpower|^Dasync",
@@ -103,6 +104,8 @@ engineStarter.ConfigureServices(builder.Services);
 
 // Add services to the Autofac container.
 builder.Host.ConfigureContainer<ContainerBuilder>(engineStarter.ConfigureContainer);
+
+builder.Services.AddScoped<IMerchantStoreService, MerchantStoreService>();
 
 // Build the application
 var app = builder.Build();
