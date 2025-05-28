@@ -1,7 +1,6 @@
-﻿@using Smartstore.Core.Checkout.Orders
+﻿@model Smartstore.Web.Models.Checkout.CheckoutCompletedModel
+@using Smartstore.Core.Checkout.Orders
 @using Smartstore.Web.Models.Checkout
-
-@model CheckoutCompletedModel
 
 @{
     Layout = "_Checkout";
@@ -33,13 +32,29 @@
                     <a asp-action="Details" asp-controller="Order" asp-route-id="@Model.OrderId" rel="nofollow"><strong>@Model.OrderNumber</strong></a>
                 </p>
             </div>
+
+            <!-- Save for reorder section -->
+            <form id="saveOrderForm" asp-action="SaveForReorder" asp-controller="Order" method="post">
+                <div class="form-group mt-4">
+                    <label for="saveOrderForReorder" class="form-check-label">
+                        <input type="checkbox" id="saveOrderForReorder" name="saveForReordering" class="form-check-input" aria-describedby="saveOrderMsg" />
+                        @T("Would you like to save this order for future reordering?")
+                    </label>
+                    <button id="saveOrderBtn" class="btn btn-primary btn-sm" type="submit" style="display:none;">
+                        @T("Save for Reordering")
+                    </button>
+                    <span id="saveOrderMsg" class="text-success d-none" aria-live="polite">@T("Order saved for reordering!")</span>
+                    <span id="saveOrderError" class="text-danger d-none" aria-live="polite">@T("Failed to save order for reordering.")</span>
+                    <input type="hidden" name="orderId" value="@Model.OrderId" />
+                    @Html.AntiForgeryToken()
+                </div>
+            </form>
+
             <p class="pt-3 mb-5">
                 <a asp-action="Details" asp-controller="Order" asp-route-id="@Model.OrderId" class="btn btn-warning" rel="nofollow">
-                    @*<i class="far fa-rectangle-list"></i>*@
                     <span>@T("Checkout.PlacedOrderDetails")</span>
                 </a>
                 <a asp-route="Homepage" class="btn btn-secondary order-completed-continue-button">
-                    @*<i class="fa fa-home"></i>*@
                     <span>@T("Checkout.Continue")</span>
                 </a>
             </p>
@@ -48,3 +63,44 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkbox = document.getElementById('saveOrderForReorder');
+            const button = document.getElementById('saveOrderBtn');
+            const successMsg = document.getElementById('saveOrderMsg');
+            const errorMsg = document.getElementById('saveOrderError');
+            const form = document.getElementById('saveOrderForm');
+
+            checkbox.addEventListener('change', function () {
+                button.style.display = this.checked ? 'inline-block' : 'none';
+                successMsg.classList.add('d-none');
+                errorMsg.classList.add('d-none');
+            });
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            successMsg.classList.remove('d-none');
+                            button.style.display = 'none';
+                            checkbox.disabled = true; // Prevent further changes
+                        } else {
+                            errorMsg.classList.remove('d-none');
+                        }
+                    })
+                    .catch(() => {
+                        errorMsg.classList.remove('d-none');
+                    });
+            });
+        });
+    </script>
+}

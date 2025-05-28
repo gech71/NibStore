@@ -127,6 +127,15 @@
             isFirst = false;
         }
 
+        @if (WorkContext.CurrentCustomer.IsRegistered())
+        {
+            <li class="nav-item">
+                <a class="nav-link menu-link" asp-controller="Order" asp-action="RecurringOrders">
+                    @T("My Recurring Orders")
+                </a>
+            </li>
+        }
+
         @if (renderMoreItem)
         {
             <li class="nav-item dropdown" data-id="-1">

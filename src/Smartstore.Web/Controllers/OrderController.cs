@@ -388,5 +388,61 @@ namespace Smartstore.Web.Controllers
                 return order == null;
             }
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveForReorder(SaveForReorderModel model)
+        {
+            var order = _db.Orders.FirstOrDefault(x => x.Id == model.OrderId && !x.Deleted);
+            if (order != null)
+            {
+                order.IsRecurring = true;
+                order.SavedDate = DateTime.UtcNow;
+                _db.SaveChanges();
+                return Json(new { success = true });
+            }
+            return Json(new { success = false });
+        }
+
+        [HttpGet]
+        public IActionResult RecurringOrders()
+        {
+            var customerId = Services.WorkContext.CurrentCustomer.Id;
+            var recurringOrders = _db.Orders
+                .Where(o => o.IsRecurring && !o.Deleted && o.CustomerId == customerId)
+                .OrderByDescending(o => o.SavedDate)
+                .ToList();
+
+            return View(recurringOrders);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult DeleteRecurringOrder(int orderId)
+        {
+            var customerId = Services.WorkContext.CurrentCustomer.Id;
+            var order = _db.Orders.FirstOrDefault(x => x.Id == orderId && x.IsRecurring && !x.Deleted && x.CustomerId == customerId);
+            if (order != null)
+            {
+                order.IsRecurring = false;
+                order.SavedDate = null;
+                _db.SaveChanges();
+            }
+            return RedirectToAction("RecurringOrders");
+        }
+
+        // [HttpPost]
+        // [ValidateAntiForgeryToken]
+        // public IActionResult Reorder(int orderId)
+        // {
+        //     // Implement your reorder logic here (e.g., copy items to cart)
+        //     // For now, just redirect to order details
+        //     return RedirectToAction("Details", new { id = orderId });
+        // }
+    }
+
+    public class SaveForReorderModel
+    {
+        public int OrderId { get; set; }
     }
 }
