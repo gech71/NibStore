@@ -39,6 +39,7 @@ using Smartstore;
 using Smartstore.Core.Data.Migrations;
 using Smartstore.Core.Logging.Serilog;
 using Smartstore.Utilities;
+using Smartstore.Core.Content.MerchantStores;
 
 var rgSystemSource = new Regex(
     "^File|^System|^Microsoft|^Serilog|^Autofac|^Castle|^MiniProfiler|^Newtonsoft|^Pipelines|^Azure|^StackExchange|^Superpower|^Dasync",
@@ -80,6 +81,8 @@ var startupLogger = new SerilogLoggerFactory(Log.Logger).CreateLogger("File");
 var appContext = new SmartApplicationContext(builder.Environment, configuration, startupLogger);
 var engine = EngineFactory.Create(appContext.AppConfiguration);
 var engineStarter = engine.Start(appContext);
+
+builder.Services.AddScoped<IMerchantStoreService, MerchantStoreService>();
 
 // Configure RequestSizeLimit and RequestFormLimits
 if (appContext.AppConfiguration.MaxRequestBodySize != null)

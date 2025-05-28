@@ -70,7 +70,7 @@ namespace Smartstore.Core.Data
             {
                 // No database creation attempt yet
                 ChangeConnectionString(attemptedConString, attemptedCollation);
-           }
+            }
             else
             {
                 // At least one database creation attempt
@@ -87,7 +87,7 @@ namespace Smartstore.Core.Data
             {
                 extension.ConnectionString = conString;
                 extension.Collation = collation.NullEmpty();
-                
+
                 ((IDbContextOptionsBuilderInfrastructure)builder).AddOrUpdateExtension(extension);
             }
         }
@@ -103,7 +103,7 @@ namespace Smartstore.Core.Data
             DataSettings.Instance.DbFactory?.CreateModel(modelBuilder);
 
             var options = Options.FindExtension<DbFactoryOptionsExtension>();
-            
+
             if (options.DefaultSchema.HasValue())
             {
                 modelBuilder.HasDefaultSchema(options.DefaultSchema);
