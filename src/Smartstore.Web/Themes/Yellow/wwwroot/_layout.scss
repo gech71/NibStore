@@ -30,7 +30,7 @@ html {
 }
 
 body { 
-    background-image: url('/images/bg.jpg');
+    // background-image: url('/images/bg.jpg');
     background-size: cover;
     background-repeat: repeat;
     background-position: center;
@@ -118,12 +118,12 @@ body #header {
 .page-main {
     position: relative;
     z-index: 1;
-    background-image: url('/images/bg2.jpg');
-    
+    background-image: url('/images/bg2.png');
     background-repeat: repeat;
     background-position: center;
     box-shadow: 0 0 24px rgba($black, 0.2);
     min-height: 100vh;
+
 }
 
 @media screen {
