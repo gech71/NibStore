@@ -20650,4 +20650,16 @@ within the observation window, additional requests may be denied, even if type-s
 	<LocaleResource Name="Wishlist.YourWishlistURL">
 		<Value>Your wishlist URL for sharing</Value>
 	</LocaleResource>
+  <LocaleResource Name="Checkout.SaveForReordering">
+	<Value>Would you like to save this order for future reordering?</Value>
+  </LocaleResource>
+  <LocaleResource Name="Checkout.SaveForReordering.Button">
+	<Value>Save for Reordering</Value>
+  </LocaleResource>
+  <LocaleResource Name="Checkout.SaveForReordering.Success">
+	<Value>Order saved for reordering!</Value>
+  </LocaleResource>
+  <LocaleResource Name="Checkout.SaveForReordering.Error">
+	<Value>Failed to save order for reordering.</Value>
+  </LocaleResource>
 </Language>

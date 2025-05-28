@@ -503,8 +503,8 @@ namespace Smartstore.Web.Controllers
             if (product == null)
             {
                 return Json(new
-                { 
-                    productId, 
+                {
+                    productId,
                     redirect = Url.RouteUrl("Homepage")
                 });
             }
@@ -1262,6 +1262,21 @@ namespace Smartstore.Web.Controllers
             }
 
             return string.Empty;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ClearCart()
+        {
+            var customer = Services.WorkContext.CurrentCustomer;
+            var storeId = Services.StoreContext.CurrentStore.Id;
+            var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart, storeId);
+
+            foreach (var item in cart.Items.ToList())
+            {
+                await _shoppingCartService.UpdateCartItemAsync(customer, item.Item.Id, 0, null);
+            }
+
+            return Json(new { success = true, message = T("ShoppingCart.ClearAll.Success") });
         }
     }
 }

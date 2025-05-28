@@ -478,6 +478,16 @@ namespace Smartstore.Core.Checkout.Orders
             set => CustomerTaxDisplayTypeId = (int)value;
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this order is recurring
+        /// </summary>
+        public bool IsRecurring { get; set; }
+
+        /// <summary>
+        /// Gets or sets the date when the order was saved
+        /// </summary>
+        public DateTime? SavedDate { get; set; }
+
         #endregion
 
         #region Navigation properties
