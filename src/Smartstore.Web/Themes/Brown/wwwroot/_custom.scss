@@ -36,12 +36,11 @@ body #header{
 #header .navbar-tool:hover,
  #header .navbar-label:hover,
 #header .navbar-icon:hover,
-#footer a:hover,
- 
-{
+#footer a:hover {
     color: #fac519 !important;
     transition: background 0.2s, color 0.2s;
 }
+
 
 // Dropdown background color
 // .dropdown-menu,
