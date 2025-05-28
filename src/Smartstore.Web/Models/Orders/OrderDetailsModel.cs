@@ -29,6 +29,9 @@ namespace Smartstore.Web.Models.Orders
         public string VatNumber { get; set; }
         public string PaymentMethod { get; set; }
         public string PaymentMethodSystemName { get; set; }
+        public bool IsRecurring { get; set; }
+        public DateTime SavedDate { get; set; } = DateTime.UtcNow;
+        
 
         [IgnoreDataMember]
         public Order Order { get; set; }
