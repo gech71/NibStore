@@ -5,12 +5,9 @@
     var isSingleStoreMode = (bool)ViewBag.IsSingleStoreMode;
 }
 
-<datagrid id="manufacturers-grid" class="h-100"
-          allow-resize="true"
-          allow-row-selection="true"
-          preserve-grid-state="true" preserve-command-state="true"
-          allow-column-reordering="true"
-          onrowclass="manufacturersGrid_onRowClass">
+<datagrid id="manufacturers-grid" class="h-100" allow-resize="true" allow-row-selection="true"
+    preserve-grid-state="true" preserve-command-state="true" allow-column-reordering="true"
+    onrowclass="manufacturersGrid_onRowClass">
     <datasource read="@Url.Action("ManufacturerList")" delete="@Url.Action("ManufacturerDelete")" />
     <paging position="Bottom" page-index="1" show-size-chooser="true" />
     <sorting allow-unsort="true" allow-multisort="false">
@@ -32,7 +29,8 @@
         <toolbar-group class="omega"></toolbar-group>
         <zone name="datagrid_toolbar_omega"></zone>
         <toolbar-group>
-            <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button" class="btn btn-danger no-anims btn-flat">
+            <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button"
+                class="btn btn-danger no-anims btn-flat">
                 <i class="far fa-trash-can"></i>
                 <span>@T("Admin.Common.Delete.Selected")</span>
             </button>
@@ -50,10 +48,10 @@
         </column>
         <column for="Published" halign="center" />
         <column for="DisplayOrder" halign="center" />
-		@if (!isSingleStoreMode)
-		{
-			<column for="LimitedToStores" halign="center" />
-		}
+        @if (!isSingleStoreMode)
+        {
+            <column for="LimitedToStores" halign="center" />
+        }
         <column for="CreatedOn" entity-member="CreatedOnUtc" visible="false" />
         <column for="UpdatedOn" entity-member="UpdatedOnUtc" visible="false" />
     </columns>

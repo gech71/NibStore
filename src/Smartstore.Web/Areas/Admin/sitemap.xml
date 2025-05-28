@@ -72,8 +72,8 @@
             />
              <siteMapNode
                 id="merchantstores"
-                icon="bi:building"
-                title="Stores"
+                icon="bi:shop"
+                title="Merchant Stores"
                 resKey="Admin.Catalog.MerchantStores"
                 controller="MerchantStore"
                 action="List"

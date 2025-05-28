@@ -2,14 +2,11 @@ using Smartstore.Core.Content.Media;
 using System.ComponentModel.DataAnnotations;
 namespace Smartstore.Admin.Models.MerchantStores
 {
-    [LocalizedDisplay("Admin.Configuration.MerchantStores.Fields.")]
+    [LocalizedDisplay("Admin.Catalog.MerchantStores.Fields.")]
     public class MerchantStoreModel : EntityModelBase
     {
         [LocalizedDisplay("*Name")]
         public string Name { get; set; }
-
-        [LocalizedDisplay("*Description")]
-        public string Description { get; set; }
 
         [LocalizedDisplay("Common.DisplayOrder")]
         public int DisplayOrder { get; set; }
@@ -33,5 +30,9 @@ namespace Smartstore.Admin.Models.MerchantStores
         [UIHint("Media")]
         [AdditionalMetadata("album", "content")]
         public int? MediaFileId { get; set; }
+
+        [LocalizedDisplay("*SearchMerchantStoreName")]
+        public string SearchMerchantStoreName { get; set; }
+
     }
 }

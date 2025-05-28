@@ -11,7 +11,6 @@ namespace Smartstore.Core.Migrations
             Create.Table("MerchantStore")
                 .WithColumn("Id").AsInt32().PrimaryKey().Identity()
                 .WithColumn("Name").AsString(400).NotNullable()
-                .WithColumn("Description").AsString(int.MaxValue).Nullable()
                 .WithColumn("DisplayOrder").AsInt32().NotNullable()
                 .WithColumn("Address").AsString(1000).Nullable()
                 .WithColumn("OpeningHours").AsString(400).Nullable()

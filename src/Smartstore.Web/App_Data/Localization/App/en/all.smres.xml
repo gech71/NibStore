@@ -1785,40 +1785,40 @@
 	<!--////////////////////////////////////////////////////////////////////////////////////-->
 	<LocaleResource Name="Admin.Catalog.MerchantStores">
     <Value>Merchant Stores</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.AddNew">
-    <Value>Add a new merchant store</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Edit">
-    <Value>Edit merchant store</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Description">
-    <Value>Manage your merchant stores here.</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Name">
-    <Value>Name</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Description">
-    <Value>Description</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Address">
-    <Value>Address</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.OpeningHours">
-    <Value>Opening hours</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.OpeningTime">
-    <Value>Opening time</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.ClosingTime">
-    <Value>Closing time</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Published">
-    <Value>Published</Value>
-</LocaleResource>
-<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Picture">
-    <Value>Picture</Value>
-</LocaleResource>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.AddNew">
+		<Value>Add a new merchant store</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Edit">
+		<Value>Edit merchant store</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Description">
+		<Value>Manage your merchant stores here.</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Name">
+		<Value>Name</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Description">
+		<Value>Description</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Address">
+		<Value>Address</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.OpeningHours">
+		<Value>Opening hours</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.OpeningTime">
+		<Value>Opening time</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.ClosingTime">
+		<Value>Closing time</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Published">
+		<Value>Published</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Picture">
+		<Value>Picture</Value>
+	</LocaleResource>
 	<!--////////////////////////////////////////////////////////////////////////////////////-->
 	<LocaleResource Name="Admin.Catalog.ProductReviews">
 		<Value>Product reviews</Value>

@@ -1,35 +1,58 @@
 @using Smartstore.Admin.Models.MerchantStores
 @model MerchantStoreModel
 
-@{
-    ViewBag.Title = T("Admin.Catalog.MerchantStores").Value;
-}
-
-<div class="alert alert-info alert-dismissible">
-    @T("Admin.Catalog.MerchantStores.Description")
-    <button type="button" class="close" data-dismiss="alert">&times;</button>
-</div>
-
 <datagrid id="merchantstores-grid" allow-resize="true" allow-row-selection="true" allow-column-reordering="true"
     onrowclass="merchantStoresGrid_onRowClass">
-    <datasource read="@Url.Action("MerchantStoreList")" />
+    <datasource read="@Url.Action("MerchantStoreList")" delete="@Url.Action("MerchantStoreDelete")" />
     <paging position="Bottom" show-size-chooser="true" />
     <sorting enabled="true">
         <sort by="DisplayOrder" />
     </sorting>
+
+    <toolbar>
+        <toolbar-group>
+            <button datagrid-action="DataGridToolAction.ToggleSearchPanel" type="button" class="btn btn-light btn-icon">
+                <i class="fa fa-fw fa-filter"></i>
+            </button>
+        </toolbar-group>
+        <toolbar-group>
+            <a asp-action="Create" class="btn btn-primary btn-flat">
+                <i class="fa fa-plus"></i>
+                <span>@T("Admin.Common.AddNew")…</span>
+            </a>
+        </toolbar-group>
+        <zone name="datagrid_toolbar_alpha"></zone>
+        <toolbar-group class="omega"></toolbar-group>
+        <zone name="datagrid_toolbar_omega"></zone>
+        <toolbar-group>
+            <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button"
+                class="btn btn-danger no-anims btn-flat">
+                <i class="far fa-trash-can"></i>
+                <span>@T("Admin.Common.Delete.Selected")</span>
+            </button>
+        </toolbar-group>
+    </toolbar>
+
+    <search-panel>
+        <partial name="_Grid.MerchantStores.Search" model="Model" />
+    </search-panel>
+
     <columns>
-        <column for="Name" hideable="false" />
-        <column for="Address" width="2fr" />
-        <column for="OpeningHours" width="1fr" />
-        <column for="OpeningTime" width="1fr" />
-        <column for="ClosingTime" width="1fr" />
-        <column for="Published" halign="center" />
+        <column for="Name" hideable="false" entity-member="Name">
+            <display-template>
+                <div class="text-truncate"><a datarow-action="DataRowAction.Custom" class="merchantstores-edit"
+                        :href="item.row.EditUrl">{{item.value}}</a>
+                </div>
+            </display-template>
+        </column>
+        <column for="Address" width="2fr" entity-member="Address" />
+        <column for="OpeningHours" width="1fr" entity-member="OpeningHours" />
+        <column for="OpeningTime" width="1fr" entity-member="OpeningTime" />
+        <column for="ClosingTime" width="1fr" entity-member="ClosingTime" />
+        <column for="Published" halign="center" entity-member="Published" />
     </columns>
-    <row-commands>
-        <a datarow-action="DataRowAction.Custom" class="merchantstores-edit"
-            v-bind:href="item.row.EditUrl">@T("Common.Edit")</a>
-        <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
-    </row-commands>
+
+
 </datagrid>
 
 <script>
