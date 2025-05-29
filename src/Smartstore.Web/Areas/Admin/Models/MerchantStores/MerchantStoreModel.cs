@@ -34,5 +34,7 @@ namespace Smartstore.Admin.Models.MerchantStores
         [LocalizedDisplay("*SearchMerchantStoreName")]
         public string SearchMerchantStoreName { get; set; }
 
+        public string EditUrl { get; set; }
+
     }
 }

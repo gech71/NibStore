@@ -36,19 +36,30 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.MerchantStore.Read)]
-        public async Task<IActionResult> MerchantStoreList(GridCommand command)
+        public async Task<IActionResult> MerchantStoreList(GridCommand command, MerchantStoreModel model)
         {
             var merchantStores = await _merchantStoreService.GetAllMerchantStoresAsync(true);
             var mapper = MapperFactory.GetMapper<MerchantStore, MerchantStoreModel>();
-            var merchantStoreModels = await Task.WhenAll(
-                merchantStores.Select(async x => await mapper.MapAsync(x)));
+            var merchantStoreModels = (await Task.WhenAll(merchantStores.Select(x => mapper.MapAsync(x)))).ToList();
+
+            foreach (var storeModel in merchantStoreModels)
+            {
+                storeModel.EditUrl = Url.Action("Edit", "MerchantStore", new { area = "Admin", id = storeModel.Id });
+            }
+
+            if (model.SearchMerchantStoreName.HasValue())
+            {
+                merchantStoreModels = merchantStoreModels
+            .Where(x => !string.IsNullOrEmpty(x.Name) &&
+                        x.Name.IndexOf(model.SearchMerchantStoreName, StringComparison.OrdinalIgnoreCase) >= 0)
+            .ToList();
+            }
 
             var gridModel = new GridModel<MerchantStoreModel>
             {
                 Rows = merchantStoreModels,
-                Total = merchantStoreModels.Count()
+                Total = merchantStoreModels.Count
             };
-
             return Json(gridModel);
         }
 
@@ -116,18 +127,24 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.MerchantStore.Delete)]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(GridSelection selection)
         {
-            var merchantStore = await _merchantStoreService.GetMerchantStoreByIdAsync(id);
-            if (merchantStore == null)
+            var ids = selection.GetEntityIds();
+
+            if (ids == null || !ids.Any())
             {
-                return NotFound();
+                return Json(new { success = false, message = "No merchant store IDs provided." });
             }
 
-            await _merchantStoreService.DeleteMerchantStoreAsync(merchantStore);
-
-            NotifySuccess(T("Admin.Common.TaskSuccessfullyProcessed"));
-            return RedirectToAction(nameof(List));
+            foreach (var id in ids)
+            {
+                var merchantStore = await _merchantStoreService.GetMerchantStoreByIdAsync(id);
+                if (merchantStore != null)
+                {
+                    await _merchantStoreService.DeleteMerchantStoreAsync(merchantStore);
+                }
+            }
+            return Json(new { success = true });
         }
     }
 }
