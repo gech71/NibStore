@@ -1792,9 +1792,6 @@
 	<LocaleResource Name="Admin.Catalog.MerchantStores.Edit">
 		<Value>Edit merchant store</Value>
 	</LocaleResource>
-	<LocaleResource Name="Admin.Catalog.MerchantStores.Description">
-		<Value>Manage your merchant stores here.</Value>
-	</LocaleResource>
 	<LocaleResource Name="Admin.Catalog.MerchantStores.Fields.Name">
 		<Value>Name</Value>
 	</LocaleResource>

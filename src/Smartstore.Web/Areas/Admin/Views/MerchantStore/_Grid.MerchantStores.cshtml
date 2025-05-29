@@ -1,14 +1,18 @@
 @using Smartstore.Admin.Models.MerchantStores
 @model MerchantStoreModel
 
+@{
+    var gridViewData = new ViewDataDictionary(ViewData);
+    gridViewData["Parent"] = Model;
+}
+
 <datagrid id="merchantstores-grid" allow-resize="true" allow-row-selection="true" allow-column-reordering="true"
     onrowclass="merchantStoresGrid_onRowClass">
-    <datasource read="@Url.Action("MerchantStoreList")" delete="@Url.Action("MerchantStoreDelete")" />
+    <datasource read="@Url.Action("MerchantStoreList")" delete="@Url.Action("Delete")" />
     <paging position="Bottom" show-size-chooser="true" />
     <sorting enabled="true">
         <sort by="DisplayOrder" />
     </sorting>
-
     <toolbar>
         <toolbar-group>
             <button datagrid-action="DataGridToolAction.ToggleSearchPanel" type="button" class="btn btn-light btn-icon">
@@ -40,9 +44,9 @@
     <columns>
         <column for="Name" hideable="false" entity-member="Name">
             <display-template>
-                <div class="text-truncate"><a datarow-action="DataRowAction.Custom" class="merchantstores-edit"
-                        :href="item.row.EditUrl">{{item.value}}</a>
-                </div>
+                <a datarow-action="DataRowAction.Custom" class="merchantstores-edit" :href="item.row.EditUrl">
+                    {{ item.row.Name }}
+                </a>
             </display-template>
         </column>
         <column for="Address" width="2fr" entity-member="Address" />
@@ -51,7 +55,6 @@
         <column for="ClosingTime" width="1fr" entity-member="ClosingTime" />
         <column for="Published" halign="center" entity-member="Published" />
     </columns>
-
 
 </datagrid>
 
