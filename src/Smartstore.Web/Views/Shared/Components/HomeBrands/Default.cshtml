@@ -7,29 +7,73 @@
         <h3 class="heading-title fs-h1">@T("Homepage.TopBrands")</h3>
     </div>
 
-    <div class="artlist artlist-grid artlist-6-cols artlist-boxed block-body pt-3">
-        @foreach (var item in Model.Brands)
-        {
-            var url = Url.RouteUrl("Manufacturer", new { SeName = item.SeName });
-            <article class="art" data-id="@item.Id">
-                <div sm-if="Model.DisplayImages && item.Image != null && item.Image.HasImage()" class="art-picture-block">
-                    <a href="@url" class="art-picture img-center-container">
-                        <img sm-model="item.Image" loading="lazy" />
-                    </a>
-                </div>
-                <div class="art-genericname">
-                    <a href="@url" title="@item.Name">
-                        <span sm-language-attributes-for="item.Name">@item.Name</span>
-                    </a>
-                </div>
-            </article>
-        }
+    <div class="artlist-carousel block-body pt-3">
+        <div class="artlist artlist-grid artlist-6-cols artlist-boxed">
+            @foreach (var item in Model.Brands)
+            {
+                var url = Url.RouteUrl("Manufacturer", new { SeName = item.SeName });
+                <article class="art" data-id="@item.Id">
+                    <div sm-if="Model.DisplayImages && item.Image != null && item.Image.HasImage()" class="art-picture-block">
+                        <a href="@url" class="art-picture img-center-container">
+                            <img sm-model="item.Image" loading="lazy" />
+                        </a>
+                    </div>
+                    <div class="art-genericname">
+                        <a href="@url" title="@item.Name">
+                            <span sm-language-attributes-for="item.Name">@item.Name</span>
+                        </a>
+                    </div>
+                </article>
+            }
 
-        <div sm-if="Model.DisplayAllBrandsLink" class="art show-all-items d-flex p-0">
-            <a asp-route="ManufacturerList" class="show-all-items-link">
-                <i class="fa fa-ellipsis-h fa-lg"></i>
-                <span>@T("Homepage.Brands.ShowAll")</span>
-            </a>
+            <!-- <div sm-if="Model.DisplayAllBrandsLink" class="art show-all-items d-flex p-0">
+                <a asp-route="ManufacturerList" class="show-all-items-link">
+                    <i class="fa fa-ellipsis-h fa-lg"></i>
+                    <span>@T("Homepage.Brands.ShowAll")</span>
+                </a>
+            </div> -->
         </div>
     </div>
 </div>
+
+@section scripts {
+    <script src="~/lib/slick/slick.min.js"></script>
+    <link rel="stylesheet" href="~/lib/slick/slick.css"/>
+    <link rel="stylesheet" href="~/lib/slick/slick-theme.css"/>
+    <script>
+        $(document).ready(function(){
+            $('.artlist-carousel').slick({
+                dots: true,
+                infinite: true,
+                speed: 300,
+                slidesToShow: 6,
+                slidesToScroll: 1,
+                responsive: [
+                    {
+                        breakpoint: 1024,
+                        settings: {
+                            slidesToShow: 4,
+                            slidesToScroll: 1,
+                            infinite: true,
+                            dots: true
+                        }
+                    },
+                    {
+                        breakpoint: 600,
+                        settings: {
+                            slidesToShow: 3,
+                            slidesToScroll: 1
+                        }
+                    },
+                    {
+                        breakpoint: 480,
+                        settings: {
+                            slidesToShow: 2,
+                            slidesToScroll: 1
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+}
