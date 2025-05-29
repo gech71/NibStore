@@ -1,4 +1,4 @@
-﻿@using Smartstore.Web.Models.Catalog
+﻿﻿@using Smartstore.Web.Models.Catalog
 @using Smartstore.Core.Checkout.Cart
 
 @model ProductDetailsModel
@@ -6,6 +6,17 @@
 @{
     var toCart = Model.AddToCart;
     var showBuyAction = Model.IsAvailable && !toCart.DisableBuyButton;
+
+    // Check if user is logged in
+    bool isGuest = !User.Identity.IsAuthenticated;
+
+    // Set this according to your app's anonymous checkout policy (true/false)
+    bool anonymousCheckoutAllowed = true;
+
+    // Determine checkout URL based on login and anonymous checkout setting
+    var checkoutUrl = (anonymousCheckoutAllowed && isGuest)
+        ? Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })
+        : Url.RouteUrl("Checkout");
 }
 
 <div class="row flex-nowrap pd-offer-actions">
@@ -46,7 +57,50 @@
                     <i class="fa fa-cart-arrow-down d-none d-sm-inline-block d-md-none d-xl-inline-block"></i>
                     <span>@T(toCart.AvailableForPreOrder ? "ShoppingCart.PreOrder" : "ShoppingCart.AddToCart")</span>
                 </a>
+
+       <!-- Buy Now Button -->
+<a class="btn btn-primary btn-lg btn-block mt-2"
+   href="javascript:void(0);"
+   onclick="
+       // First clear the cart
+       fetch('@Url.Action("ClearCart", "ShoppingCart")', {
+           method: 'POST',
+           headers: {
+               'X-Requested-With': 'XMLHttpRequest'
+           }
+       }).then(clearResponse => {
+           if (clearResponse.ok) {
+               // Then add the new product
+               var url = '@Url.Action("AddProduct", "ShoppingCart", new { productId = toCart.ProductId, shoppingCartTypeId = (int)ShoppingCartType.ShoppingCart })';
+               var form = document.querySelector('#pd-form');
+               var data = new FormData(form);
+               
+               return fetch(url, {
+                   method: 'POST',
+                   body: data,
+                   headers: {
+                       'X-Requested-With': 'XMLHttpRequest'
+                   }
+               });
+           } else {
+               throw new Error('Failed to clear cart');
+           }
+       }).then(addResponse => {
+           if (addResponse.ok) {
+               window.location.href = '@checkoutUrl';
+           } else {
+               alert('Failed to add to cart.');
+           }
+       }).catch(error => {
+           console.error(error);
+           alert('An error occurred: ' + error.message);
+       });
+   "
+   rel="nofollow">
+    <i class="fa fa-bolt d-none d-sm-inline-block"></i>
+    <span>Buy now</span>
+</a>
             </div>
         }
     }
-</div>
+</div> 

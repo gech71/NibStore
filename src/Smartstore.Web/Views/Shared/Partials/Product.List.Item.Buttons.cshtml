@@ -10,12 +10,21 @@
     string artDetailUrl = ViewBag.ArtDetailUrl;
 
     bool isGuest = !User.Identity.IsAuthenticated;
-    bool anonymousCheckoutAllowed = true; // Adjust according to your business logic
+    bool anonymousCheckoutAllowed = true; // Adjust this according to your logic
 
-    // Determine checkout redirect URL for Buy Now button
     string checkoutUrl = (anonymousCheckoutAllowed && isGuest)
         ? Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })
         : Url.RouteUrl("Checkout");
+
+    string antiForgeryToken = "";
+
+    // Render Anti-Forgery token value for AJAX calls (if token is generated in layout/form)
+    var antiforgery = Context.RequestServices.GetService(typeof(Microsoft.AspNetCore.Antiforgery.IAntiforgery)) as Microsoft.AspNetCore.Antiforgery.IAntiforgery;
+    if (antiforgery != null)
+    {
+        var tokens = antiforgery.GetAndStoreTokens(Context);
+        antiForgeryToken = tokens.RequestToken;
+    }
 
     void RenderBuyButton(bool blockStyle)
     {
@@ -100,32 +109,55 @@
         <a href="javascript:void(0);"
            class="@cssClasses"
            rel="nofollow"
-           title="buy"
+           title="buy now"
            data-toggle="tooltip"
            data-placement="bottom"
-           onclick="(async () => {
+           onclick="(async (btn) => {
                try {
-                   var form = document.querySelector('#pd-form');
-                   var data = form ? new FormData(form) : new FormData();
-                   let response = await fetch('@buyNowUrl', {
+                   btn.disabled = true;
+                   var originalHtml = btn.innerHTML;
+                   btn.innerHTML = '&lt;i class=&quot;fa fa-spinner fa-spin&quot;&gt;&lt;/i&gt; @T("Common.Processing")';
+
+                   // Clear the cart
+                   const clearResponse = await fetch('@Url.Action("ClearCart", "ShoppingCart")', {
                        method: 'POST',
-                       body: data,
-                       headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                       headers: {
+                           'X-Requested-With': 'XMLHttpRequest',
+                           'RequestVerificationToken': '@antiForgeryToken'
+                       }
                    });
-                   if (response.ok) {
-                       window.location.href = '@checkoutUrl';
-                   } else {
-                       alert('Failed to add to cart.');
-                   }
+                   if (!clearResponse.ok) throw new Error('@T("ShoppingCart.ClearCartFailed")');
+
+                   // Add product with form data
+                   const form = document.querySelector('#pd-form');
+                   const formData = form ? new FormData(form) : new FormData();
+                   formData.set('productId', '@Model.Id');
+
+                   const addResponse = await fetch('@buyNowUrl', {
+                       method: 'POST',
+                       body: formData,
+                       headers: {
+                           'X-Requested-With': 'XMLHttpRequest',
+                           'RequestVerificationToken': '@antiForgeryToken'
+                       }
+                   });
+
+                   if (!addResponse.ok) throw new Error('@T("ShoppingCart.AddToCartFailed")');
+
+                   // Redirect to checkout page
+                   window.location.href = '@checkoutUrl';
                } catch (error) {
                    console.error(error);
-                   alert('An error occurred.');
+                   alert(error.message || 'An unexpected error occurred');
+               } finally {
+                   btn.innerHTML = btn.innerHTML.includes('fa-spinner') ? btn.innerHTML = originalHtml : btn.innerHTML;
+                   btn.disabled = false;
                }
-           })()">
+           })(this)">
             <i class="fa fa-bolt d-none d-sm-inline-block"></i>
             @if (blockStyle)
             {
-                <span>Buy</span>
+                <span>@T("Products.BuyNow")</span>
             }
         </a>
         </text>
@@ -137,6 +169,7 @@
     <input type="hidden" name="productId" value="@Model.Id" />
     <label for="quantity" class="sr-only">Quantity</label>
     <input type="number" id="quantity" name="quantity" value="1" min="1" />
+    @Html.AntiForgeryToken()
 </form>
 
 @if (isLinesMode && !price.DisableBuyButton && list.BuyEnabled)
