@@ -19,33 +19,10 @@ namespace Smartstore.Core.Migrations
                 .WithColumn("Published").AsBoolean().NotNullable()
                 .WithColumn("MediaFileId").AsInt32().NotNullable();
 
-            Create.Table("MerchantStoreMapping")
-                .WithColumn("Id").AsInt32().PrimaryKey().Identity()
-                .WithColumn("EntityId").AsInt32().NotNullable()
-                .WithColumn("EntityName").AsString(400).NotNullable()
-                .WithColumn("MerchantStoreId").AsInt32().NotNullable();
-
-            Create.ForeignKey("FK_MerchantStoreMapping_MerchantStore")
-                .FromTable("MerchantStoreMapping").ForeignColumn("MerchantStoreId")
-                .ToTable("MerchantStore").PrimaryColumn("Id")
-                .OnDelete(System.Data.Rule.Cascade);
-
-            Create.Index("IX_MerchantStoreMapping_MerchantStoreId")
-                .OnTable("MerchantStoreMapping")
-                .OnColumn("MerchantStoreId");
-
-            Create.Index("IX_MerchantStoreMapping_EntityId_EntityName")
-                .OnTable("MerchantStoreMapping")
-                .OnColumn("EntityId").Ascending()
-                .OnColumn("EntityName").Ascending();
         }
 
         public override void Down()
         {
-            Delete.ForeignKey("FK_MerchantStoreMapping_MerchantStore").OnTable("MerchantStoreMapping");
-            Delete.Index("IX_MerchantStoreMapping_MerchantStoreId").OnTable("MerchantStoreMapping");
-            Delete.Index("IX_MerchantStoreMapping_EntityId_EntityName").OnTable("MerchantStoreMapping");
-            Delete.Table("MerchantStoreMapping");
             Delete.Table("MerchantStore");
         }
     }

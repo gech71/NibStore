@@ -268,6 +268,9 @@ namespace Smartstore.Admin.Models.Catalog
 
         public int NumberOfAvailableCategories { get; set; }
         public int NumberOfAvailableManufacturers { get; set; }
+        ////////////////////////////////////////////////////////////////////
+        public int NumberOfAvailableMerchantStores { get; set; }
+        /////////////////////////////////////////////////////////////////////
         public int NumberOfAvailableProductAttributes { get; set; }
 
         //Pictures.
@@ -340,6 +343,22 @@ namespace Smartstore.Admin.Models.Catalog
 
             [LocalizedDisplay("Common.DisplayOrder")]
             public int DisplayOrder { get; set; }
+        }
+
+        [LocalizedDisplay("Admin.Catalog.Products.MerchantStores.Fields.")]
+        public class ProductMerchantStoreModel : EntityModelBase
+        {
+            public int ProductId { get; set; }
+            public string EditUrl { get; set; }
+
+            [LocalizedDisplay("*MerchantStore")]
+            [UIHint("ProductMerchantStore")]
+            public int MerchantStoreId { get; set; }
+            public string MerchantStore { get; set; }
+
+            [LocalizedDisplay("Common.DisplayOrder")]
+            public int DisplayOrder { get; set; }
+
         }
 
         [LocalizedDisplay("Admin.Catalog.Products.")]

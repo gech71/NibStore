@@ -34,6 +34,21 @@ namespace Smartstore.Admin.Controllers
             return View();
         }
 
+        [HttpGet]
+        [Permission(Permissions.Catalog.MerchantStore.Read)]
+        public async Task<IActionResult> AllMerchantStores()
+        {
+            var stores = await _merchantStoreService.GetAllMerchantStoresAsync();
+
+            var result = stores.Select(x => new
+            {
+                id = x.Id,
+                text = x.Name
+            });
+
+            return Json(result);
+        }
+
         [HttpPost]
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> MerchantStoreList(GridCommand command, MerchantStoreModel model)

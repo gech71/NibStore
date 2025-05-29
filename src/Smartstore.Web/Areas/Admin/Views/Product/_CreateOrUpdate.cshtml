@@ -51,6 +51,10 @@
           href="@Url.Action("LoadEditTab", "Product", new { id = Model.Id, tabName = "Manufacturers" })"
           sm-name="Manufacturers" sm-adaptive-height="true">
      </tab>
+     <tab sm-title="@T("Admin.Catalog.Products.MerchantStores")" sm-icon="bi:shop" sm-ajax="true"
+          href="@Url.Action("LoadEditTab", "Product", new { id = Model.Id, tabName = "MerchantStores" })"
+          sm-name="MerchantStores" sm-adaptive-height="true">
+     </tab>
      <tab sm-title="@T("Admin.Catalog.Products.Promotion")" sm-icon="bi:megaphone" sm-ajax="true"
           href="@Url.Action("LoadEditTab", "Product", new { id = Model.Id, tabName = "Promotion" })"
           sm-name="Promotion">

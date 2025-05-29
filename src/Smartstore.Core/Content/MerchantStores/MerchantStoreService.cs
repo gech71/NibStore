@@ -60,5 +60,30 @@ namespace Smartstore.Core.Content.MerchantStores
             _db.MerchantStores.Remove(merchantStore);
             await _db.SaveChangesAsync();
         }
+
+        public async Task InsertProductMerchantStoreMappingAsync(ProductMerchantStoreMapping mapping)
+        {
+            _db.Set<ProductMerchantStoreMapping>().Add(mapping);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task DeleteProductMerchantStoreMappingAsync(ProductMerchantStoreMapping mapping)
+        {
+            _db.Set<ProductMerchantStoreMapping>().Remove(mapping);
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<IList<ProductMerchantStoreMapping>> GetProductMerchantStoreMappingsByProductIdAsync(int productId)
+        {
+            return await _db.Set<ProductMerchantStoreMapping>()
+                .Where(pms => pms.ProductId == productId)
+                .ToListAsync();
+        }
+
+        public async Task<bool> ExistsProductMerchantStoreMappingAsync(int productId, int merchantStoreId)
+        {
+            return await _db.Set<ProductMerchantStoreMapping>()
+                .AnyAsync(pms => pms.ProductId == productId && pms.MerchantStoreId == merchantStoreId);
+        }
     }
 }
