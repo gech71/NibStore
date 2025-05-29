@@ -238,8 +238,8 @@ namespace Smartstore.Admin.Models.Catalog
         public bool BundlePerItemShoppingCart { get; set; }
 
         [IgnoreDataMember]
-        public bool IsBundleWithItemPricing
-            => ProductTypeId == (int)ProductType.BundledProduct && BundlePerItemPricing;
+        public bool IsBundleWithItemPricing =>
+            ProductTypeId == (int)ProductType.BundledProduct && BundlePerItemPricing;
 
         [LocalizedDisplay("*AttributeChoiceBehaviour")]
         public AttributeChoiceBehaviour AttributeChoiceBehaviour { get; set; }
@@ -268,8 +268,10 @@ namespace Smartstore.Admin.Models.Catalog
 
         public int NumberOfAvailableCategories { get; set; }
         public int NumberOfAvailableManufacturers { get; set; }
+
         ////////////////////////////////////////////////////////////////////
         public int NumberOfAvailableMerchantStores { get; set; }
+
         /////////////////////////////////////////////////////////////////////
         public int NumberOfAvailableProductAttributes { get; set; }
 
@@ -285,7 +287,8 @@ namespace Smartstore.Admin.Models.Catalog
         [LocalizedDisplay("Admin.Promotions.Discounts.AppliedDiscounts")]
         public int[] SelectedDiscountIds { get; set; }
 
-        public AddProductSpecificationAttributeModel AddSpecificationAttributeModel { get; set; } = new();
+        public AddProductSpecificationAttributeModel AddSpecificationAttributeModel { get; set; } =
+            new();
 
         //BasePrice
         [LocalizedDisplay("*BasePriceEnabled")]
@@ -358,7 +361,6 @@ namespace Smartstore.Admin.Models.Catalog
 
             [LocalizedDisplay("Common.DisplayOrder")]
             public int DisplayOrder { get; set; }
-
         }
 
         [LocalizedDisplay("Admin.Catalog.Products.")]
@@ -461,7 +463,11 @@ namespace Smartstore.Admin.Models.Catalog
         {
             public int ProductId { get; set; }
 
-            [UIHint("Media"), AdditionalMetadata("album", "catalog"), AdditionalMetadata("typeFilter", "image,video")]
+            [
+                UIHint("Media"),
+                AdditionalMetadata("album", "catalog"),
+                AdditionalMetadata("typeFilter", "image,video")
+            ]
             [LocalizedDisplay("Admin.Catalog.Products.Pictures.Fields.Picture")]
             public int PictureId { get; set; }
 
@@ -559,10 +565,15 @@ namespace Smartstore.Admin.Models.Catalog
             public int NumberOfRules { get; set; }
         }
 
-        [LocalizedDisplay("Admin.Catalog.Products.ProductVariantAttributes.Attributes.Values.Fields.")]
-        public class ProductVariantAttributeValueModel : EntityModelBase, ILocalizedModel<ProductVariantAttributeValueLocalizedModel>
+        [LocalizedDisplay(
+            "Admin.Catalog.Products.ProductVariantAttributes.Attributes.Values.Fields."
+        )]
+        public class ProductVariantAttributeValueModel
+            : EntityModelBase,
+                ILocalizedModel<ProductVariantAttributeValueLocalizedModel>
         {
             public Type GetEntityType() => typeof(ProductVariantAttributeValue);
+
             public int ProductId { get; set; }
             public int ProductVariantAttributeId { get; set; }
 
@@ -581,7 +592,11 @@ namespace Smartstore.Admin.Models.Catalog
 
             [LocalizedDisplay("*Picture")]
             [UIHint("Media")]
-            [AdditionalMetadata("album", "catalog"), AdditionalMetadata("transientUpload", true), AdditionalMetadata("entityType", "ProductVariantAttributeValue")]
+            [
+                AdditionalMetadata("album", "catalog"),
+                AdditionalMetadata("transientUpload", true),
+                AdditionalMetadata("entityType", "ProductVariantAttributeValue")
+            ]
             public int PictureId { get; set; }
 
             [LocalizedDisplay("*PriceAdjustment")]
@@ -625,7 +640,9 @@ namespace Smartstore.Admin.Models.Catalog
             public List<ProductVariantAttributeValueLocalizedModel> Locales { get; set; } = new();
         }
 
-        [LocalizedDisplay("Admin.Catalog.Products.ProductVariantAttributes.Attributes.Values.Fields.")]
+        [LocalizedDisplay(
+            "Admin.Catalog.Products.ProductVariantAttributes.Attributes.Values.Fields."
+        )]
         public class ProductVariantAttributeValueLocalizedModel : ILocalizedLocaleModel
         {
             public int LanguageId { get; set; }
@@ -687,51 +704,75 @@ namespace Smartstore.Admin.Models.Catalog
             //ApplyNonNullableValueTypeRules();
 
             RuleFor(x => x.TaxCategoryId)
-                .NotNull()  // Nullable required for IsTaxExempt.
+                .NotNull() // Nullable required for IsTaxExempt.
                 .NotEqual(0)
                 .When(x => !x.IsTaxExempt);
 
-            When(x => x.IsTabLoaded("Inventory"), () =>
-            {
-                RuleFor(x => x.OrderMinimumQuantity).GreaterThan(0); // dont't remove "Admin.Validation.ValueGreaterZero" resource. It is used elsewhere.
-                RuleFor(x => x.OrderMaximumQuantity).GreaterThan(0);
-            });
+            When(
+                x => x.IsTabLoaded("Inventory"),
+                () =>
+                {
+                    RuleFor(x => x.OrderMinimumQuantity).GreaterThan(0); // dont't remove "Admin.Validation.ValueGreaterZero" resource. It is used elsewhere.
+                    RuleFor(x => x.OrderMaximumQuantity).GreaterThan(0);
+                }
+            );
 
             // validate PAnGV
-            When(x => x.BasePriceEnabled && x.IsTabLoaded("Price"), () =>
-            {
-                RuleFor(x => x.Price).NotEmpty();
+            When(
+                x => x.BasePriceEnabled && x.IsTabLoaded("Price"),
+                () =>
+                {
+                    RuleFor(x => x.Price).NotEmpty();
 
-                RuleFor(x => x.BasePriceMeasureUnit).NotEmpty().WithMessage(T("Admin.Catalog.Products.Fields.BasePriceMeasureUnit.Required"));
-                RuleFor(x => x.BasePriceBaseAmount)
-                    .NotEmpty().WithMessage(T("Admin.Catalog.Products.Fields.BasePriceBaseAmount.Required"))
-                    .GreaterThan(0).WithMessage(T("Admin.Catalog.Products.Fields.BasePriceBaseAmount.Required"));
-                RuleFor(x => x.BasePriceAmount)
-                    .NotEmpty().WithMessage(T("Admin.Catalog.Products.Fields.BasePriceAmount.Required"))
-                    .GreaterThan(0).WithMessage(T("Admin.Catalog.Products.Fields.BasePriceAmount.Required"));
-            });
+                    RuleFor(x => x.BasePriceMeasureUnit)
+                        .NotEmpty()
+                        .WithMessage(
+                            T("Admin.Catalog.Products.Fields.BasePriceMeasureUnit.Required")
+                        );
+                    RuleFor(x => x.BasePriceBaseAmount)
+                        .NotEmpty()
+                        .WithMessage(
+                            T("Admin.Catalog.Products.Fields.BasePriceBaseAmount.Required")
+                        )
+                        .GreaterThan(0)
+                        .WithMessage(
+                            T("Admin.Catalog.Products.Fields.BasePriceBaseAmount.Required")
+                        );
+                    RuleFor(x => x.BasePriceAmount)
+                        .NotEmpty()
+                        .WithMessage(T("Admin.Catalog.Products.Fields.BasePriceAmount.Required"))
+                        .GreaterThan(0)
+                        .WithMessage(T("Admin.Catalog.Products.Fields.BasePriceAmount.Required"));
+                }
+            );
 
-            When(x => x.IsTabLoaded("Downloads"), () =>
-            {
-                RuleFor(x => x.DownloadFileVersion)
-                    .NotEmpty()
-                    .When(x => x.DownloadId != null && x.DownloadId != 0)
-                    .WithMessage(T("Admin.Catalog.Products.Download.SemanticVersion.NotValid"));
+            When(
+                x => x.IsTabLoaded("Downloads"),
+                () =>
+                {
+                    RuleFor(x => x.DownloadFileVersion)
+                        .NotEmpty()
+                        .When(x => x.DownloadId != null && x.DownloadId != 0)
+                        .WithMessage(T("Admin.Catalog.Products.Download.SemanticVersion.NotValid"));
 
-                RuleFor(x => x.NewVersion)
-                    .NotEmpty()
-                    .When(x => x.NewVersionDownloadId != null && x.NewVersionDownloadId != 0)
-                    .WithMessage(T("Admin.Catalog.Products.Download.SemanticVersion.NotValid"));
-            });
+                    RuleFor(x => x.NewVersion)
+                        .NotEmpty()
+                        .When(x => x.NewVersionDownloadId != null && x.NewVersionDownloadId != 0)
+                        .WithMessage(T("Admin.Catalog.Products.Download.SemanticVersion.NotValid"));
+                }
+            );
         }
     }
 
-    public partial class ProductVariantAttributeValueModelValidator : SmartValidator<ProductModel.ProductVariantAttributeValueModel>
+    public partial class ProductVariantAttributeValueModelValidator
+        : SmartValidator<ProductModel.ProductVariantAttributeValueModel>
     {
         public ProductVariantAttributeValueModelValidator()
         {
             RuleFor(x => x.Name).NotEmpty();
-            RuleFor(x => x.Quantity).GreaterThanOrEqualTo(1).When(x => x.ValueTypeId == (int)ProductVariantAttributeValueType.ProductLinkage);
+            RuleFor(x => x.Quantity)
+                .GreaterThanOrEqualTo(1)
+                .When(x => x.ValueTypeId == (int)ProductVariantAttributeValueType.ProductLinkage);
         }
     }
 

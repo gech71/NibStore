@@ -8,17 +8,36 @@ namespace Smartstore.Core.Migrations
     {
         public override void Up()
         {
-            Create.Table("MerchantStore")
-                .WithColumn("Id").AsInt32().PrimaryKey().Identity()
-                .WithColumn("Name").AsString(400).NotNullable()
-                .WithColumn("DisplayOrder").AsInt32().NotNullable()
-                .WithColumn("Address").AsString(1000).Nullable()
-                .WithColumn("OpeningHours").AsString(400).Nullable()
-                .WithColumn("OpeningTime").AsTime().Nullable()
-                .WithColumn("ClosingTime").AsTime().Nullable()
-                .WithColumn("Published").AsBoolean().NotNullable()
-                .WithColumn("MediaFileId").AsInt32().NotNullable();
-
+            Create
+                .Table("MerchantStore")
+                .WithColumn("Id")
+                .AsInt32()
+                .PrimaryKey()
+                .Identity()
+                .WithColumn("Name")
+                .AsString(400)
+                .NotNullable()
+                .WithColumn("DisplayOrder")
+                .AsInt32()
+                .NotNullable()
+                .WithColumn("Address")
+                .AsString(1000)
+                .Nullable()
+                .WithColumn("OpeningHours")
+                .AsString(400)
+                .Nullable()
+                .WithColumn("OpeningTime")
+                .AsTime()
+                .Nullable()
+                .WithColumn("ClosingTime")
+                .AsTime()
+                .Nullable()
+                .WithColumn("Published")
+                .AsBoolean()
+                .NotNullable()
+                .WithColumn("MediaFileId")
+                .AsInt32()
+                .NotNullable();
         }
 
         public override void Down()

@@ -1160,14 +1160,15 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> ProductMerchantStoreList(int productId)
         {
-            var mappings = await _merchantStoreService.GetProductMerchantStoreMappingsByProductIdAsync(productId);
+            var mappings =
+                await _merchantStoreService.GetProductMerchantStoreMappingsByProductIdAsync(
+                    productId
+                );
             var allStores = await _merchantStoreService.GetAllMerchantStoresAsync();
 
-            var storeSelectList = allStores.Select(s => new SelectListItem
-            {
-                Value = s.Id.ToString(),
-                Text = s.Name
-            }).ToList();
+            var storeSelectList = allStores
+                .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Name })
+                .ToList();
 
             var storeDict = allStores.ToDictionary(x => x.Id, x => x.Name);
 
@@ -1180,22 +1181,28 @@ namespace Smartstore.Admin.Controllers
                     MerchantStore = storeDict.GetValueOrDefault(x.MerchantStoreId),
                     DisplayOrder = x.DisplayOrder,
                     EditUrl = Url.Action("Edit", "MerchantStore", new { id = x.MerchantStoreId }),
+                })
+                .ToList();
 
-                }).ToList();
-
-            return Json(new GridModel<ProductModel.ProductMerchantStoreModel>
-            {
-                Rows = rows,
-                Total = rows.Count()
-            });
+            return Json(
+                new GridModel<ProductModel.ProductMerchantStoreModel>
+                {
+                    Rows = rows,
+                    Total = rows.Count(),
+                }
+            );
         }
 
         [HttpPost]
         [Permission(Permissions.Catalog.MerchantStore.Create)]
-        public async Task<IActionResult> ProductMerchantStoreInsert(ProductModel.ProductMerchantStoreModel model, int productId)
+        public async Task<IActionResult> ProductMerchantStoreInsert(
+            ProductModel.ProductMerchantStoreModel model,
+            int productId
+        )
         {
             var alreadyAssigned = await _db.ProductMerchantStoreMappings.AnyAsync(x =>
-                x.MerchantStoreId == model.MerchantStoreId && x.ProductId == productId);
+                x.MerchantStoreId == model.MerchantStoreId && x.ProductId == productId
+            );
 
             if (alreadyAssigned)
             {
@@ -1207,7 +1214,7 @@ namespace Smartstore.Admin.Controllers
             {
                 ProductId = productId,
                 MerchantStoreId = model.MerchantStoreId,
-                DisplayOrder = model.DisplayOrder
+                DisplayOrder = model.DisplayOrder,
             };
 
             _db.ProductMerchantStoreMappings.Add(mapping);
@@ -1226,7 +1233,9 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Catalog.MerchantStore.Update)]
-        public async Task<IActionResult> ProductMerchantStoreUpdate(ProductModel.ProductMerchantStoreModel model)
+        public async Task<IActionResult> ProductMerchantStoreUpdate(
+            ProductModel.ProductMerchantStoreModel model
+        )
         {
             var mapping = await _db.ProductMerchantStoreMappings.FindByIdAsync(model.Id);
             if (mapping == null)
@@ -1237,7 +1246,8 @@ namespace Smartstore.Admin.Controllers
             if (storeChanged)
             {
                 var alreadyAssigned = await _db.ProductMerchantStoreMappings.AnyAsync(x =>
-                    x.MerchantStoreId == model.MerchantStoreId && x.ProductId == model.ProductId);
+                    x.MerchantStoreId == model.MerchantStoreId && x.ProductId == model.ProductId
+                );
 
                 if (alreadyAssigned)
                 {
@@ -1784,13 +1794,13 @@ namespace Smartstore.Admin.Controllers
             var tags = await query.OrderBy(x => x.Name).ToPagedList(page - 1, pageSize).LoadAsync();
 
             var results = tags.Select(x => new ChoiceListItem
-            {
-                Id = x.Name,
-                Text = x.Name,
-                Selected = selectedNames?.Contains(x.Name) ?? false,
-                Title = !x.Published ? unpublishedStr : null,
-                CssClass = !x.Published ? "choice-item-unavailable" : null,
-            })
+                {
+                    Id = x.Name,
+                    Text = x.Name,
+                    Selected = selectedNames?.Contains(x.Name) ?? false,
+                    Title = !x.Published ? unpublishedStr : null,
+                    CssClass = !x.Published ? "choice-item-unavailable" : null,
+                })
                 .ToList();
 
             return new JsonResult(new { results, pagination = new { more = tags.HasNextPage } });
@@ -1827,12 +1837,12 @@ namespace Smartstore.Admin.Controllers
                 .LoadAsync();
 
             var rows = await tags.SelectAwait(async x => new ProductTagModel
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Published = x.Published,
-                ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
-            })
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Published = x.Published,
+                    ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
+                })
                 .AsyncToList();
 
             return Json(

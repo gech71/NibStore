@@ -6,9 +6,9 @@
 
 <datagrid id="merchantstores-grid" class="h-100" allow-resize="true" allow-row-selection="true" allow-edit="true">
     <datasource read="@Url.Action("ProductMerchantStoreList", "Product", new { productId = parentModel.Id })"
-        delete="@Url.Action("DeleteProductMerchantStore", "Product")"
-        update="@Url.Action("UpdateProductMerchantStore", "Product")"
-        insert="@Url.Action("InsertProductMerchantStore", "Product", new { productId = parentModel.Id })" />
+        delete="@Url.Action("ProductMerchantStoreDelete", "Product")"
+        update="@Url.Action("ProductMerchantStoreUpdate", "Product")"
+        insert="@Url.Action("ProductMerchantStoreInsert", "Product", new { productId = parentModel.Id })" />
 
     <paging position="Bottom" page-index="1" show-size-chooser="false" />
 
@@ -40,19 +40,16 @@
             </button>
         </toolbar-group>
     </toolbar>
-
     <columns>
         <column for="Id" halign="center" visible="false" type="string" readonly="true" />
-
-        <column for="MerchantStoreId" hideable="false" width="4fr" entity-member="MerchantStore.Name">
+        <column for="MerchantStoreId" title="@T("Admin.Catalog.Products.MerchantStores.Fields.MerchantStores")"
+            hideable="false" width="4fr" entity-member="MerchantStore.Name">
             <display-template>
                 <a :href="item.row.EditUrl" class="text-truncate" v-html="item.row.MerchantStore"></a>
             </display-template>
         </column>
-
         <column for="DisplayOrder" halign="center" />
     </columns>
-
     <row-commands>
         <a datarow-action="DataRowAction.InlineEdit">@T("Common.Edit")</a>
         <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
