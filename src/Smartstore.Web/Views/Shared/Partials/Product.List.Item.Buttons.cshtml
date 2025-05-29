@@ -1,5 +1,5 @@
-﻿@using Smartstore.Core.Checkout.Cart;
-@using Smartstore.Web.Models.Catalog;
+﻿@using Smartstore.Core.Checkout.Cart
+@using Smartstore.Web.Models.Catalog
 
 @model ProductSummaryItemModel
 
@@ -9,6 +9,14 @@
     var isLinesMode = list.ViewMode == ProductSummaryViewMode.List;
     string artDetailUrl = ViewBag.ArtDetailUrl;
 
+    bool isGuest = !User.Identity.IsAuthenticated;
+    bool anonymousCheckoutAllowed = true; // Adjust according to your business logic
+
+    // Determine checkout redirect URL for Buy Now button
+    string checkoutUrl = (anonymousCheckoutAllowed && isGuest)
+        ? Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })
+        : Url.RouteUrl("Checkout");
+
     void RenderBuyButton(bool blockStyle)
     {
         var cssClasses = blockStyle ? "btn-block d-none d-md-block" : "btn-lg art-btn col";
@@ -16,16 +24,25 @@
         {
             cssClasses += " d-md-none";
         }
+
         if (!Model.Price.CallForPrice)
         {
-            var addToCartUrl = Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id, forceredirection = Model.Parent.ForceRedirectionAfterAddingToCart, area = "" });
-            var title = (Model.Price.AvailableForPreOrder ? T("ShoppingCart.PreOrder") : T("ShoppingCart.AddToCart"));
+            var addToCartUrl = Url.Action("AddProductSimple", "ShoppingCart", new
+            {
+                productId = Model.Id,
+                forceredirection = Model.Parent.ForceRedirectionAfterAddingToCart,
+                area = ""
+            });
+            var title = Model.Price.AvailableForPreOrder
+                ? T("ShoppingCart.PreOrder")
+                : T("ShoppingCart.AddToCart");
 
-            <a data-href='@addToCartUrl'
+            <a data-href="@addToCartUrl"
                href="#"
                class="btn btn-primary ajax-cart-link px-sm-2 @cssClasses add-to-cart-button"
                title="@title"
-               data-toggle='@(!blockStyle ? "tooltip" : "")' data-placement="bottom"
+               data-toggle="@(!blockStyle ? "tooltip" : "")"
+               data-placement="bottom"
                rel="nofollow"
                data-type="cart"
                data-action="add">
@@ -44,7 +61,8 @@
         {
             <a href="@Url.Action("AskQuestion", "Product", new { id = Model.Id, area = "" })"
                class="btn @(blockStyle ? "btn-light" : "btn-gray") @cssClasses"
-               data-toggle='@(!blockStyle ? "tooltip" : "")' data-placement="bottom"
+               data-toggle="@(!blockStyle ? "tooltip" : "")"
+               data-placement="bottom"
                rel="nofollow"
                title="@T("Products.CallForPrice.GoToForm")">
                 <i class="fa fa-question"></i>
@@ -54,32 +72,97 @@
                 }
                 else if (isLinesMode)
                 {
-                    @* Show "Call for price" label on sm-only (enough space!) *@
                     <span class="d-none d-sm-inline">@T("Products.CallForPrice.GoToForm")</span>
                 }
             </a>
         }
     }
+
+    void RenderBuyNowButton(bool blockStyle)
+    {
+        var cssClasses = blockStyle
+            ? "btn btn-primary btn-lg art-btn col btn-block d-none d-md-block"
+            : "btn btn-primary btn-lg art-btn col";
+
+        if (!blockStyle && isLinesMode)
+        {
+            cssClasses += " d-md-none";
+        }
+
+        var buyNowUrl = Url.Action("AddProductSimple", "ShoppingCart", new
+        {
+            productId = Model.Id,
+            forceredirection = Model.Parent.ForceRedirectionAfterAddingToCart,
+            area = ""
+        });
+
+        <text>
+        <a href="javascript:void(0);"
+           class="@cssClasses"
+           rel="nofollow"
+           title="buy"
+           data-toggle="tooltip"
+           data-placement="bottom"
+           onclick="(async () => {
+               try {
+                   var form = document.querySelector('#pd-form');
+                   var data = form ? new FormData(form) : new FormData();
+                   let response = await fetch('@buyNowUrl', {
+                       method: 'POST',
+                       body: data,
+                       headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                   });
+                   if (response.ok) {
+                       window.location.href = '@checkoutUrl';
+                   } else {
+                       alert('Failed to add to cart.');
+                   }
+               } catch (error) {
+                   console.error(error);
+                   alert('An error occurred.');
+               }
+           })()">
+            <i class="fa fa-bolt d-none d-sm-inline-block"></i>
+            @if (blockStyle)
+            {
+                <span>Buy</span>
+            }
+        </a>
+        </text>
+    }
 }
+
+<!-- Hidden form for productId and quantity -->
+<form id="pd-form" method="post" style="display:none;">
+    <input type="hidden" name="productId" value="@Model.Id" />
+    <label for="quantity" class="sr-only">Quantity</label>
+    <input type="number" id="quantity" name="quantity" value="1" min="1" />
+</form>
 
 @if (isLinesMode && !price.DisableBuyButton && list.BuyEnabled)
 {
     <div class="mt-3">
-        @{ RenderBuyButton(true); }
+        <div class="d-flex gap-2">
+            @{ RenderBuyButton(true); }
+            @{ RenderBuyNowButton(true); }
+        </div>
     </div>
 }
 
-<div class="row no-gutters art-btn-group" attr-class='(isLinesMode, "mt-3")'>
+<div class="row no-gutters art-btn-group @(isLinesMode ? "mt-3" : "")">
     @if (!price.DisableBuyButton && list.BuyEnabled)
     {
-        RenderBuyButton(false);
+        <div class="d-flex gap-2 w-100">
+            @{ RenderBuyButton(false); }
+            @{ RenderBuyNowButton(false); }
+        </div>
     }
 
     @if (!price.DisableWishlistButton && list.WishlistEnabled)
     {
-        <a data-href='@Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist , area = "" })'
+        <a data-href="@Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist, area = "" })"
            href="#"
-           class="btn btn-secondary btn-lg art-btn col ajax-cart-link add-to-wishlist-button" 
+           class="btn btn-secondary btn-lg art-btn col ajax-cart-link add-to-wishlist-button"
            title="@T("Categories.Wishlist")"
            data-toggle="tooltip" data-placement="bottom"
            rel="nofollow"
@@ -99,22 +182,24 @@
            href="#"
            class="btn btn-secondary btn-lg art-btn col ajax-cart-link add-to-compare-list-button"
            title="@T("Categories.Compare")"
-           data-toggle="tooltip" data-placement="bottom"
+           data-toggle="tooltip"
+           data-placement="bottom"
            rel="nofollow"
            data-type="compare"
            data-action="add">
             <i class="fa fa-retweet"></i>
         </a>
     }
-    @* else if (isLinesMode)
+    else if (isLinesMode)
     {
         <span class="art-btn-spacer col"></span>
     }
 
-    <a href='@Model.DetailUrl'
+    <a href="@Model.DetailUrl"
        class="btn btn-secondary btn-lg art-btn col product-details-button"
        title="@T("Products.Details")"
-       data-toggle="tooltip" data-placement="bottom">
+       data-toggle="tooltip"
+       data-placement="bottom">
         <i class="fa fa-info"></i>
-    </a> *@
+    </a>
 </div>
