@@ -15,33 +15,75 @@ else
     <table class="table">
         <thead>
             <tr>
-                <th>Order #</th>
+                <th>#</th>
+                <th>Name</th>
                 <th>Date Saved</th>
                 <th>Total</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
+        @{
+            int number = 1;
+        }
         @foreach (var order in Model)
         {
             <tr>
-                <td>
-                    <a asp-action="Details" asp-route-id="@order.Id">@order.Id</a>
+                <td class="fw-bold">
+                    <a asp-action="Details" asp-route-id="@order.Id">@number</a>
+                </td>
+                <td class="fw-bold">
+                    <a asp-action="Details" asp-route-id="@order.Id">@order.RecurringOrderName</a>
                 </td>
                 <td>@order.SavedDate?.ToString("yyyy-MM-dd")</td>
                 <td>@order.OrderTotal.ToString("C")</td>
                 <td>
-                    <form asp-action="ReOrder" asp-controller="Order" method="post" style="display:inline;">
-                        <input type="hidden" name="id" value="@order.Id" />
-                        <button type="submit" class="btn btn-sm btn-success">Reorder</button>
-                    </form>
-                    <form asp-action="DeleteRecurringOrder" asp-controller="Order" method="post" style="display:inline;" onsubmit="return confirm('Delete this saved order?');">
-                        <input type="hidden" name="orderId" value="@order.Id" />
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                    </form>
+                    <div class="d-flex gap-1">
+                        <form asp-action="ReOrder" asp-controller="Order" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@order.Id" />
+                            <button type="submit" class="btn btn-sm btn-success" title="Reorder" data-bs-toggle="tooltip">
+                                <span class="d-none d-sm-inline">
+                                    <i class="fa fa-repeat"></i>
+                                    <small>Reorder</small>
+                                </span>
+                                <span class="d-inline d-sm-none d-flex flex-column align-items-center">
+                                    <i class="fa fa-repeat"></i>
+                                </span>
+                            </button>
+                        </form>
+                        @* <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-sm btn-info" title="Details" data-bs-toggle="tooltip">
+                            <span class="d-none d-sm-inline">Details</span>
+                            <span class="d-inline d-sm-none d-flex flex-column align-items-center">
+                                <i class="fa fa-info-circle"></i>
+                                <small>Details</small>
+                            </span>
+                        </a> *@
+                        <form asp-action="DeleteRecurringOrder" asp-controller="Order" method="post" style="display:inline;" onsubmit="return confirm('Delete this saved order?');">
+                            <input type="hidden" name="orderId" value="@order.Id" />
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete" data-bs-toggle="tooltip">
+                                <span class="d-none d-sm-inline">
+                                    <i class="fa fa-trash"></i>
+                                    <small>Delete</small>
+                                </span>
+                                <span class="d-inline d-sm-none d-flex flex-column align-items-center">
+                                    <i class="fa fa-trash"></i>
+                                </span>
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
+            number++;
         }
         </tbody>
     </table>
 }
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>

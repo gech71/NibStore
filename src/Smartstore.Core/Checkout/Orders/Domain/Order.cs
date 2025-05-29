@@ -488,6 +488,10 @@ namespace Smartstore.Core.Checkout.Orders
         /// </summary>
         public DateTime? SavedDate { get; set; }
 
+ /// <summary>
+        /// Gets or sets the recurring order name
+        /// </summary>
+        public string RecurringOrderName { get; set; }
         #endregion
 
         #region Navigation properties
