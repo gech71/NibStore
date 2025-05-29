@@ -40,6 +40,10 @@
                         <input type="checkbox" id="saveOrderForReorder" name="saveForReordering" class="form-check-input" aria-describedby="saveOrderMsg" />
                         @T("Would you like to save this order for future reordering?")
                     </label>
+                    <div id="recurringOrderNameGroup" class="mt-2" style="display:none;">
+                        <input type="text" id="recurringOrderName" name="recurringOrderName" class="form-control" maxlength="100"
+                               placeholder="@T("Enter a name for your recurring order")" />
+                    </div>
                     <button id="saveOrderBtn" class="btn btn-primary btn-sm" type="submit" style="display:none;">
                         @T("Save for Reordering")
                     </button>
@@ -69,14 +73,20 @@
         document.addEventListener('DOMContentLoaded', function () {
             const checkbox = document.getElementById('saveOrderForReorder');
             const button = document.getElementById('saveOrderBtn');
+            const nameGroup = document.getElementById('recurringOrderNameGroup');
+            const nameInput = document.getElementById('recurringOrderName');
             const successMsg = document.getElementById('saveOrderMsg');
             const errorMsg = document.getElementById('saveOrderError');
             const form = document.getElementById('saveOrderForm');
 
             checkbox.addEventListener('change', function () {
                 button.style.display = this.checked ? 'inline-block' : 'none';
+                nameGroup.style.display = this.checked ? 'block' : 'none';
                 successMsg.classList.add('d-none');
                 errorMsg.classList.add('d-none');
+                if (!this.checked) {
+                    nameInput.value = '';
+                }
             });
 
             form.addEventListener('submit', function (e) {
@@ -93,6 +103,7 @@
                             successMsg.classList.remove('d-none');
                             button.style.display = 'none';
                             checkbox.disabled = true; // Prevent further changes
+                            nameInput.disabled = true;
                         } else {
                             errorMsg.classList.remove('d-none');
                         }

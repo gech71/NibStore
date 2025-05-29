@@ -5,6 +5,7 @@ using Smartstore.Core.Catalog.Products;
 using Smartstore.Core.Checkout.Orders;
 using Smartstore.Core.Checkout.Payment;
 using Smartstore.Core.Checkout.Shipping;
+using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Common.Configuration;
 using Smartstore.Core.Common.Services;
 using Smartstore.Core.Localization;
@@ -27,6 +28,7 @@ namespace Smartstore.Web.Controllers
         private readonly IProviderManager _providerManager;
         private readonly OrderSettings _orderSettings;
         private readonly PdfSettings _pdfSettings;
+        private readonly IShoppingCartService _shoppingCartService;
 
         public OrderController(
             SmartDbContext db,
@@ -38,7 +40,9 @@ namespace Smartstore.Web.Controllers
             IProviderManager providerManager,
             ProductUrlHelper productUrlHelper,
             OrderSettings orderSettings,
-            PdfSettings pdfSettings)
+            PdfSettings pdfSettings,
+            IShoppingCartService shoppingCartService
+        )
         {
             _db = db;
             _orderProcessingService = orderProcessingService;
@@ -50,6 +54,7 @@ namespace Smartstore.Web.Controllers
             _productUrlHelper = productUrlHelper;
             _orderSettings = orderSettings;
             _pdfSettings = pdfSettings;
+            _shoppingCartService = shoppingCartService;
         }
 
         public async Task<IActionResult> Details(int id)
@@ -181,6 +186,16 @@ namespace Smartstore.Web.Controllers
             if (await IsUnauthorizedOrderAsync(order))
             {
                 return ChallengeOrForbid();
+            }
+
+            // Clear the current customer's cart before reordering
+            var customer = Services.WorkContext.CurrentCustomer;
+            var storeId = Services.StoreContext.CurrentStore.Id;
+            var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart, storeId);
+
+            foreach (var item in cart.Items.ToList())
+            {
+                await _shoppingCartService.UpdateCartItemAsync(customer, item.Item.Id, 0, null);
             }
 
             await _orderProcessingService.ReOrderAsync(order);
@@ -398,6 +413,7 @@ namespace Smartstore.Web.Controllers
             {
                 order.IsRecurring = true;
                 order.SavedDate = DateTime.UtcNow;
+                order.RecurringOrderName = model.RecurringOrderName; // Save the name
                 _db.SaveChanges();
                 return Json(new { success = true });
             }
@@ -444,5 +460,6 @@ namespace Smartstore.Web.Controllers
     public class SaveForReorderModel
     {
         public int OrderId { get; set; }
+        public string RecurringOrderName { get; set; } // Add this line
     }
 }

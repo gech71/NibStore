@@ -100,6 +100,7 @@ AddPathToEnv(appContext.RuntimeInfo.NativeLibraryDirectory);
 
 // Add services to the container.
 engineStarter.ConfigureServices(builder.Services);
+builder.Services.AddHostedService<OrderCleanupService>();
 
 // Add services to the Autofac container.
 builder.Host.ConfigureContainer<ContainerBuilder>(engineStarter.ConfigureContainer);

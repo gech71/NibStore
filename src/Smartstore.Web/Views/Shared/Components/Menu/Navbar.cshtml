@@ -127,14 +127,15 @@
             isFirst = false;
         }
 
-        @if (WorkContext.CurrentCustomer.IsRegistered())
+        @* @if (WorkContext.CurrentCustomer.IsRegistered())
         {
             <li class="nav-item">
                 <a class="nav-link menu-link" asp-controller="Order" asp-action="RecurringOrders">
+                  <i class="fa fa-repeat"></i>
                     @T("My Recurring Orders")
                 </a>
             </li>
-        }
+        } *@
 
         @if (renderMoreItem)
         {
