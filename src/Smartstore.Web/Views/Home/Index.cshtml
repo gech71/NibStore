@@ -9,20 +9,21 @@
     <div class="page-body">
         <zone name="home_page_top" /> 
 
-        @await Component.InvokeAsync("TopicBlock", new { systemName = "HomePageText", isLead = true })
-        <zone name="home_page_after_intro" />
+        
+        @await Component.InvokeAsync("HomeBrands")
+        <zone name="home_page_after_manufacturers" />
 
-        @await Component.InvokeAsync("HomeCategories")
-        <zone name="home_page_after_categories" />
+        @* @await Component.InvokeAsync("TopicBlock", new { systemName = "HomePageText", isLead = true })
+        <zone name="home_page_after_intro" /> *@
+
+        @* @await Component.InvokeAsync("HomeCategories")
+        <zone name="home_page_after_categories" /> *@
 
         @await Component.InvokeAsync("HomeProducts")
         <zone name="home_page_after_products" />
 
-        @await Component.InvokeAsync("HomeBestsellers")
-        <zone name="home_page_after_bestsellers" />
-
-        @await Component.InvokeAsync("HomeBrands")
-        <zone name="home_page_after_manufacturers" />
+        @* @await Component.InvokeAsync("HomeBestsellers")
+        <zone name="home_page_after_bestsellers" /> *@
 
         @await Component.InvokeAsync("PopularProductTags")
         <zone name="home_page_after_tags" />
