@@ -10,5 +10,9 @@ namespace Smartstore.Core.Content.MerchantStores
         Task InsertMerchantStoreAsync(MerchantStore merchantStore);
         Task UpdateMerchantStoreAsync(MerchantStore merchantStore);
         Task DeleteMerchantStoreAsync(MerchantStore merchantStore);
+        Task InsertProductMerchantStoreMappingAsync(ProductMerchantStoreMapping mapping);
+        Task DeleteProductMerchantStoreMappingAsync(ProductMerchantStoreMapping mapping);
+        Task<IList<ProductMerchantStoreMapping>> GetProductMerchantStoreMappingsByProductIdAsync(int productId);
+        Task<bool> ExistsProductMerchantStoreMappingAsync(int productId, int merchantStoreId);
     }
 }
