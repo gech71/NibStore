@@ -1,0 +1,106 @@
+@using Smartstore.Admin.Models.MerchantStores
+@model MerchantStoreModel
+
+<!-- Leaflet Resources - Self-contained in partial view -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<div class="adminRow">
+    <div class="adminData">
+        <input type="hidden" asp-for="Latitude" />
+        <input type="hidden" asp-for="Longitude" />
+        <input type="text" asp-for="Address" class="form-control map-address-search" />
+        <div id="map-@Model.Id" style="height: 400px; margin-top: 10px;"></div>
+        <span asp-validation-for="Address"></span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // Unique map container ID
+        const mapId = 'map-@Model.Id';
+        const mapElement = document.getElementById(mapId);
+        
+        // Only initialize if element exists
+        if (!mapElement) return;
+
+        // Initialize map with fallback to default coordinates
+        const defaultLat = @(Model.Latitude?.ToString(CultureInfo.InvariantCulture) ?? "51.505");
+        const defaultLng = @(Model.Longitude?.ToString(CultureInfo.InvariantCulture) ?? "-0.09");
+        const map = L.map(mapId).setView([defaultLat, defaultLng], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        // Marker setup
+        const marker = L.marker([defaultLat, defaultLng], {
+            draggable: true
+        }).addTo(map);
+
+        // Search control with debouncing
+        const geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false,
+            position: 'topright',
+            collapsed: false,
+            placeholder: 'Search address...',
+            errorMessage: 'Address not found.'
+        }).on('markgeocode', function(e) {
+            map.setView(e.geocode.center, 16);
+            marker.setLatLng(e.geocode.center);
+            updateAddressFields(e.geocode);
+        }).addTo(map);
+
+        // Update fields when marker is dragged
+        marker.on('dragend', function() {
+            const latLng = marker.getLatLng();
+            document.getElementById('@Html.IdFor(x => x.Latitude)').value = latLng.lat;
+            document.getElementById('@Html.IdFor(x => x.Longitude)').value = latLng.lng;
+            reverseGeocode(latLng);
+        });
+
+        // Initial load if coordinates exist
+        if (@(Model.Latitude.HasValue ? "true" : "false")) {
+            reverseGeocode(marker.getLatLng());
+        }
+
+        function updateAddressFields(result) {
+            document.getElementById('@Html.IdFor(x => x.Address)').value = result.name;
+            document.getElementById('@Html.IdFor(x => x.Latitude)').value = result.center.lat;
+            document.getElementById('@Html.IdFor(x => x.Longitude)').value = result.center.lng;
+        }
+
+        function reverseGeocode(latLng) {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.lat}&lon=${latLng.lng}&zoom=18&addressdetails=1`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.display_name;
+                    document.getElementById('@Html.IdFor(x => x.Address)').value = address;
+                })
+                .catch(() => {
+                    console.log('Geocoding failed');
+                });
+        }
+    })();
+</script>
+
+<style>
+    /* Scoped styles to prevent conflicts */
+    #map-@Model.Id {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        z-index: 1;
+    }
+    .leaflet-control-geocoder {
+        width: 300px;
+        max-width: 100%;
+    }
+    .leaflet-control-geocoder-form input {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+</style>
