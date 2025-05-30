@@ -134,12 +134,7 @@ namespace Smartstore.Admin.Controllers
                 // Handle map/location specific data
                 merchantStore.Latitude = model.Latitude;
                 merchantStore.Longitude = model.Longitude;
-                
-                // Optionally parse address components if needed
-                if (!string.IsNullOrEmpty(model.Address))
-                {
-                    merchantStore.Address = model.Address;
-                }
+                merchantStore.Address = model.Address; // Make sure this is mapped
 
                 await _merchantStoreService.UpdateMerchantStoreAsync(merchantStore);
 
@@ -149,18 +144,7 @@ namespace Smartstore.Admin.Controllers
                     : RedirectToAction(nameof(List));
             }
 
-            // If we got this far, something failed, redisplay form
             return View(model);
-        }
-
-        private (string Street, string City) ParseAddress(string fullAddress)
-        {
-    
-            var parts = fullAddress.Split(',');
-            return (
-                Street: parts.Length > 0 ? parts[0].Trim() : string.Empty,
-                City: parts.Length > 1 ? parts[1].Trim() : string.Empty
-            );
         }
 
         [HttpPost]

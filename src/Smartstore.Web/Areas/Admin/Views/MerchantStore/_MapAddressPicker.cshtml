@@ -1,106 +1,217 @@
 @using Smartstore.Admin.Models.MerchantStores
 @model MerchantStoreModel
 
-<!-- Leaflet Resources - Self-contained in partial view -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-      crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Leaflet Geocoder CSS/JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
 <div class="adminRow">
-    <div class="adminData">
-        <input type="hidden" asp-for="Latitude" />
-        <input type="hidden" asp-for="Longitude" />
-        <input type="text" asp-for="Address" class="form-control map-address-search" />
-        <div id="map-@Model.Id" style="height: 400px; margin-top: 10px;"></div>
-        <span asp-validation-for="Address"></span>
+    <div class="adminData position-relative">
+
+        <div class="address-section">
+            <div class="address-input-wrapper">
+                <input type="text" asp-for="Address" id="addressField" class="form-control" autocomplete="off" />
+                <ul id="addressSuggestions" class="suggestions-list"></ul>
+                <span asp-validation-for="Address"></span>
+            </div>
+
+            <!-- Toggle button -->
+            <button id="toggleMap" class="map-toggle-btn" type="button">
+                <span id="mapToggleIcon">📍</span>
+                <span id="mapToggleText">Show Map</span>
+            </button>
+        </div>
+
+        <input type="hidden" asp-for="Latitude" id="latitudeField" />
+        <input type="hidden" asp-for="Longitude" id="longitudeField" />
+
+        <div id="mapContainer" style="height: 400px; margin-top: 10px; display: none;"></div>
+
     </div>
 </div>
 
 <script>
-    (function() {
-        // Unique map container ID
-        const mapId = 'map-@Model.Id';
-        const mapElement = document.getElementById(mapId);
-        
-        // Only initialize if element exists
-        if (!mapElement) return;
+document.addEventListener("DOMContentLoaded", function () {
+    const addressInput = document.getElementById("addressField");
+    const suggestionsList = document.getElementById("addressSuggestions");
+    const toggleMapBtn = document.getElementById("toggleMap");
+    const mapToggleIcon = document.getElementById("mapToggleIcon");
+    const mapContainer = document.getElementById("mapContainer");
+    const latitudeField = document.getElementById("latitudeField");
+    const longitudeField = document.getElementById("longitudeField");
+    const mapToggleText = document.getElementById("mapToggleText");
 
-        // Initialize map with fallback to default coordinates
-        const defaultLat = @(Model.Latitude?.ToString(CultureInfo.InvariantCulture) ?? "51.505");
-        const defaultLng = @(Model.Longitude?.ToString(CultureInfo.InvariantCulture) ?? "-0.09");
-        const map = L.map(mapId).setView([defaultLat, defaultLng], 13);
+    let map, marker;
+    let mapInitialized = false;
+
+    function initMap(lat, lng) {
+        map = L.map('mapContainer').setView([lat, lng], 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Marker setup
-        const marker = L.marker([defaultLat, defaultLng], {
-            draggable: true
-        }).addTo(map);
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
 
-        // Search control with debouncing
-        const geocoder = L.Control.geocoder({
-            defaultMarkGeocode: false,
-            position: 'topright',
-            collapsed: false,
-            placeholder: 'Search address...',
-            errorMessage: 'Address not found.'
-        }).on('markgeocode', function(e) {
-            map.setView(e.geocode.center, 16);
-            marker.setLatLng(e.geocode.center);
-            updateAddressFields(e.geocode);
-        }).addTo(map);
+        marker.on('dragend', function () {
+            const pos = marker.getLatLng();
+            latitudeField.value = pos.lat;
+            longitudeField.value = pos.lng;
 
-        // Update fields when marker is dragged
-        marker.on('dragend', function() {
-            const latLng = marker.getLatLng();
-            document.getElementById('@Html.IdFor(x => x.Latitude)').value = latLng.lat;
-            document.getElementById('@Html.IdFor(x => x.Longitude)').value = latLng.lng;
-            reverseGeocode(latLng);
-        });
-
-        // Initial load if coordinates exist
-        if (@(Model.Latitude.HasValue ? "true" : "false")) {
-            reverseGeocode(marker.getLatLng());
-        }
-
-        function updateAddressFields(result) {
-            document.getElementById('@Html.IdFor(x => x.Address)').value = result.name;
-            document.getElementById('@Html.IdFor(x => x.Latitude)').value = result.center.lat;
-            document.getElementById('@Html.IdFor(x => x.Longitude)').value = result.center.lng;
-        }
-
-        function reverseGeocode(latLng) {
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.lat}&lon=${latLng.lng}&zoom=18&addressdetails=1`)
-                .then(response => response.json())
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.lat}&lon=${pos.lng}`)
+                .then(res => res.json())
                 .then(data => {
-                    const address = data.display_name;
-                    document.getElementById('@Html.IdFor(x => x.Address)').value = address;
-                })
-                .catch(() => {
-                    console.log('Geocoding failed');
+                    addressInput.value = data.display_name;
                 });
+        });
+    }
+
+    // Prevent Enter key from submitting the form in address input
+    addressInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
         }
-    })();
+    });
+
+    // Address auto-complete
+    addressInput.addEventListener("input", function () {
+        const query = this.value;
+        if (query.length < 3) {
+            suggestionsList.innerHTML = "";
+            return;
+        }
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1`)
+            .then(res => res.json())
+            .then(data => {
+                suggestionsList.innerHTML = "";
+                data.forEach(item => {
+                    const li = document.createElement("li");
+                    li.textContent = item.display_name;
+                    li.classList.add("suggestion-item");
+
+                    li.addEventListener("click", () => {
+                        addressInput.value = item.display_name;
+                        latitudeField.value = item.lat;
+                        longitudeField.value = item.lon;
+                        suggestionsList.innerHTML = "";
+
+                        if (mapInitialized) {
+                            map.setView([item.lat, item.lon], 16);
+                            marker.setLatLng([item.lat, item.lon]);
+                        }
+                    });
+
+                    suggestionsList.appendChild(li);
+                });
+            });
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener("click", function (e) {
+        if (!addressInput.contains(e.target) && !suggestionsList.contains(e.target)) {
+            suggestionsList.innerHTML = "";
+        }
+    });
+
+    // Map toggle
+    toggleMapBtn.addEventListener("click", function () {
+        const isVisible = mapContainer.style.display === "block";
+
+        if (!isVisible) {
+            mapContainer.style.display = "block";
+            mapToggleIcon.textContent = "🗺️";
+            mapToggleText.textContent = "Hide Map";
+
+            if (!mapInitialized) {
+                const lat = parseFloat(latitudeField.value) || 51.505;
+                const lng = parseFloat(longitudeField.value) || -0.09;
+                initMap(lat, lng);
+                mapInitialized = true;
+
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!addressInput.value) {
+                            addressInput.value = data.display_name;
+                        }
+                    });
+            }
+        } else {
+            mapContainer.style.display = "none";
+            mapToggleIcon.textContent = "📍";
+            mapToggleText.textContent = "Show Map";
+        }
+    });
+});
 </script>
 
 <style>
-    /* Scoped styles to prevent conflicts */
-    #map-@Model.Id {
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        z-index: 1;
-    }
-    .leaflet-control-geocoder {
-        width: 300px;
-        max-width: 100%;
-    }
-    .leaflet-control-geocoder-form input {
-        padding: 8px 12px;
-        font-size: 14px;
-    }
+    /* Map Styling */
+#mapContainer {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Suggestions List */
+.suggestions-list {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 0;
+    border: none;
+    max-height: 150px;
+    overflow-y: auto;
+    position: absolute;
+    background-color: white;
+    z-index: 1000;
+    width: 100%;
+}
+
+.suggestions-list li {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.suggestions-list li:hover {
+    background-color: #f0f0f0;
+}
+
+/* Wrapper for Address + Button */
+.address-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* Address Input */
+.address-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+/* Map Toggle Button */
+.map-toggle-btn {
+    background-color:#9c5c34;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    font-size: 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.map-toggle-btn:hover {
+    background-color: #9c5c34;
+}
+
 </style>
