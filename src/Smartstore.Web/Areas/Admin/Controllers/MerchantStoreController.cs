@@ -139,11 +139,6 @@ namespace Smartstore.Admin.Controllers
                 if (!string.IsNullOrEmpty(model.Address))
                 {
                     merchantStore.Address = model.Address;
-                    
-                    // Optional: Parse into separate fields
-                    // var parsed = ParseAddress(model.MapAddress);
-                    // merchantStore.Street = parsed.Street;
-                    // merchantStore.City = parsed.City;
                 }
 
                 await _merchantStoreService.UpdateMerchantStoreAsync(merchantStore);
@@ -158,11 +153,9 @@ namespace Smartstore.Admin.Controllers
             return View(model);
         }
 
-        // Optional helper method for address parsing
         private (string Street, string City) ParseAddress(string fullAddress)
         {
-            // Implement your address parsing logic here
-            // This is just a placeholder example
+    
             var parts = fullAddress.Split(',');
             return (
                 Street: parts.Length > 0 ? parts[0].Trim() : string.Empty,

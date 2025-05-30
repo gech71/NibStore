@@ -18,8 +18,8 @@ namespace Smartstore.Admin.Models.MerchantStores
         public double? Longitude { get; set; }
 
         [LocalizedDisplay("*Address")]
-        public string Address { get; set; } // Will store formatted address
-
+        public string Address { get; set; } 
+        
         [LocalizedDisplay("*OpeningHours")]
         public string OpeningHours { get; set; }
 
