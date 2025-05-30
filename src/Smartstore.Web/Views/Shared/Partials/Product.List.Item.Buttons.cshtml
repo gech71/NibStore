@@ -154,7 +154,7 @@
                    btn.disabled = false;
                }
            })(this)">
-            <i class="fa fa-bolt d-none d-sm-inline-block"></i>
+            <i>buy</i>
             @if (blockStyle)
             {
                 <span>@T("Products.BuyNow")</span>
@@ -191,7 +191,7 @@
         </div>
     }
 
-    @if (!price.DisableWishlistButton && list.WishlistEnabled)
+    @* @if (!price.DisableWishlistButton && list.WishlistEnabled)
     {
         <a data-href="@Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist, area = "" })"
            href="#"
@@ -235,4 +235,4 @@
        data-placement="bottom">
         <i class="fa fa-info"></i>
     </a>
-</div>
+</div> *@
