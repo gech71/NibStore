@@ -124,6 +124,9 @@ namespace Smartstore.Web.Models.Identity
         public bool VatRequired { get; set; }
 
         public bool DisplayCaptcha { get; set; }
+           //tade
+         [Required]
+        public string OtpCode { get; set; }
     }
 
     public class RegisterModelValidator : SmartValidator<RegisterModel>

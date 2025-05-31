@@ -29,6 +29,11 @@ namespace Smartstore.Web.Models.Identity
         public bool RememberMe { get; set; }
 
         public bool DisplayCaptcha { get; set; }
+        //tade
+        [LocalizedDisplay("*PhoneNumber", Prompt = "*PhoneNumber")]
+        public string PhoneNumber { get; set; }
+        //<tade>
+     public string OtpCode { get; set; }
     }
 
     public class LoginValidator : SmartValidator<LoginModel>
@@ -36,6 +41,7 @@ namespace Smartstore.Web.Models.Identity
         public LoginValidator(CustomerSettings customerSettings)
         {
             var loginType = customerSettings.CustomerLoginType;
+
 
             if (loginType == CustomerLoginType.Email)
             {
@@ -51,6 +57,14 @@ namespace Smartstore.Web.Models.Identity
             }
 
             RuleFor(x => x.Password).NotEmpty();
+            //tade
+             RuleFor(x => x.PhoneNumber)
+                .NotEmpty()
+                .WithMessage("Phone number is required.")
+                .Matches(@"^(?:\+251|0)(?:9|7)\d{8}$")
+                .WithMessage("Invalid phone number format. Example: +251912345678 or 0912345678");
+           //tade
+            RuleFor(x => x.OtpCode).NotEmpty().WithMessage("OTP is required.");
         }
     }
 }
