@@ -1,6 +1,40 @@
-﻿@using Smartstore.Web.Models.Checkout
+﻿﻿@using Smartstore.Web.Models.Checkout
+@using Smartstore.Core.Checkout.Cart
+@using Smartstore.Core
+@inject IShoppingCartService shoppingCartService
+@inject IWorkContext workContext
 
 @model CheckoutShippingMethodModel
+
+@{
+    var storeLocations = new List<string> { "Addis Ababa", "Bahir Dar", "Gondar", "Hawassa" };
+}
+
+@functions {
+    private IList<ShoppingCartItem> _cartItems;
+
+    public async Task LoadCartAsync()
+    {
+        var customer = workContext.CurrentCustomer;
+        var cart = await shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart);
+        _cartItems = cart.Items.Select(x => x.Item).ToList();
+    }
+}
+
+@{
+    await LoadCartAsync();
+
+    var sortedShippingMethods = Model.ShippingMethods
+        .OrderBy(sm => 
+            sm.Name.ToLowerInvariant().Contains("by ground") ? 0 :
+            sm.Name.ToLowerInvariant().Contains("store pickup") ? 1 : 2)
+        .ToList();
+
+    // Find Store Pickup method's ID to detect selection on client side
+    var storePickupMethod = sortedShippingMethods
+        .FirstOrDefault(sm => sm.Name.ToLowerInvariant().Contains("store pickup"));
+    var storePickupMethodId = storePickupMethod?.ShippingMethodId ?? 0;
+}
 
 <zone name="checkout_shipping_method_content_before" />
 
@@ -18,47 +52,108 @@
 else
 {
     <ul class="list-group opt-list shipping-options">
-        @for (int i = 0; i < Model.ShippingMethods.Count; i++)
+        @for (int i = 0; i < sortedShippingMethods.Count; i++)
         {
-            var shippingMethod = Model.ShippingMethods[i];
+            var shippingMethod = sortedShippingMethods[i];
+            var isStorePickup = shippingMethod.Name?.ToLowerInvariant().Contains("store pickup") == true;
 
-            <li class="list-group-item opt-list-item shipping-option-item" attr-class='(shippingMethod.Selected, "active")'>
+            <li class="list-group-item opt-list-item shipping-option-item @(shippingMethod.Selected ? "active" : "")">
                 <div class="opt-data">
                     <div class="form-check opt-control option-name radio">
                         <input id="shippingoption_@(i)" type="radio" name="shippingoption"
-                                class="opt-radio form-check-input"
-                                attr-checked='(shippingMethod.Selected, "checked")'
-                                value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)" />
+                               class="opt-radio form-check-input"
+                               data-shippingmethodid="@(shippingMethod.ShippingMethodId)"
+                               @(shippingMethod.Selected ? "checked" : "")
+                               value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)" />
                         <label class="form-check-label" for="shippingoption_@(i)">
                             <span class="opt-name">@Html.Raw(shippingMethod.Name.HtmlDecode())</span>
                         </label>
                     </div>
 
-                    <div sm-if="shippingMethod.Fee > decimal.Zero" class="opt-fee shipping-fee badge badge-danger ml-auto">
-                        @shippingMethod.Fee
-                    </div>
-                </div>
-
-                <div sm-if="shippingMethod.Description.HasValue()" class="opt-info text-muted shipping-option-description">
-                    @if (shippingMethod.BrandUrl.HasValue())
+                    @if (shippingMethod.Fee > decimal.Zero)
                     {
-                        <div class="media">
-                            <span class="float-left">
-                                <img class="media-object img-fluid" src="@Url.Content(shippingMethod.BrandUrl)" alt="@shippingMethod.Name" />
-                            </span>
-                            <div class="media-body">
-                                @Html.Raw(shippingMethod.Description)
-                            </div>
+                        <div class="opt-fee shipping-fee badge badge-danger ml-auto">
+                            @shippingMethod.Fee
                         </div>
                     }
-                    else
-                    {
-                        @Html.Raw(shippingMethod.Description);
-                    }
                 </div>
+
+                @if (isStorePickup)
+                {
+                    <div id="storePickupProducts" class="mt-3">
+                        <label class="form-label font-weight-bold">Your Cart Items:</label>
+                        <div class="list-group">
+                            @foreach (var item in _cartItems)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center product-item" style="position: relative;">
+                                    <div>
+                                        <div class="product-name">@item.Product.Name</div>
+                                        <div class="product-quantity text-muted small">Qty: @item.Quantity</div>
+                                    </div>
+
+                                    <select class="form-control form-control-sm store-select-dropdown" 
+                                            name="StoreFor_@item.Id" 
+                                            style="display:none; min-width: 150px;">
+                                        <option value="">-- Select Store --</option>
+                                        @foreach (var store in storeLocations)
+                                        {
+                                            <option value="@store">@store</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
             </li>
         }
     </ul>
 }
 
 <zone name="checkout_shipping_method_content_after" />
+
+<style>
+    /* Show dropdown only on product hover */
+    .product-item:hover .store-select-dropdown {
+        display: block !important;
+    }
+
+    .store-select-dropdown {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+    }
+</style>
+
+<script>
+    (() => {
+        const storePickupProducts = document.getElementById('storePickupProducts');
+        const storePickupMethodId = @storePickupMethodId;
+
+        function toggleStorePickupProducts() {
+            const radios = document.querySelectorAll('input[name="shippingoption"]');
+            let selectedId = null;
+            radios.forEach(radio => {
+                if (radio.checked) {
+                    selectedId = parseInt(radio.getAttribute('data-shippingmethodid'));
+                }
+            });
+
+            if (selectedId === storePickupMethodId) {
+                storePickupProducts.style.display = 'block';
+            } else {
+                storePickupProducts.style.display = 'none';
+            }
+        }
+
+        // Initial toggle on page load
+        toggleStorePickupProducts();
+
+        // Listen for changes
+        document.querySelectorAll('input[name="shippingoption"]').forEach(radio => {
+            radio.addEventListener('change', toggleStorePickupProducts);
+        });
+    })();
+</script>
