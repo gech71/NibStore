@@ -25,6 +25,7 @@ namespace Smartstore.Web.Models.Orders
         public AddressModel BillingAddress { get; set; }
         public AddressModel ShippingAddress { get; set; }
         public string ShippingMethod { get; set; }
+        public string ByGroundAddress { get; set; } // <-- Added
         public List<ShipmentBriefModel> Shipments { get; set; } = [];
         public string VatNumber { get; set; }
         public string PaymentMethod { get; set; }

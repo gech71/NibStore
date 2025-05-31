@@ -478,6 +478,11 @@ namespace Smartstore.Core.Checkout.Orders
             set => CustomerTaxDisplayTypeId = (int)value;
         }
 
+        /// <summary>
+        /// Gets or sets the by ground address
+        /// </summary>
+        public string ByGroundAddress { get; set; }
+
         #endregion
 
         #region Navigation properties

@@ -30,7 +30,11 @@ namespace Smartstore.Core.Checkout.Orders
             }
             else
             {
-                _handlers = handlers.OrderBy(x => x.Metadata.Order);
+                _handlers = handlers
+                    .Where(x =>
+                        x.Metadata.HandlerType.Equals(typeof(ShippingMethodHandler)) ||
+                        x.Metadata.HandlerType.Equals(typeof(ConfirmHandler)))
+                    .OrderBy(x => x.Metadata.Order);
             }
         }
 

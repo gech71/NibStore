@@ -25,6 +25,7 @@ namespace Smartstore.Web.Models.Checkout
             public bool IsShippable { get; set; }
             public AddressModel ShippingAddress { get; set; }
             public string ShippingMethod { get; set; }
+            public string ByGroundAddress { get; set; }
             public bool DisplayShippingMethodChangeOption { get; set; }
 
             public bool IsPaymentRequired { get; set; }
@@ -32,6 +33,7 @@ namespace Smartstore.Web.Models.Checkout
             public string PaymentSummary { get; set; }
             public bool IsPaymentSelectionSkipped { get; set; }
             public bool DisplayPaymentMethodChangeOption { get; set; }
+            
         }
     }
 }

@@ -46,7 +46,12 @@ else
                 {
                     <div class="by-ground-extra mt-2" style="display:@(shippingMethod.Selected ? "flex" : "none"); align-items:center;">
                         <button type="button" class="btn btn-sm btn-primary mr-2 current-location-btn">Current Location</button>
-                        <input type="text" class="form-control mr-2 map-address-input" style="max-width:250px;" placeholder="Enter address or use current location" />
+                        <input type="text"
+                               class="form-control mr-2 map-address-input"
+                               style="max-width:250px;"
+                               placeholder="Enter address or use current location"
+                               name="ByGroundAddress"
+                               value="@Model.ByGroundAddress" />
                         <a class="google-map-link" href="#" target="_blank" style="display:none;">Open in Google Maps</a>
                     </div>
                 }

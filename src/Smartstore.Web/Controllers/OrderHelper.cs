@@ -332,6 +332,8 @@ namespace Smartstore.Web.Controllers
                 MerchantCompanyCountryName = countryName
             };
 
+            model.ByGroundAddress = o.ByGroundAddress;
+
             if (o.ShippingStatus != ShippingStatus.ShippingNotRequired)
             {
                 model.IsShippable = true;

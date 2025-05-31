@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Smartstore.ComponentModel;
+using Smartstore.Core;
 using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Checkout.Orders;
 using Smartstore.Core.Checkout.Payment;
 using Smartstore.Core.Localization.Routing;
 using Smartstore.Core.Seo.Routing;
 using Smartstore.Core.Stores;
+using Smartstore.Core.Common.Services; 
 using Smartstore.Web.Models.Checkout;
 using Smartstore.Web.Models.Common;
 
@@ -13,6 +15,7 @@ namespace Smartstore.Web.Controllers
 {
     public class CheckoutController : PublicController
     {
+        // ──────────────────────────── fields ────────────────────────────
         private readonly SmartDbContext _db;
         private readonly IStoreContext _storeContext;
         private readonly IWorkContext _workContext;
@@ -22,7 +25,9 @@ namespace Smartstore.Web.Controllers
         private readonly ICheckoutStateAccessor _checkoutStateAccessor;
         private readonly OrderSettings _orderSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
+        private readonly IGenericAttributeService _genericAttributeService; // <-- added this
 
+        // ───────────────────── constructor (no GenericAttributeService) ─────────────────────
         public CheckoutController(
             SmartDbContext db,
             IStoreContext storeContext,
@@ -32,7 +37,9 @@ namespace Smartstore.Web.Controllers
             IShoppingCartService shoppingCartService,
             ICheckoutStateAccessor checkoutStateAccessor,
             OrderSettings orderSettings,
-            ShoppingCartSettings shoppingCartSettings)
+            ShoppingCartSettings shoppingCartSettings,
+            IGenericAttributeService genericAttributeService // <-- and this
+        )
         {
             _db = db;
             _storeContext = storeContext;
@@ -43,6 +50,7 @@ namespace Smartstore.Web.Controllers
             _checkoutStateAccessor = checkoutStateAccessor;
             _orderSettings = orderSettings;
             _shoppingCartSettings = shoppingCartSettings;
+            _genericAttributeService = genericAttributeService;
         }
 
         [DisallowRobot]
@@ -199,12 +207,9 @@ namespace Smartstore.Web.Controllers
             var context = await CreateCheckoutContext();
             var result = await _checkoutWorkflow.ProcessAsync(context);
             if (result.ActionResult != null)
-            {
                 return result.ActionResult;
-            }
 
             var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutShippingMethodModel>(context);
-
             result.Errors.Each(x => model.Warnings.Add(x.ErrorMessage));
 
             return View(result.ViewPath, model);
@@ -214,8 +219,18 @@ namespace Smartstore.Web.Controllers
         [FormValueRequired("nextstep")]
         public async Task<IActionResult> SelectShippingMethod(string shippingOption)
         {
-            var result = await _checkoutWorkflow.AdvanceAsync(await CreateCheckoutContext(shippingOption));
+            var context = await CreateCheckoutContext(shippingOption);
+            var customer = context.Cart.Customer;
 
+            var byGroundAddress = Request.Form["ByGroundAddress"].ToString();
+            if (!string.IsNullOrWhiteSpace(byGroundAddress))
+            {
+                // Store in GenericAttributes on the customer
+                customer.GenericAttributes.Set("ByGroundAddress", byGroundAddress);
+                await _db.SaveChangesAsync();
+            }
+
+            var result = await _checkoutWorkflow.AdvanceAsync(context);
             result.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
 
             return result.ActionResult ?? RedirectToAction(nameof(ShippingMethod));

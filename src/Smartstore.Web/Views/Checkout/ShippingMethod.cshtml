@@ -16,9 +16,10 @@
 <div class="page shipping-method-page">
     <div class="page-title">
         <h1 class="h3">@T("Checkout.SelectShippingMethod")</h1>
-    </div>
+    </div> 
     <div class="page-body checkout-data">
         <form asp-action="ShippingMethod" asp-controller="Checkout" method="post">
+            <input type="hidden" name="ByGroundAddress" id="HiddenByGroundAddress" />
             <zone name="checkout_shipping_method_top" />
 
             <div class="order-summary-content">
@@ -49,5 +50,31 @@
             $('#nextstep').trigger('click');
             return false;
         });
+    });
+
+    // Existing jQuery submit handler
+    $('form[asp-action="ShippingMethod"]').on('submit', function () {
+        var selected = $('.opt-radio:checked[data-shipping-name="By Ground"]');
+        if (selected.length) {
+            var container = selected.closest('[data-index]');
+            var address = container.find('.map-address-input').val();
+            if (!address || !address.trim()) {
+                alert('Please enter your address or use Current Location.');
+                container.find('.map-address-input').focus();
+                return false; // Block submit if address missing
+            }
+            $('#ByGroundAddress').val(address); // Set hidden field
+        } else {
+            $('#ByGroundAddress').val('');
+        }
+    });
+
+    // Your vanilla JS handler (optional, if you want to support non-jQuery as well)
+    document.querySelector('form').addEventListener('submit', () => {
+        const visibleAddress = document.querySelector('.map-address-input')?.value;
+        const hiddenInput = document.querySelector('#HiddenByGroundAddress');
+        if (hiddenInput && visibleAddress) {
+            hiddenInput.value = visibleAddress;
+        }
     });
 </script>

@@ -12,6 +12,9 @@ using Smartstore.Core.Web;
 using Smartstore.Events;
 using Smartstore.Http;
 using Smartstore.Utilities.Html;
+using Smartstore.Core.Common.Services; 
+
+
 
 namespace Smartstore.Core.Checkout.Orders
 {
@@ -32,6 +35,8 @@ namespace Smartstore.Core.Checkout.Orders
         private readonly ICheckoutStateAccessor _checkoutStateAccessor;
         private readonly OrderSettings _orderSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
+        private readonly IGenericAttributeService _genericAttributeService; // <-- added this
+
 
         public CheckoutWorkflow(
             SmartDbContext db,
@@ -46,6 +51,7 @@ namespace Smartstore.Core.Checkout.Orders
             ICheckoutFactory checkoutFactory,
             ICheckoutStateAccessor checkoutStateAccessor,
             OrderSettings orderSettings,
+            IGenericAttributeService genericAttributeService,
             ShoppingCartSettings shoppingCartSettings)
         {
             _db = db;
@@ -61,6 +67,8 @@ namespace Smartstore.Core.Checkout.Orders
             _checkoutStateAccessor = checkoutStateAccessor;
             _orderSettings = orderSettings;
             _shoppingCartSettings = shoppingCartSettings;
+            _genericAttributeService = genericAttributeService;
+
         }
 
         public Localizer T { get; set; } = NullLocalizer.Instance;
@@ -281,7 +289,19 @@ namespace Smartstore.Core.Checkout.Orders
                     ["AcceptThirdPartyEmailHandOver"] = context.HttpContext.Request.Form["AcceptThirdPartyEmailHandOver"].ToString()
                 };
 
+                // Order successfully placed; copy custom address
                 placeOrderResult = await _orderProcessingService.PlaceOrderAsync(paymentRequest, placeOrderExtraData);
+
+                var order = placeOrderResult.PlacedOrder;
+
+                // Retrieve the GenericAttribute from the customer
+                var byGroundAddress = cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+                if (!string.IsNullOrWhiteSpace(byGroundAddress))
+                {
+                    order.ByGroundAddress = byGroundAddress;
+                    await _db.SaveChangesAsync();
+                }
+
             }
             catch (PaymentException ex)
             {
