@@ -90,8 +90,8 @@
     void RenderBuyNowButton(bool blockStyle)
     {
         var cssClasses = blockStyle
-            ? "btn btn-primary btn-lg art-btn col btn-block d-none d-md-block"
-            : "btn btn-primary btn-lg art-btn col";
+            ? "btn btn-brown btn-lg art-btn col btn-block d-none d-md-block"
+            : "btn btn-brown btn-lg art-btn col";
 
         if (!blockStyle && isLinesMode)
         {
@@ -104,12 +104,11 @@
             forceredirection = Model.Parent.ForceRedirectionAfterAddingToCart,
             area = ""
         });
-
         <text>
         <a href="javascript:void(0);"
            class="@cssClasses"
            rel="nofollow"
-           title="buy"
+           title="buy now"
            data-toggle="tooltip"
            data-placement="bottom"
            onclick="(async (btn) => {
@@ -154,11 +153,7 @@
                    btn.disabled = false;
                }
            })(this)">
-            <i>buy</i>
-            @if (blockStyle)
-            {
-                <span>buy</span>
-            }
+            <span>Buy Now</span>
         </a>
         </text>
     }
@@ -208,7 +203,6 @@
     {
         <span class="art-btn-spacer col"></span>
     }
-
     @if (list.CompareEnabled)
     {
         <a data-href="@Url.Action("AddProductToCompare", "Catalog", new { id = Model.Id, area = "" })"
@@ -236,3 +230,17 @@
         <i class="fa fa-info"></i>
     </a>
 </div> *@
+
+<style>
+.btn-brown {
+    background-color: #8B4513 !important; /* or any brown shade you prefer */
+    border-color: #8B4513 !important;
+    color: #fff !important;
+}
+.btn-brown:hover,
+.btn-brown:focus {
+    background-color: #6b3310 !important;
+    border-color: #6b3310 !important;
+    color: #fff !important;
+}
+</style>
