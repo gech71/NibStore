@@ -3,6 +3,7 @@
     public partial class CheckoutShippingMethodModel : CheckoutModelBase
     {
         public List<ShippingMethodModel> ShippingMethods { get; set; } = [];
+        public string ByGroundAddress { get; set; } // <-- Add this line
 
         public partial class ShippingMethodModel : ModelBase
         {

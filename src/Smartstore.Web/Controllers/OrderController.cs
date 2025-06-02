@@ -447,6 +447,32 @@ namespace Smartstore.Web.Controllers
             return RedirectToAction("RecurringOrders");
         }
 
+        [HttpGet]
+        public async Task<IActionResult> RecurringOrdersDetails(int id)
+        {
+            // Load the recurring order, including related data
+            var order = await _db.Orders
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .IncludeBillingAddress()
+                .IncludeOrderItems()
+                .IncludeShipments()
+                .FirstOrDefaultAsync(x => x.Id == id && x.IsRecurring && !x.Deleted);
+
+            if (order == null)
+            {
+                return NotFound();
+            }
+            if (await IsUnauthorizedOrderAsync(order))
+            {
+                return ChallengeOrForbid();
+            }
+
+            var model = await _orderHelper.PrepareOrderDetailsModelAsync(order);
+
+            return View("RecurringOrdersDetails", model);
+        }
+
         // [HttpPost]
         // [ValidateAntiForgeryToken]
         // public IActionResult Reorder(int orderId)

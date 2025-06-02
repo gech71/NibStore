@@ -30,10 +30,10 @@ else
         {
             <tr>
                 <td class="fw-bold">
-                    <a asp-action="Details" asp-route-id="@order.Id">@number</a>
+                    <a asp-action="RecurringOrdersDetails" asp-route-id="@order.Id">@number</a>
                 </td>
                 <td class="fw-bold">
-                    <a asp-action="Details" asp-route-id="@order.Id">@order.RecurringOrderName</a>
+                    <a asp-action="RecurringOrdersDetails" asp-route-id="@order.Id">@order.RecurringOrderName</a>
                 </td>
                 <td>@order.SavedDate?.ToString("yyyy-MM-dd")</td>
                 <td>@order.OrderTotal.ToString("C")</td>
