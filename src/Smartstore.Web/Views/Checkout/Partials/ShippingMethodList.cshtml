@@ -1,14 +1,12 @@
 ﻿﻿@using Smartstore.Web.Models.Checkout
 @using Smartstore.Core.Checkout.Cart
 @using Smartstore.Core
+@using Smartstore.Core.Common.Services
+@inject IStoreProductService storeProductService
 @inject IShoppingCartService shoppingCartService
 @inject IWorkContext workContext
 
 @model CheckoutShippingMethodModel
-
-@{
-    var storeLocations = new List<string> { "Addis Ababa", "Bahir Dar", "Gondar", "Hawassa" };
-}
 
 @functions {
     private IList<ShoppingCartItem> _cartItems;
@@ -23,7 +21,6 @@
 
 @{
     await LoadCartAsync();
-
     var sortedShippingMethods = Model.ShippingMethods
         .OrderBy(sm => 
             sm.Name.ToLowerInvariant().Contains("by ground") ? 0 :
@@ -79,7 +76,6 @@ else
                     }
                 </div>
 
-                @* Store Pickup Section *@
                 @if (isStorePickup)
                 {
                     <div id="storePickupProducts" class="mt-3">
@@ -97,7 +93,7 @@ else
                                             name="StoreFor_@item.Id" 
                                             style="display:none; min-width: 150px;">
                                         <option value="">-- Select Store --</option>
-                                        @foreach (var store in storeLocations)
+                                        @foreach (var store in await storeProductService.GetStoresForProductAsync(item.ProductId))
                                         {
                                             <option value="@store">@store</option>
                                         }
@@ -108,17 +104,12 @@ else
                     </div>
                 }
 
-                @* By Ground Section *@
                 @if (isByGround)
                 {
                     <div class="by-ground-extra mt-2" style="display:@(shippingMethod.Selected ? "flex" : "none"); align-items:center;">
                         <button type="button" class="btn btn-sm btn-primary mr-2 current-location-btn">Current Location</button>
-                        <input type="text"
-                               class="form-control mr-2 map-address-input"
-                               style="max-width:250px;"
-                               placeholder="Enter address or use current location"
-                               name="ByGroundAddress"
-                               value="@Model.ByGroundAddress" />
+                        <input type="text" class="form-control mr-2 map-address-input" style="max-width:250px;"
+                               placeholder="Enter address or use current location" name="ByGroundAddress" value="@Model.ByGroundAddress" />
                         <a class="google-map-link" href="#" target="_blank" style="display:none;">Open in Google Maps</a>
                     </div>
                 }
@@ -185,13 +176,11 @@ else
             }
         }
 
-        // Toggle store pickup products on load and on change
         toggleStorePickupProducts();
         document.querySelectorAll('input[name="shippingoption"]').forEach(radio => {
             radio.addEventListener('change', toggleStorePickupProducts);
         });
 
-        // Toggle By Ground extra fields
         document.body.addEventListener('change', e => {
             if (!e.target.matches('input[type=radio][name=shippingoption]')) return;
             document.querySelectorAll('.by-ground-extra').forEach(el => el.style.display = 'none');
@@ -202,7 +191,6 @@ else
             }
         });
 
-        // Geolocation for By Ground
         document.body.addEventListener('click', async e => {
             if (!e.target.classList.contains('current-location-btn')) return;
             const container = e.target.closest('[data-index]');
@@ -230,7 +218,3 @@ else
         });
     });
 </script>
-
-
-
-
