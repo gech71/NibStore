@@ -40,6 +40,7 @@ using Smartstore.Core.Data.Migrations;
 using Smartstore.Core.Logging.Serilog;
 using Smartstore.Utilities;
 using Smartstore.Core.Content.MerchantStores;
+using Smartstore.Core.Common.Services;
 
 var rgSystemSource = new Regex(
     "^File|^System|^Microsoft|^Serilog|^Autofac|^Castle|^MiniProfiler|^Newtonsoft|^Pipelines|^Azure|^StackExchange|^Superpower|^Dasync",
@@ -107,6 +108,8 @@ builder.Services.AddHostedService<OrderCleanupService>();
 builder.Host.ConfigureContainer<ContainerBuilder>(engineStarter.ConfigureContainer);
 
 builder.Services.AddScoped<IMerchantStoreService, MerchantStoreService>();
+builder.Services.AddScoped<IStoreProductService, StoreProductService>();
+
 
 // Build the application
 var app = builder.Build();
