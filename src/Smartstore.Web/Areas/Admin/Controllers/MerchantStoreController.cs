@@ -165,7 +165,14 @@ namespace Smartstore.Admin.Controllers
 
             if (ModelState.IsValid)
             {
+                // Map basic properties
                 await MapperFactory.MapAsync(model, merchantStore);
+                
+                // Handle map/location specific data
+                merchantStore.Latitude = model.Latitude;
+                merchantStore.Longitude = model.Longitude;
+                merchantStore.Address = model.Address; // Make sure this is mapped
+
                 await _merchantStoreService.UpdateMerchantStoreAsync(merchantStore);
 
                 NotifySuccess(T("Admin.Common.DataSuccessfullySaved"));
