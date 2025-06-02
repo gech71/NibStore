@@ -109,7 +109,7 @@
         <a href="javascript:void(0);"
            class="@cssClasses"
            rel="nofollow"
-           title="buy now"
+           title="buy"
            data-toggle="tooltip"
            data-placement="bottom"
            onclick="(async (btn) => {
@@ -126,7 +126,7 @@
                            'RequestVerificationToken': '@antiForgeryToken'
                        }
                    });
-                   if (!clearResponse.ok) throw new Error('@T("ShoppingCart.ClearCartFailed")');
+                   if (!clearResponse.ok) throw new Error('clear cart is failed');
 
                    // Add product with form data
                    const form = document.querySelector('#pd-form');
@@ -142,7 +142,7 @@
                        }
                    });
 
-                   if (!addResponse.ok) throw new Error('@T("ShoppingCart.AddToCartFailed")');
+                   if (!addResponse.ok) throw new Error('add to cart is failed');
 
                    // Redirect to checkout page
                    window.location.href = '@checkoutUrl';
@@ -157,7 +157,7 @@
             <i>buy</i>
             @if (blockStyle)
             {
-                <span>@T("Products.BuyNow")</span>
+                <span>buy</span>
             }
         </a>
         </text>
