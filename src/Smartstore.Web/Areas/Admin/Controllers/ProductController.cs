@@ -20,6 +20,7 @@ using Smartstore.Core.Common.Configuration;
 using Smartstore.Core.Common.Services;
 using Smartstore.Core.Content.Media;
 using Smartstore.Core.Content.Menus;
+using Smartstore.Core.Content.MerchantStores;
 using Smartstore.Core.Identity;
 using Smartstore.Core.Localization;
 using Smartstore.Core.Logging;
@@ -74,6 +75,8 @@ namespace Smartstore.Admin.Controllers
         private readonly IEventPublisher _eventPublisher;
         private readonly IGenericAttributeService _genericAttributeService;
 
+        private readonly IMerchantStoreService _merchantStoreService;
+
         public ProductController(
             SmartDbContext db,
             IProductService productService,
@@ -109,7 +112,8 @@ namespace Smartstore.Admin.Controllers
             SearchSettings searchSettings,
             ShoppingCartSettings shoppingCartSettings,
             IEventPublisher eventPublisher,
-            IGenericAttributeService genericAttributeService
+            IGenericAttributeService genericAttributeService,
+            IMerchantStoreService merchantStoreService
         )
         {
             _db = db;
@@ -147,6 +151,7 @@ namespace Smartstore.Admin.Controllers
             _shoppingCartSettings = shoppingCartSettings;
             _eventPublisher = eventPublisher;
             _genericAttributeService = genericAttributeService;
+            _merchantStoreService = merchantStoreService;
         }
 
         #region Product list / create / edit / delete
@@ -1150,6 +1155,141 @@ namespace Smartstore.Admin.Controllers
 
         #endregion
 
+        #region Product Merchant Stores
+        [HttpPost]
+        [Permission(Permissions.Catalog.MerchantStore.Read)]
+        public async Task<IActionResult> ProductMerchantStoreList(int productId)
+        {
+            var mappings =
+                await _merchantStoreService.GetProductMerchantStoreMappingsByProductIdAsync(
+                    productId
+                );
+            var allStores = await _merchantStoreService.GetAllMerchantStoresAsync();
+
+            var storeSelectList = allStores
+                .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Name })
+                .ToList();
+
+            var storeDict = allStores.ToDictionary(x => x.Id, x => x.Name);
+
+            var rows = mappings
+                .Select(x => new ProductModel.ProductMerchantStoreModel
+                {
+                    Id = x.Id,
+                    ProductId = x.ProductId,
+                    MerchantStoreId = x.MerchantStoreId,
+                    MerchantStore = storeDict.GetValueOrDefault(x.MerchantStoreId),
+                    DisplayOrder = x.DisplayOrder,
+                    EditUrl = Url.Action("Edit", "MerchantStore", new { id = x.MerchantStoreId }),
+                })
+                .ToList();
+
+            return Json(
+                new GridModel<ProductModel.ProductMerchantStoreModel>
+                {
+                    Rows = rows,
+                    Total = rows.Count(),
+                }
+            );
+        }
+
+        [HttpPost]
+        [Permission(Permissions.Catalog.MerchantStore.Create)]
+        public async Task<IActionResult> ProductMerchantStoreInsert(
+            ProductModel.ProductMerchantStoreModel model,
+            int productId
+        )
+        {
+            var alreadyAssigned = await _db.ProductMerchantStoreMappings.AnyAsync(x =>
+                x.MerchantStoreId == model.MerchantStoreId && x.ProductId == productId
+            );
+
+            if (alreadyAssigned)
+            {
+                NotifyError(T("Admin.Catalog.Products.MerchantStores.NoDuplicatesAllowed"));
+                return Json(new { success = false });
+            }
+
+            var mapping = new ProductMerchantStoreMapping
+            {
+                ProductId = productId,
+                MerchantStoreId = model.MerchantStoreId,
+                DisplayOrder = model.DisplayOrder,
+            };
+
+            _db.ProductMerchantStoreMappings.Add(mapping);
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                NotifyError(ex.GetInnerMessage());
+                return Json(new { success = false });
+            }
+        }
+
+        [HttpPost]
+        [Permission(Permissions.Catalog.MerchantStore.Update)]
+        public async Task<IActionResult> ProductMerchantStoreUpdate(
+            ProductModel.ProductMerchantStoreModel model
+        )
+        {
+            var mapping = await _db.ProductMerchantStoreMappings.FindByIdAsync(model.Id);
+            if (mapping == null)
+                return Json(new { success = false });
+
+            var storeChanged = model.MerchantStoreId != mapping.MerchantStoreId;
+
+            if (storeChanged)
+            {
+                var alreadyAssigned = await _db.ProductMerchantStoreMappings.AnyAsync(x =>
+                    x.MerchantStoreId == model.MerchantStoreId && x.ProductId == model.ProductId
+                );
+
+                if (alreadyAssigned)
+                {
+                    NotifyError(T("Admin.Catalog.Products.MerchantStores.NoDuplicatesAllowed"));
+                    return Json(new { success = false });
+                }
+            }
+
+            mapping.MerchantStoreId = model.MerchantStoreId;
+            mapping.DisplayOrder = model.DisplayOrder;
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                NotifyError(ex.GetInnerMessage());
+                return Json(new { success = false });
+            }
+        }
+
+        [HttpPost]
+        [Permission(Permissions.Catalog.MerchantStore.Delete)]
+        public async Task<IActionResult> ProductMerchantStoreDelete(GridSelection selection)
+        {
+            var ids = selection.GetEntityIds();
+            var numDeleted = 0;
+
+            if (ids.Any())
+            {
+                var toDelete = await _db.ProductMerchantStoreMappings.GetManyAsync(ids);
+                _db.ProductMerchantStoreMappings.RemoveRange(toDelete);
+                numDeleted = await _db.SaveChangesAsync();
+            }
+
+            return Json(new { Success = true, Count = numDeleted });
+        }
+
+        #endregion
+
         #region Product pictures
 
         [HttpPost]
@@ -2122,6 +2262,7 @@ namespace Smartstore.Admin.Controllers
 
             model.NumberOfAvailableProductAttributes = await _db.ProductAttributes.CountAsync();
             model.NumberOfAvailableManufacturers = await _db.Manufacturers.CountAsync();
+            model.NumberOfAvailableMerchantStores = await _db.MerchantStores.CountAsync();
             model.NumberOfAvailableCategories = await _db.Categories.CountAsync();
             model.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
 

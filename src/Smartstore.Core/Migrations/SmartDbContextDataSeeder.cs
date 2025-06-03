@@ -13,7 +13,10 @@ namespace Smartstore.Core.Data.Migrations
             await MigrateSettingsAsync(context, cancelToken);
         }
 
-        public Task MigrateSettingsAsync(SmartDbContext context, CancellationToken cancelToken = default)
+        public Task MigrateSettingsAsync(
+            SmartDbContext context,
+            CancellationToken cancelToken = default
+        )
         {
             return Task.CompletedTask;
         }

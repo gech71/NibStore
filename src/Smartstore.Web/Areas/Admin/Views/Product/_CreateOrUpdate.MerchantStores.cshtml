@@ -1,0 +1,23 @@
+@model ProductModel
+
+@if (Model.Id == 0)
+{
+    <div class="alert alert-danger">
+        @T("Admin.Catalog.Products.MerchantStores.SaveBeforeEdit")
+    </div>
+    return;
+}
+
+@if (Model.NumberOfAvailableMerchantStores > 0)
+{
+    var gridViewData = new ViewDataDictionary(this.ViewData);
+    gridViewData["Parent"] = Model;
+
+    <partial name="Grids/_Grid.MerchantStores" model="null" view-data="gridViewData" />
+}
+else
+{
+    <div class="alert alert-danger">
+        @T("Admin.Catalog.Products.MerchantStores.NoMerchantStoresAvailable")
+    </div>
+}

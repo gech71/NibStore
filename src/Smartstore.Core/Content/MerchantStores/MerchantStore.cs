@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Smartstore.Core.Common;
 using Smartstore.Core.Localization;
+
 namespace Smartstore.Core.Content.MerchantStores
 {
     [Table("MerchantStore")]

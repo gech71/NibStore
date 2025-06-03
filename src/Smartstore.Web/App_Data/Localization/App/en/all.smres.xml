@@ -2922,6 +2922,26 @@
 	<LocaleResource Name="Admin.Catalog.Products.Manufacturers.SaveBeforeEdit">
 		<Value>You need to save the product before you can map manufacturers for this product page.</Value>
 	</LocaleResource>
+	<!--////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores">
+		<Value>MerchantStore mappings</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields">
+		<Value>Display order</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields.MerchantStores">
+		<Value>MerchantStore</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.NoDuplicatesAllowed">
+		<Value>This merchantStore has already been assigned to the product.</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.NoMerchantStoresAvailable">
+		<Value>No merchantStore available. Create at least one merchantStore before mapping.</Value>
+	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.SaveBeforeEdit">
+		<Value>You need to save the product before you can map merchantStore for this product page.</Value>
+	</LocaleResource>
+	<!--////////////////////////////////////////////////////////////////////////////////////////////////////////-->
 	<LocaleResource Name="Admin.Catalog.Products.Orders.NoOrdersAvailable">
 		<Value>There are no orders for this product yet.</Value>
 	</LocaleResource>

@@ -1,0 +1,6 @@
+@model int
+
+<select asp-for="@Model" class="edit-control" v-bind:data-select-selected-id="item.value"
+    v-bind:data-select-init-text="item.row.MerchantStore" data-editor="select"
+    data-select-url='@Url.Action("AllMerchantStores", "MerchantStore")'>
+</select>
