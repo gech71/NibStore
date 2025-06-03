@@ -179,7 +179,7 @@
                 icon="bi:arrow-repeat"
                 title="Recurring payments"
                 resKey="Admin.RecurringPayments"
-                permissionNames="order"
+                permissionNames="customer.create"
                 controller="RecurringPayment"
                 action="List"
                 area="Admin"

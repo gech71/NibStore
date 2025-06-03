@@ -90,8 +90,8 @@
     void RenderBuyNowButton(bool blockStyle)
     {
         var cssClasses = blockStyle
-            ? "btn btn-primary btn-lg art-btn col btn-block d-none d-md-block"
-            : "btn btn-primary btn-lg art-btn col";
+            ? "btn btn-brown btn-lg art-btn col btn-block d-none d-md-block"
+            : "btn btn-brown btn-lg art-btn col";
 
         if (!blockStyle && isLinesMode)
         {
@@ -104,7 +104,6 @@
             forceredirection = Model.Parent.ForceRedirectionAfterAddingToCart,
             area = ""
         });
-
         <text>
         <a href="javascript:void(0);"
            class="@cssClasses"
@@ -126,7 +125,7 @@
                            'RequestVerificationToken': '@antiForgeryToken'
                        }
                    });
-                   if (!clearResponse.ok) throw new Error('@T("ShoppingCart.ClearCartFailed")');
+                   if (!clearResponse.ok) throw new Error('clear cart is failed');
 
                    // Add product with form data
                    const form = document.querySelector('#pd-form');
@@ -142,7 +141,7 @@
                        }
                    });
 
-                   if (!addResponse.ok) throw new Error('@T("ShoppingCart.AddToCartFailed")');
+                   if (!addResponse.ok) throw new Error('add to cart is failed');
 
                    // Redirect to checkout page
                    window.location.href = '@checkoutUrl';
@@ -154,11 +153,7 @@
                    btn.disabled = false;
                }
            })(this)">
-            <i class="fa fa-bolt d-none d-sm-inline-block"></i>
-            @if (blockStyle)
-            {
-                <span>@T("Products.BuyNow")</span>
-            }
+            <span>Buy Now</span>
         </a>
         </text>
     }
@@ -191,7 +186,7 @@
         </div>
     }
 
-    @if (!price.DisableWishlistButton && list.WishlistEnabled)
+    @* @if (!price.DisableWishlistButton && list.WishlistEnabled)
     {
         <a data-href="@Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist, area = "" })"
            href="#"
@@ -208,7 +203,6 @@
     {
         <span class="art-btn-spacer col"></span>
     }
-
     @if (list.CompareEnabled)
     {
         <a data-href="@Url.Action("AddProductToCompare", "Catalog", new { id = Model.Id, area = "" })"
@@ -235,4 +229,18 @@
        data-placement="bottom">
         <i class="fa fa-info"></i>
     </a>
-</div>
+</div> *@
+
+<style>
+.btn-brown {
+    background-color: #8B4513 !important; /* or any brown shade you prefer */
+    border-color: #8B4513 !important;
+    color: #fff !important;
+}
+.btn-brown:hover,
+.btn-brown:focus {
+    background-color: #6b3310 !important;
+    border-color: #6b3310 !important;
+    color: #fff !important;
+}
+</style>

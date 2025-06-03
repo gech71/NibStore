@@ -61,7 +61,8 @@
             <smart-label asp-for="LowStockActivityId" />
         </div>
         <div class="adminData">
-            <select asp-for="LowStockActivityId" asp-items="Html.GetLocalizedEnumSelectList(typeof(LowStockActivity))"></select>
+            <select asp-for="LowStockActivityId"
+                asp-items="Html.GetLocalizedEnumSelectList(typeof(LowStockActivity))"></select>
             <span asp-validation-for="LowStockActivityId"></span>
         </div>
     </div>
@@ -79,7 +80,8 @@
             <smart-label asp-for="BackorderModeId" />
         </div>
         <div class="adminData">
-            <select asp-for="BackorderModeId" asp-items="Html.GetLocalizedEnumSelectList(typeof(BackorderMode))"></select>
+            <select asp-for="BackorderModeId"
+                asp-items="Html.GetLocalizedEnumSelectList(typeof(BackorderMode))"></select>
             <span asp-validation-for="BackorderModeId"></span>
         </div>
     </div>
@@ -152,74 +154,74 @@
 
 <script>
     $(function () {
-		$("#@Html.IdFor(model => model.ManageInventoryMethodId)").change(toggleManageStock);
-		$("#@Html.IdFor(model => model.BackorderModeId)").change(toggleManageStock);
+        $("#@Html.IdFor(model => model.ManageInventoryMethodId)").change(toggleManageStock);
+        $("#@Html.IdFor(model => model.BackorderModeId)").change(toggleManageStock);
 
-		toggleManageStock();
+        toggleManageStock();
 
-		function toggleManageStock() {
-			var selectedManageInventoryMethodId = $("#@Html.IdFor(model => model.ManageInventoryMethodId)").val();
+        function toggleManageStock() {
+            var selectedManageInventoryMethodId = $("#@Html.IdFor(model => model.ManageInventoryMethodId)").val();
 
-			if (selectedManageInventoryMethodId == '@((int)ManageInventoryMethod.DontManageStock)') {
-				$('#pnlStockQuantity').hide();
-				$('#pnlDisplayStockAvailability').hide();
-				$('#pnlDisplayStockQuantity').hide();
-				$('#pnlMinStockQuantity').hide();
-				$('#pnlLowStockActivity').hide();
-				$('#pnlNotifyForQuantityBelow').hide();
-				$('#pnlAllowBackInStockSubscriptions').hide();
-				$('#pnlBackorders').hide();
-			}
-			else if (selectedManageInventoryMethodId == '@((int)ManageInventoryMethod.ManageStock)') {
-				$('#pnlStockQuantity').show();
-				$('#pnlDisplayStockAvailability').show();
+            if (selectedManageInventoryMethodId == '@((int)ManageInventoryMethod.DontManageStock)') {
+                $('#pnlStockQuantity').hide();
+                $('#pnlDisplayStockAvailability').hide();
+                $('#pnlDisplayStockQuantity').hide();
+                $('#pnlMinStockQuantity').hide();
+                $('#pnlLowStockActivity').hide();
+                $('#pnlNotifyForQuantityBelow').hide();
+                $('#pnlAllowBackInStockSubscriptions').hide();
+                $('#pnlBackorders').hide();
+            }
+            else if (selectedManageInventoryMethodId == '@((int)ManageInventoryMethod.ManageStock)') {
+                $('#pnlStockQuantity').show();
+                $('#pnlDisplayStockAvailability').show();
 
-				if ($('#@Html.IdFor(model => model.DisplayStockAvailability)').is(':checked')) {
-					$('#pnlDisplayStockQuantity').show();
-				}
-				else {
-					$('#pnlDisplayStockQuantity').hide();
-				}
+                if ($('#@Html.IdFor(model => model.DisplayStockAvailability)').is(':checked')) {
+                    $('#pnlDisplayStockQuantity').show();
+                }
+                else {
+                    $('#pnlDisplayStockQuantity').hide();
+                }
 
-				$('#pnlMinStockQuantity').show();
-				$('#pnlLowStockActivity').show();
-				$('#pnlNotifyForQuantityBelow').show();
-				$('#pnlBackorders').show();
-				var selectedBackorderModeId = $("#@Html.IdFor(model => model.BackorderModeId)").val();
-				if (selectedBackorderModeId == '@((int)BackorderMode.NoBackorders)') {
-					//no backorders
-					$('#pnlAllowBackInStockSubscriptions').show();
-				}
-				else {
-					//backorders are enabled
-					$('#pnlAllowBackInStockSubscriptions').hide();
-				}
-			}
-			else if (selectedManageInventoryMethodId == '@((int)ManageInventoryMethod.ManageStockByAttributes)') {
-				$('#pnlStockQuantity').hide();
-				$('#pnlDisplayStockAvailability').show();
-				if ($('#@Html.IdFor(model => model.DisplayStockAvailability)').is(':checked')) {
-					$('#pnlDisplayStockQuantity').show();
-				}
-				else {
-					$('#pnlDisplayStockQuantity').hide();
-				}
-				$('#pnlMinStockQuantity').hide();
-				$('#pnlLowStockActivity').hide();
-				$('#pnlNotifyForQuantityBelow').hide();
-				$('#pnlAllowBackInStockSubscriptions').hide();
-				$('#pnlBackorders').hide();
-			}
-			else {
-				$('#pnlStockQuantity').hide();
-				$('#pnlDisplayStockAvailability').hide();
-				$('#pnlDisplayStockQuantity').hide();
-				$('#pnlMinStockQuantity').hide();
-				$('#pnlLowStockActivity').hide();
-				$('#pnlNotifyForQuantityBelow').hide();
-				$('#pnlAllowBackInStockSubscriptions').hide();
-				$('#pnlBackorders').hide();
-			}
-		}
-	});
+                $('#pnlMinStockQuantity').show();
+                $('#pnlLowStockActivity').show();
+                $('#pnlNotifyForQuantityBelow').show();
+                $('#pnlBackorders').show();
+                var selectedBackorderModeId = $("#@Html.IdFor(model => model.BackorderModeId)").val();
+                if (selectedBackorderModeId == '@((int)BackorderMode.NoBackorders)') {
+                    //no backorders
+                    $('#pnlAllowBackInStockSubscriptions').show();
+                }
+                else {
+                    //backorders are enabled
+                    $('#pnlAllowBackInStockSubscriptions').hide();
+                }
+            }
+            else if (selectedManageInventoryMethodId == '@((int)ManageInventoryMethod.ManageStockByAttributes)') {
+                $('#pnlStockQuantity').hide();
+                $('#pnlDisplayStockAvailability').show();
+                if ($('#@Html.IdFor(model => model.DisplayStockAvailability)').is(':checked')) {
+                    $('#pnlDisplayStockQuantity').show();
+                }
+                else {
+                    $('#pnlDisplayStockQuantity').hide();
+                }
+                $('#pnlMinStockQuantity').hide();
+                $('#pnlLowStockActivity').hide();
+                $('#pnlNotifyForQuantityBelow').hide();
+                $('#pnlAllowBackInStockSubscriptions').hide();
+                $('#pnlBackorders').hide();
+            }
+            else {
+                $('#pnlStockQuantity').hide();
+                $('#pnlDisplayStockAvailability').hide();
+                $('#pnlDisplayStockQuantity').hide();
+                $('#pnlMinStockQuantity').hide();
+                $('#pnlLowStockActivity').hide();
+                $('#pnlNotifyForQuantityBelow').hide();
+                $('#pnlAllowBackInStockSubscriptions').hide();
+                $('#pnlBackorders').hide();
+            }
+        }
+    });
 </script>
