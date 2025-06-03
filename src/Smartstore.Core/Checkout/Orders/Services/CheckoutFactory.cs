@@ -30,7 +30,11 @@ namespace Smartstore.Core.Checkout.Orders
             }
             else
             {
-                _handlers = handlers.OrderBy(x => x.Metadata.Order);
+                _handlers = handlers
+                    .Where(x =>
+                        x.Metadata.HandlerType.Equals(typeof(ShippingMethodHandler)) ||
+                        x.Metadata.HandlerType.Equals(typeof(ConfirmHandler)))
+                    .OrderBy(x => x.Metadata.Order);
             }
         }
 
@@ -38,17 +42,9 @@ namespace Smartstore.Core.Checkout.Orders
         {
             CheckoutRequirements requirements = 0;
 
-            if (_handlers.Any(FindHandler(CheckoutActionNames.BillingAddress)))
-            {
-                requirements |= CheckoutRequirements.BillingAddress;
-            }
             if (_handlers.Any(FindHandler(CheckoutActionNames.ShippingMethod)))
             {
-                requirements |= CheckoutRequirements.Shipping;
-            }
-            if (_handlers.Any(FindHandler(CheckoutActionNames.PaymentMethod)))
-            {
-                requirements |= CheckoutRequirements.Payment;
+                requirements |= CheckoutRequirements.Shipping; // Shipping method selection is required.
             }
 
             return requirements;

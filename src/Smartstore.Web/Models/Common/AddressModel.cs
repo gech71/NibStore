@@ -209,7 +209,7 @@ namespace Smartstore.Web.Models.Common
                 RuleFor(x => x.FaxNumber).NotEmpty();
             }
 
-            RuleFor(x => x.Email).EmailAddressStrict();
+            /*RuleFor(x => x.Email).EmailAddressStrict();
 
             if (addressSettings.ValidateEmailAddress)
             {
@@ -217,7 +217,7 @@ namespace Smartstore.Web.Models.Common
                     .NotEmpty()
                     .Equal(x => x.Email)
                     .WithMessage(T("Admin.Address.Fields.EmailMatch.MustMatchEmail"));
-            }
+            }*/
 
             When(x => x.CountryId != null && x.DefaultAddressesEnabled, () =>
             {
