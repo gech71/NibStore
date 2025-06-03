@@ -319,6 +319,10 @@ namespace Smartstore.Admin.Controllers
             var model = await MapperFactory.MapAsync<Product, ProductModel>(product);
             await PrepareProductModelAsync(model, product, false, false);
 
+            model.StockQuantity = await _db.ProductMerchantStoreMappings
+                .Where(m => m.ProductId == product.Id)
+                .SumAsync(m => (int?)m.Quantity) ?? 0;
+
             await AddLocalesAsync(
                 model.Locales,
                 async (locale, languageId) =>
@@ -398,6 +402,11 @@ namespace Smartstore.Admin.Controllers
             if (ModelState.IsValid)
             {
                 await MapModelToProductAsync(model, product, form);
+
+                product.StockQuantity = await _db.ProductMerchantStoreMappings
+            .Where(m => m.ProductId == product.Id)
+            .SumAsync(m => (int?)m.Quantity) ?? 0;
+
                 await UpdateDataOfExistingProductAsync(product, model, true);
 
                 Services.ActivityLogger.LogActivity(
@@ -1179,8 +1188,8 @@ namespace Smartstore.Admin.Controllers
                     ProductId = x.ProductId,
                     MerchantStoreId = x.MerchantStoreId,
                     MerchantStore = storeDict.GetValueOrDefault(x.MerchantStoreId),
-                    DisplayOrder = x.DisplayOrder,
                     Quantity = x.Quantity,
+                    DisplayOrder = x.DisplayOrder,
                     EditUrl = Url.Action("Edit", "MerchantStore", new { id = x.MerchantStoreId }),
                 })
                 .ToList();
@@ -1215,8 +1224,8 @@ namespace Smartstore.Admin.Controllers
             {
                 ProductId = productId,
                 MerchantStoreId = model.MerchantStoreId,
-                DisplayOrder = model.DisplayOrder,
                 Quantity = model.Quantity,
+                DisplayOrder = model.DisplayOrder,
             };
 
             _db.ProductMerchantStoreMappings.Add(mapping);
@@ -1259,8 +1268,8 @@ namespace Smartstore.Admin.Controllers
             }
 
             mapping.MerchantStoreId = model.MerchantStoreId;
-            mapping.DisplayOrder = model.DisplayOrder;
             mapping.Quantity = model.Quantity;
+            mapping.DisplayOrder = model.DisplayOrder;
 
             try
             {
