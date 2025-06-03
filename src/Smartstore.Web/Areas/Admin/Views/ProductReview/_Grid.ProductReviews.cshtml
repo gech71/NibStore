@@ -73,9 +73,19 @@
         </column>
         <column for="Sku" entity-member="Product.Sku" visible="false" width="200px" />
         <column for="Title" hideable="false">
+        @if (canUpdate)
+        {
             <display-template>
                 <a :href="item.row.EditUrl" class="text-truncate">{{ item.value }}</a>
             </display-template>
+        }
+        else
+        {
+            <display-template>
+                <span class="text-truncate">{{ item.value }}</span>
+            </display-template>
+        }
+           
         </column>
         <column for="ReviewText" encoded="true" wrap="true" width="2fr" />
         <column for="CustomerId" visible="false">

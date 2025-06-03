@@ -3,6 +3,7 @@ using Smartstore.ComponentModel;
 using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Checkout.Orders;
 using Smartstore.Core.Checkout.Payment;
+using Smartstore.Core.Identity;
 using Smartstore.Core.Localization.Routing;
 using Smartstore.Core.Seo.Routing;
 using Smartstore.Core.Stores;
@@ -145,10 +146,10 @@ namespace Smartstore.Web.Controllers
                 else
                 {
                     customer.BillingAddress = address;
-                    customer.ShippingAddress = model.ShippingAddressDiffers || !cart.IsShippingRequired ? null : address;
+                    customer.ShippingAddress = (model.ShippingAddressDiffers || !cart.IsShippingRequired) ? null : address;
 
                     var state = _checkoutStateAccessor.CheckoutState;
-                    state.CustomProperties["SkipShippingAddress"] = !model.ShippingAddressDiffers;
+                    state.CustomProperties["SkipShippingAddress"] = true;
                     state.CustomProperties["ShippingAddressDiffers"] = model.ShippingAddressDiffers;
 
                     if (_shoppingCartSettings.QuickCheckoutEnabled)
@@ -197,6 +198,9 @@ namespace Smartstore.Web.Controllers
         public async Task<IActionResult> ShippingMethod()
         {
             var context = await CreateCheckoutContext();
+            // Ensure dummy shipping address before processing
+            await EnsureDummyShipAddressAsync(context.Cart.Customer);
+
             var result = await _checkoutWorkflow.ProcessAsync(context);
             if (result.ActionResult != null)
             {
@@ -360,6 +364,33 @@ namespace Smartstore.Web.Controllers
             {
                 Model = model
             };
+        }
+
+        private async Task EnsureDummyShipAddressAsync(Customer customer)
+        {
+            if (customer.ShippingAddress != null)
+                return;
+
+            var country = await _db.Countries
+                                   .Where(c => c.TwoLetterIsoCode == "ET")
+                                   .FirstAsync();
+
+            var dummy = new Address
+            {
+                Country = country,
+                CountryId = country.Id,
+                City = "-",
+                Address1 = "N/A",
+                ZipPostalCode = "-",
+                PhoneNumber = "-",
+                FirstName = customer.GetFullName() ?? "N/A",
+                LastName = "-",
+                Email = "guest.user@example.org"
+            };
+            customer.Addresses.Add(dummy);
+            customer.ShippingAddress = dummy;
+
+            await _db.SaveChangesAsync();
         }
     }
 }

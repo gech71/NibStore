@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -170,7 +170,11 @@ namespace Smartstore.Web.Controllers
                             customer
                         );
 
-                        if (
+                        if (customer.IsAdmin() || customer.IsInRole("Merchant"))
+                        {
+                            return RedirectToAction("Index", "Home", new { area = "Admin" });
+                        }
+                        else if (
                             returnUrl.IsEmpty()
                             || returnUrl == "/"
                             || returnUrl.Contains(
@@ -178,7 +182,7 @@ namespace Smartstore.Web.Controllers
                                 StringComparison.OrdinalIgnoreCase
                             )
                             || returnUrl.Contains("/activation", StringComparison.OrdinalIgnoreCase)
-                            || !Url.IsLocalUrl(returnUrl)
+                          || !Url.IsLocalUrl(returnUrl)
                         )
                         {
                             return RedirectToRoute("Homepage");
