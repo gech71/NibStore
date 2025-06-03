@@ -20,7 +20,7 @@
     ViewBag.ArtDetailUrl = Model.DetailUrl;
 }
 
-<article class="art" data-id="@Model.Id">
+<article class="art product-item-container" data-id="@Model.Id" style="background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 15px; margin: 10px; transition: all 0.3s ease;">
     <div class="art-picture-block">
         @* TODO: (mc) Let user define one free badge per product in backend *@
         <div sm-if="Model.Badges.Count > 0" class="art-badges">

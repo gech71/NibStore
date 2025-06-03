@@ -62,14 +62,20 @@
 
 @if (Model.PagedList.TotalCount > 0 && hasActions)
 {
-    <div class="artlist-actions artlist-actions--top d-flex flex-wrap flex-lg-nowrap" attr-style='(imgRatio.HasValue(), "--img-aspect-ratio: " + imgRatio)'>
-        <div sm-if="Model.AllowSorting || Model.AllowFiltering" class="artlist-action-group artlist-action-group--filtersort">
-            <partial name="Product.List.FilterSort" model="Model" />
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+        <div>
+            @* Optionally show a title if available *@
+            @* @if (!string.IsNullOrEmpty(Model.Title))
+            {
+                <h1 class="category-title">@Model.Title</h1>
+            } *@
         </div>
-        <div sm-if="Model.AllowViewModeChanging" class="artlist-action-group artlist-action-group--viewmode">
-            <div sm-if="Model.AllowSorting" class="vr mx-2 text-body-tertiary"></div>
-            @* ViewMode *@
-            @if (Model.AllowViewModeChanging && Model.ViewMode == ProductSummaryViewMode.Grid || Model.ViewMode == ProductSummaryViewMode.List)
+        <div class="d-flex gap-2">
+            @if (Model.AllowSorting || Model.AllowFiltering)
+            {
+                <partial name="Product.List.FilterSort" model="Model" />
+            }
+            @if (Model.AllowViewModeChanging)
             {
                 <partial name="Product.List.ViewMode" model="Model" />
             }
