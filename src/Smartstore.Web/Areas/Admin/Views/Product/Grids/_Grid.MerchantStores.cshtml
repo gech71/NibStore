@@ -48,6 +48,14 @@
                 <a :href="item.row.EditUrl" class="text-truncate" v-html="item.row.MerchantStore"></a>
             </display-template>
         </column>
+        <column for="Quantity" title="@T("Admin.Catalog.Products.MerchantStores.Fields.Quantity")" halign="center">
+            <display-template>
+                <span>{{ item.row.Quantity }}</span>
+            </display-template>
+            <edit-template>
+                <input type="number" class="form-control" v-model="item.row.Quantity" min="0" />
+            </edit-template>
+        </column>
         <column for="DisplayOrder" halign="center" />
     </columns>
     <row-commands>

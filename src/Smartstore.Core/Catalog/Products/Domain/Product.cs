@@ -1056,4 +1056,4 @@ namespace Smartstore.Core.Catalog.Products
 
         public string[] GetDisplayNameMemberNames() => new[] { nameof(Name) };
     }
-}
+} 

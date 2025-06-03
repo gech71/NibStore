@@ -2932,6 +2932,9 @@
 	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields.MerchantStores">
 		<Value>MerchantStore</Value>
 	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields.Quantity">
+		<Value>Quantity</Value>
+	</LocaleResource>
 	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.NoDuplicatesAllowed">
 		<Value>This merchantStore has already been assigned to the product.</Value>
 	</LocaleResource>
@@ -17465,17 +17468,11 @@ within the observation window, additional requests may be denied, even if type-s
 	<LocaleResource Name="Homepage.Brands.ShowAll">
 		<Value>Show all</Value>
 	</LocaleResource>
-	<!-- <LocaleResource Name="HomePage.Products">
+	<LocaleResource Name="HomePage.Products">
 		<Value>Featured products</Value>
-	</LocaleResource> -->
-	<LocaleResource Name="Latest Products">
-		<Value>Latest products</Value>
 	</LocaleResource>
-	<!-- <LocaleResource Name="Homepage.TopBrands">
-		<Value>Top Brands</Value>
-	</LocaleResource> -->
-	<LocaleResource Name="Top Merchants">
-		<Value>Top Merchants</Value>
+	<LocaleResource Name="Homepage.TopBrands">
+		<Value>Top Brand</Value>
 	</LocaleResource>
 	<LocaleResource Name="HtmlEditor.ClickToEdit">
 		<Value>Click to edit HTML...</Value>

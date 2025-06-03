@@ -14,11 +14,13 @@ namespace Smartstore.Admin.Controllers
     public class MerchantStoreController : AdminController
     {
         private readonly IMerchantStoreService _merchantStoreService;
+        private readonly IWorkContext _workContext;
         private readonly SmartDbContext _db;
 
-        public MerchantStoreController(IMerchantStoreService merchantStoreService, SmartDbContext db)
+        public MerchantStoreController(IMerchantStoreService merchantStoreService, IWorkContext workContext, SmartDbContext db)
         {
             _merchantStoreService = merchantStoreService;
+            _workContext = workContext;
             _db = db;
         }
 
@@ -53,6 +55,12 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> MerchantStoreList(GridCommand command, MerchantStoreModel model)
         {
+            var currentUser = _workContext.CurrentCustomer;
+
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                            m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+                        );
+
             var merchantStores = await _merchantStoreService.GetAllMerchantStoresAsync(true);
             var mapper = MapperFactory.GetMapper<MerchantStore, MerchantStoreModel>();
             var merchantStoreModels = (await Task.WhenAll(merchantStores.Select(x => mapper.MapAsync(x)))).ToList();
@@ -60,6 +68,22 @@ namespace Smartstore.Admin.Controllers
             foreach (var storeModel in merchantStoreModels)
             {
                 storeModel.EditUrl = Url.Action("Edit", "MerchantStore", new { area = "Admin", id = storeModel.Id });
+            }
+
+            if (isMerchant)
+            {
+                var merchantStoreIds = await _db
+                        .GenericAttributes.Where(a =>
+                            a.KeyGroup == "MerchantStore"
+                            && a.Key == "CreatedByUserId"
+                            && a.Value == currentUser.Id.ToString()
+                        )
+                        .Select(a => a.EntityId)
+                        .ToListAsync();
+
+                merchantStoreModels = merchantStoreModels
+                    .Where(x => merchantStoreIds.Contains(x.Id))
+                    .ToList();
             }
 
             if (model.SearchMerchantStoreName.HasValue())
@@ -93,6 +117,19 @@ namespace Smartstore.Admin.Controllers
             {
                 var merchantStore = await MapperFactory.MapAsync<MerchantStoreModel, MerchantStore>(model);
                 await _merchantStoreService.InsertMerchantStoreAsync(merchantStore);
+
+                var currentUser = _workContext.CurrentCustomer;
+
+                var attribute = new GenericAttribute
+                {
+                    EntityId = merchantStore.Id,
+                    KeyGroup = "MerchantStore",
+                    Key = "CreatedByUserId",
+                    Value = currentUser.Id.ToString(),
+                };
+
+                _db.GenericAttributes.Add(attribute);
+                await _db.SaveChangesAsync();
 
                 NotifySuccess(T("Admin.Common.DataSuccessfullySaved"));
                 return continueEditing
@@ -128,7 +165,14 @@ namespace Smartstore.Admin.Controllers
 
             if (ModelState.IsValid)
             {
+                // Map basic properties
                 await MapperFactory.MapAsync(model, merchantStore);
+                
+                // Handle map/location specific data
+                merchantStore.Latitude = model.Latitude;
+                merchantStore.Longitude = model.Longitude;
+                merchantStore.Address = model.Address; // Make sure this is mapped
+
                 await _merchantStoreService.UpdateMerchantStoreAsync(merchantStore);
 
                 NotifySuccess(T("Admin.Common.DataSuccessfullySaved"));

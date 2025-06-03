@@ -171,18 +171,18 @@
             </h1>
         </div>
 
-        <div class="print-buttons col col-auto">
+        @* <div class="print-buttons col col-auto">
             <a asp-action="Print" asp-route-id="@Model.Id" asp-route-pdf="false" target="print" class="btn btn-secondary btn-sm print-order-button" rel="nofollow">
                 <i class="fa fa-print"></i>
                 <span>@T("Order.Print")</span>
-            </a>
-            @if (Model.DisplayPdfInvoice)
+            </a> *@
+            @* @if (Model.DisplayPdfInvoice)
             {
                 <a asp-action="Print" asp-route-id="@Model.Id" asp-route-pdf="true" class="btn btn-secondary btn-sm pdf-order-button" rel="nofollow">
                     <i class="far fa-file-pdf"></i>
                     <span>@T("Order.GetPDFInvoice")</span>
                 </a>
-            }
+            } *@
         </div>
     </div>
 
