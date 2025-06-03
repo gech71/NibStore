@@ -167,7 +167,7 @@ namespace Smartstore.Admin.Controllers
             {
                 // Map basic properties
                 await MapperFactory.MapAsync(model, merchantStore);
-                
+
                 // Handle map/location specific data
                 merchantStore.Latitude = model.Latitude;
                 merchantStore.Longitude = model.Longitude;

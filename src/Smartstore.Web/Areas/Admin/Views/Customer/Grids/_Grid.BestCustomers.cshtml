@@ -4,7 +4,6 @@
 @{
     var parentModel = ViewData["Parent"] as TopCustomersReportModel;
     var canCreate = await permissionService.AuthorizeAsync(Permissions.Catalog.Category.Create);
-
 }
 
 <datagrid id="best-customers-grid" class="h-100" allow-resize="true" allow-column-reordering="true">
