@@ -1,6 +1,36 @@
-﻿@using Smartstore.Web.Models.Checkout
+﻿﻿@using Smartstore.Web.Models.Checkout
+@using Smartstore.Core.Checkout.Cart
+@using Smartstore.Core
+@using Smartstore.Core.Common.Services
+@inject IStoreProductService storeProductService
+@inject IShoppingCartService shoppingCartService
+@inject IWorkContext workContext
 
 @model CheckoutShippingMethodModel
+
+@functions {
+    private IList<ShoppingCartItem> _cartItems;
+
+    public async Task LoadCartAsync()
+    {
+        var customer = workContext.CurrentCustomer;
+        var cart = await shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart);
+        _cartItems = cart.Items.Select(x => x.Item).ToList();
+    }
+}
+
+@{
+    await LoadCartAsync();
+    var sortedShippingMethods = Model.ShippingMethods
+        .OrderBy(sm => 
+            sm.Name.ToLowerInvariant().Contains("by ground") ? 0 :
+            sm.Name.ToLowerInvariant().Contains("store pickup") ? 1 : 2)
+        .ToList();
+
+    var storePickupMethod = sortedShippingMethods
+        .FirstOrDefault(sm => sm.Name.ToLowerInvariant().Contains("store pickup"));
+    var storePickupMethodId = storePickupMethod?.ShippingMethodId ?? 0;
+}
 
 <zone name="checkout_shipping_method_content_before" />
 
@@ -18,47 +48,173 @@
 else
 {
     <ul class="list-group opt-list shipping-options">
-        @for (int i = 0; i < Model.ShippingMethods.Count; i++)
+        @for (int i = 0; i < sortedShippingMethods.Count; i++)
         {
-            var shippingMethod = Model.ShippingMethods[i];
+            var shippingMethod = sortedShippingMethods[i];
+            var isStorePickup = shippingMethod.Name?.ToLowerInvariant().Contains("store pickup") == true;
+            var isByGround = shippingMethod.Name == "By Ground";
 
-            <li class="list-group-item opt-list-item shipping-option-item" attr-class='(shippingMethod.Selected, "active")'>
+            <li class="list-group-item opt-list-item shipping-option-item @(shippingMethod.Selected ? "active" : "")" data-index="@i">
                 <div class="opt-data">
                     <div class="form-check opt-control option-name radio">
                         <input id="shippingoption_@(i)" type="radio" name="shippingoption"
-                                class="opt-radio form-check-input"
-                                attr-checked='(shippingMethod.Selected, "checked")'
-                                value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)" />
+                               class="opt-radio form-check-input"
+                               value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)"
+                               data-shippingmethodid="@(shippingMethod.ShippingMethodId)"
+                               data-shipping-name="@shippingMethod.Name"
+                               @(shippingMethod.Selected ? "checked" : "") />
                         <label class="form-check-label" for="shippingoption_@(i)">
                             <span class="opt-name">@Html.Raw(shippingMethod.Name.HtmlDecode())</span>
                         </label>
                     </div>
 
-                    <div sm-if="shippingMethod.Fee > decimal.Zero" class="opt-fee shipping-fee badge badge-danger ml-auto">
-                        @shippingMethod.Fee
-                    </div>
-                </div>
-
-                <div sm-if="shippingMethod.Description.HasValue()" class="opt-info text-muted shipping-option-description">
-                    @if (shippingMethod.BrandUrl.HasValue())
+                    @if (shippingMethod.Fee > decimal.Zero)
                     {
-                        <div class="media">
-                            <span class="float-left">
-                                <img class="media-object img-fluid" src="@Url.Content(shippingMethod.BrandUrl)" alt="@shippingMethod.Name" />
-                            </span>
-                            <div class="media-body">
-                                @Html.Raw(shippingMethod.Description)
-                            </div>
+                        <div class="opt-fee shipping-fee badge badge-danger ml-auto">
+                            @shippingMethod.Fee
                         </div>
                     }
-                    else
-                    {
-                        @Html.Raw(shippingMethod.Description);
-                    }
                 </div>
+
+                @if (isStorePickup)
+                {
+                    <div id="storePickupProducts" class="mt-3">
+                        <label class="form-label font-weight-bold">Your Cart Items:</label>
+                        <div class="list-group">
+                            @foreach (var item in _cartItems)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center product-item" style="position: relative;">
+                                    <div>
+                                        <div class="product-name">@item.Product.Name</div>
+                                        <div class="product-quantity text-muted small">Qty: @item.Quantity</div>
+                                    </div>
+
+                                    <select class="form-control form-control-sm store-select-dropdown" 
+                                            name="StoreFor_@item.Id" 
+                                            style="display:none; min-width: 150px;">
+                                        <option value="">-- Select Store --</option>
+                                        @foreach (var store in await storeProductService.GetStoresForProductAsync(item.ProductId))
+                                        {
+                                            <option value="@store">@store</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (isByGround)
+                {
+                    <div class="by-ground-extra mt-2" style="display:@(shippingMethod.Selected ? "flex" : "none"); align-items:center;">
+                        <button type="button" class="btn btn-sm btn-primary mr-2 current-location-btn">Current Location</button>
+                        <input type="text" class="form-control mr-2 map-address-input" style="max-width:250px;"
+                               placeholder="Enter address or use current location" name="ByGroundAddress" value="@Model.ByGroundAddress" />
+                        <a class="google-map-link" href="#" target="_blank" style="display:none;">Open in Google Maps</a>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(shippingMethod.Description))
+                {
+                    <div class="opt-info text-muted shipping-option-description">
+                        @if (!string.IsNullOrEmpty(shippingMethod.BrandUrl))
+                        {
+                            <div class="media">
+                                <span class="float-left">
+                                    <img class="media-object img-fluid" src="@Url.Content(shippingMethod.BrandUrl)" alt="@shippingMethod.Name" />
+                                </span>
+                                <div class="media-body">
+                                    @Html.Raw(shippingMethod.Description)
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @Html.Raw(shippingMethod.Description);
+                        }
+                    </div>
+                }
             </li>
         }
     </ul>
 }
 
 <zone name="checkout_shipping_method_content_after" />
+
+<style>
+    .product-item:hover .store-select-dropdown {
+        display: block !important;
+    }
+
+    .store-select-dropdown {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const storePickupProducts = document.getElementById('storePickupProducts');
+        const storePickupMethodId = @storePickupMethodId;
+
+        function toggleStorePickupProducts() {
+            const radios = document.querySelectorAll('input[name="shippingoption"]');
+            let selectedId = null;
+            radios.forEach(radio => {
+                if (radio.checked) {
+                    selectedId = parseInt(radio.getAttribute('data-shippingmethodid'));
+                }
+            });
+
+            if (selectedId === storePickupMethodId && storePickupProducts) {
+                storePickupProducts.style.display = 'block';
+            } else if (storePickupProducts) {
+                storePickupProducts.style.display = 'none';
+            }
+        }
+
+        toggleStorePickupProducts();
+        document.querySelectorAll('input[name="shippingoption"]').forEach(radio => {
+            radio.addEventListener('change', toggleStorePickupProducts);
+        });
+
+        document.body.addEventListener('change', e => {
+            if (!e.target.matches('input[type=radio][name=shippingoption]')) return;
+            document.querySelectorAll('.by-ground-extra').forEach(el => el.style.display = 'none');
+            if (e.target.dataset.shippingName === 'By Ground') {
+                const container = e.target.closest('[data-index]');
+                const extra = container.querySelector('.by-ground-extra');
+                if (extra) extra.style.display = 'flex';
+            }
+        });
+
+        document.body.addEventListener('click', async e => {
+            if (!e.target.classList.contains('current-location-btn')) return;
+            const container = e.target.closest('[data-index]');
+            const addressInput = container.querySelector('.map-address-input');
+            const link = container.querySelector('.google-map-link');
+            if (!navigator.geolocation) {
+                alert('Geolocation not supported.');
+                return;
+            }
+            e.target.disabled = true;
+            e.target.innerText = 'Locating…';
+            navigator.geolocation.getCurrentPosition(pos => {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lng = pos.coords.longitude.toFixed(6);
+                addressInput.value = `${lat},${lng}`;
+                link.href = `https://www.google.com/maps?q=${encodeURIComponent(addressInput.value)}`;
+                link.style.display = 'inline';
+                e.target.innerText = 'Current Location';
+                e.target.disabled = false;
+            }, () => {
+                alert('Unable to retrieve location.');
+                e.target.disabled = false;
+                e.target.innerText = 'Current Location';
+            });
+        });
+    });
+</script>

@@ -1180,6 +1180,7 @@ namespace Smartstore.Admin.Controllers
                     MerchantStoreId = x.MerchantStoreId,
                     MerchantStore = storeDict.GetValueOrDefault(x.MerchantStoreId),
                     DisplayOrder = x.DisplayOrder,
+                    Quantity = x.Quantity,
                     EditUrl = Url.Action("Edit", "MerchantStore", new { id = x.MerchantStoreId }),
                 })
                 .ToList();
@@ -1215,6 +1216,7 @@ namespace Smartstore.Admin.Controllers
                 ProductId = productId,
                 MerchantStoreId = model.MerchantStoreId,
                 DisplayOrder = model.DisplayOrder,
+                Quantity = model.Quantity,
             };
 
             _db.ProductMerchantStoreMappings.Add(mapping);
@@ -1258,6 +1260,7 @@ namespace Smartstore.Admin.Controllers
 
             mapping.MerchantStoreId = model.MerchantStoreId;
             mapping.DisplayOrder = model.DisplayOrder;
+            mapping.Quantity = model.Quantity;
 
             try
             {
@@ -1794,13 +1797,13 @@ namespace Smartstore.Admin.Controllers
             var tags = await query.OrderBy(x => x.Name).ToPagedList(page - 1, pageSize).LoadAsync();
 
             var results = tags.Select(x => new ChoiceListItem
-                {
-                    Id = x.Name,
-                    Text = x.Name,
-                    Selected = selectedNames?.Contains(x.Name) ?? false,
-                    Title = !x.Published ? unpublishedStr : null,
-                    CssClass = !x.Published ? "choice-item-unavailable" : null,
-                })
+            {
+                Id = x.Name,
+                Text = x.Name,
+                Selected = selectedNames?.Contains(x.Name) ?? false,
+                Title = !x.Published ? unpublishedStr : null,
+                CssClass = !x.Published ? "choice-item-unavailable" : null,
+            })
                 .ToList();
 
             return new JsonResult(new { results, pagination = new { more = tags.HasNextPage } });
@@ -1837,12 +1840,12 @@ namespace Smartstore.Admin.Controllers
                 .LoadAsync();
 
             var rows = await tags.SelectAwait(async x => new ProductTagModel
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Published = x.Published,
-                    ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
-                })
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Published = x.Published,
+                ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
+            })
                 .AsyncToList();
 
             return Json(

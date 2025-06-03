@@ -25,7 +25,7 @@
                     <smart-label asp-for="Address" />
                 </div>
                 <div class="adminData">
-                    <textarea asp-for="Address" rows="4"></textarea>
+                    @await Html.PartialAsync("_MapAddressPicker", Model)
                     <span asp-validation-for="Address"></span>
                 </div>
             </div>

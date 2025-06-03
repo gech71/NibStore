@@ -2932,6 +2932,9 @@
 	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields.MerchantStores">
 		<Value>MerchantStore</Value>
 	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields.Quantity">
+		<Value>Quantity</Value>
+	</LocaleResource>
 	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.NoDuplicatesAllowed">
 		<Value>This merchantStore has already been assigned to the product.</Value>
 	</LocaleResource>

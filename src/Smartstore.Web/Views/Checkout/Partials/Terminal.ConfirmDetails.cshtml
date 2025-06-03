@@ -80,3 +80,10 @@ else
 </div>
 
 <zone name="order_summary_content_after" />
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch('/ShoppingCart/ClearAllGiftCardCoupons', { method: 'POST' });
+    });
+</script>

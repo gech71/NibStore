@@ -6,13 +6,12 @@
     var list = Model.Parent;
     var image = Model.Image;
     var hasImage = image?.HasImage() == true;
-
     var isLinesMode = list.ViewMode == ProductSummaryViewMode.List;
     var showButtons = list.ShowButtons && (!Model.Price.DisableWishlistButton || list.CompareEnabled || (!Model.Price.DisableBuyButton && list.BuyEnabled));
     var showVariants = (Model.ColorAttributes != null && Model.ColorAttributes.Any()) || (Model.Attributes != null && Model.Attributes.Any());
     var showDrop = showButtons || showVariants;
     var showAttrs = isLinesMode && (list.ShowSku || list.ShowWeight || list.ShowDimensions);
-    var addImageClass = image.File == null ? " no-picture" : "";
+    var addImageClass = image.File == null ? " no-picture" : string.Empty;
     if (!hasImage)
     {
         addImageClass += " no-default-picture";
@@ -34,9 +33,11 @@
         </div>
         @if (image.Title.HasValue())
         {
-            var linkTitle = T("Media.Product.ImageLinkTitleFormat", Model.Name);
-            <a class="art-picture img-center-container@(addImageClass)" href="@Model.DetailUrl" title="@linkTitle" attr-data-content='(!hasImage, T("Common.NoImageAvail"))'>
-                <img sm-model="image" loading="lazy" />
+            <a class="art-picture img-center-container@(addImageClass)" 
+               href="@Model.DetailUrl"
+               title="@T("Media.Product.ImageLinkTitleFormat", Model.Name)"
+               attr-data-content='(!hasImage, T("Common.NoImageAvail"))'>
+                <img sm-model="image" loading="lazy" attr-alt='(image.Alt.IsEmpty(), Model.Name)' />
             </a>
         }
     </div>
@@ -83,7 +84,7 @@
     @if (list.ShowDescription)
     {
         <div class="art-description" title="@Model.ShortDescription.ToString()" sm-language-attributes-for="Model.ShortDescription">
-            @Html.Raw(Model.ShortDescription.Truncate(160, "..."))
+            @Html.Raw(Model.ShortDescription.Truncate(160, "…"))
         </div>
     }
 
@@ -106,6 +107,7 @@
     {
         <partial name="Product.List.Item.Delivery" model="Model" />
         <partial name="Product.List.Item.Price" model="Model" />
+        <partial name="Product.List.Item.Buttons" model="Model" />
     }
 
     @if (isLinesMode && showVariants)
@@ -140,9 +142,9 @@
         {
             <partial name="Product.List.Item.Variants" model="Model" />
         }
-        @if (showButtons)
+        @* @if (showButtons)
         {
             <partial name="Product.List.Item.Buttons" model="Model" />
-        }
+        } *@
     </div>
 </article>
