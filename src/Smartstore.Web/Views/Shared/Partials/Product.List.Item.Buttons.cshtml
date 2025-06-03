@@ -115,7 +115,7 @@
                try {
                    btn.disabled = true;
                    var originalHtml = btn.innerHTML;
-                   btn.innerHTML = '&lt;i class=&quot;fa fa-spinner fa-spin&quot;&gt;&lt;/i&gt; @T("Common.Processing")';
+                   btn.innerHTML = '&lt;i class=&quot;fa fa-spinner fa-spin&quot;&gt;&lt;/i&gt; Processing';
 
                    // Clear the cart
                    const clearResponse = await fetch('@Url.Action("ClearCart", "ShoppingCart")', {
