@@ -14841,8 +14841,8 @@ within the observation window, additional requests may be denied, even if type-s
 	<LocaleResource Name="Basket.Bundle.BundleIncludes">
 		<Value>Bundle includes</Value>
 	</LocaleResource>
-	<LocaleResource Name="Bestsellers">
-		<Value>Bestsellers</Value>
+	<LocaleResource Name="Best sellers">
+		<Value>Best sellers</Value>
 	</LocaleResource>
 	<LocaleResource Name="Blog">
 		<Value>Blog</Value>
@@ -17465,11 +17465,17 @@ within the observation window, additional requests may be denied, even if type-s
 	<LocaleResource Name="Homepage.Brands.ShowAll">
 		<Value>Show all</Value>
 	</LocaleResource>
-	<LocaleResource Name="HomePage.Products">
+	<!-- <LocaleResource Name="HomePage.Products">
 		<Value>Featured products</Value>
+	</LocaleResource> -->
+	<LocaleResource Name="Latest Products">
+		<Value>Latest products</Value>
 	</LocaleResource>
-	<LocaleResource Name="Homepage.TopBrands">
+	<!-- <LocaleResource Name="Homepage.TopBrands">
 		<Value>Top Brands</Value>
+	</LocaleResource> -->
+	<LocaleResource Name="Top Merchants">
+		<Value>Top Merchants</Value>
 	</LocaleResource>
 	<LocaleResource Name="HtmlEditor.ClickToEdit">
 		<Value>Click to edit HTML...</Value>
