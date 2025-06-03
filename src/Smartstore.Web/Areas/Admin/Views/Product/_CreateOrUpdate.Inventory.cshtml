@@ -25,8 +25,11 @@
             <smart-label asp-for="StockQuantity" />
         </div>
         <div class="adminData">
-            <editor asp-for="StockQuantity" />
-            <span asp-validation-for="StockQuantity"></span>
+            @* <editor asp-for="StockQuantity" readonly="readonly" /> *@
+            <input asp-for="StockQuantity" class="form-control" readonly />
+            @* <display asp-for="StockQuantity" /> *@
+            @* <span asp-validation-for="StockQuantity"></span> *@
+
         </div>
     </div>
     <div class="adminRow" id="pnlDisplayStockAvailability">
