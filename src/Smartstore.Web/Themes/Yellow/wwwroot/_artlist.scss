@@ -329,6 +329,8 @@
 
 .art-btn-group {
     margin: 0;
+    display: flex;
+    gap: 5px;
 
     .art-btn {
         display: block;
@@ -614,9 +616,11 @@
         height: calc(var(--art-font-size-sm) * var(--art-line-height) * 2);
     }
     
-    &.artlist-boxed .art-price-block {
+    .art-price-block {
         // At least 2 lines height for description
         height: calc(var(--art-font-size-sm) * var(--art-line-height) * 2);
+        margin-top: auto;
+        margin-bottom: 2.1rem;
     }
 
     .art-brand,
