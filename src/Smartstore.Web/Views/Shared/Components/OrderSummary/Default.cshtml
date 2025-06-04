@@ -89,10 +89,15 @@
                                         <div id="start-checkout-buttons" class="d-flex flex-column row-gap-2">
                                             <div class="checkout-buttons">
                                                 <input type="submit" name="startcheckout" value="startcheckout" id="startcheckout" class="d-none" />
-                                                <button type="button" id="checkout" name="checkout" class="btn btn-primary btn-lg btn-block btn-checkout">
+                                                <button type="button" id="checkout" name="checkout" class="btn btn-brown btn-lg btn-block btn-checkout">
                                                     <span>@T("Checkout.Button")</span>
                                                     <i class="fa fa-angle-right"></i>
                                                 </button>
+                                                <button class="btn btn-secondary btn-lg btn-block btn-continue-shopping mt-2"
+                                type="submit" name="continueshopping" value="continueshopping">
+                            <i class="fa fa-angle-left mr-3"></i>
+                            <span>@T("ShoppingCart.ContinueShopping")</span>
+                        </button>
                                             </div>
                                             <div sm-if="!Model.HasItemsWithRecurringPayment" id="cart-payment-buttons">
                                                 <partial name="CartPaymentButtons" model="Model" />
@@ -108,12 +113,12 @@
                 </div>
 
                 @* Back Button *@
-                <div sm-if="Model.IsEditable" class="col-12 col-md-6 col-lg-7 col-xl-4 col-xxl-3 my-3">
+                @* <div sm-if="Model.IsEditable" class="col-12 col-md-6 col-lg-7 col-xl-4 col-xxl-3 my-3">
                     <button class="btn btn-secondary btn-lg btn-block btn-continue-shopping" type="submit" name="continueshopping" value="continueshopping">
                         <i class="fa fa-angle-left mr-3"></i>
                         <span>@T("ShoppingCart.ContinueShopping")</span>
                     </button>
-                </div>
+                </div> *@
             </div>
 
         </form>
@@ -186,3 +191,17 @@
         });
     });
 </script>
+
+<style>
+    .btn-brown {
+        background-color: #795548;
+        border-color: #795548;
+        color: #fff;
+    }
+
+    .btn-brown:hover, .btn-brown:focus {
+        background-color: #5d4037;
+        border-color: #5d4037;
+        color: #fff;
+    }
+</style>

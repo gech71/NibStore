@@ -1,4 +1,4 @@
-﻿using System.Linq.Dynamic.Core;
+using System.Linq.Dynamic.Core;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -169,6 +169,96 @@ namespace Smartstore.Admin.Controllers
             return View(model);
         }
 
+        [HttpPost]
+        [Permission(Permissions.Promotion.Discount.Update)]
+        public async Task<IActionResult> ApplyDiscountToSelected([FromBody] ApplyDiscountToSelectedModel model)
+        {
+            var success = false;
+            var message = string.Empty;
+
+            try
+            {
+                if (model == null || model.SelectedIds == null || !model.SelectedIds.Any())
+                {
+                    return Json(new { success = false, message = T("Admin.Common.NoItemsSelected").Value });
+                }
+
+                if (model.DiscountId <= 0)
+                {
+                    return Json(new { success = false, message = T("Admin.Common.PleaseSelectDiscount").Value });
+                }
+
+                var discount = await _db.Discounts.FindByIdAsync(model.DiscountId);
+                if (discount == null)
+                {
+                    return Json(new { success = false, message = T("Admin.Common.Discount.NotFound").Value });
+                }
+
+                var products = await _db.Products
+                    .Include(x => x.AppliedDiscounts)
+                    .Where(x => model.SelectedIds.Contains(x.Id))
+                    .ToListAsync();
+
+                var count = 0;
+                var now = DateTime.UtcNow;
+                
+                foreach (var product in products)
+                {
+                    // Skip if product already has this discount
+                    if (product.AppliedDiscounts.Any(x => x.Id == model.DiscountId))
+                        continue;
+                        
+                    // Add discount to product
+                    product.AppliedDiscounts.Add(discount);
+                    
+                    // Get discount type and value
+                    var discountType = discount.DiscountType;
+                    var discountAmount = discount.DiscountAmount;
+                    var discountPercentage = discount.DiscountPercentage;
+                    
+                    // If discount is active and valid, update the product price
+                    if (discount.StartDateUtc <= now && 
+                        (!discount.EndDateUtc.HasValue || discount.EndDateUtc >= now))
+                    {
+                        // Apply discount to the product price
+                        if (discountType == DiscountType.AssignedToSkus && discountPercentage > 0)
+                        {
+                            // For percentage discount
+                            product.SpecialPrice = product.Price * (100m - discountPercentage) / 100m;
+                            product.SpecialPriceStartDateTimeUtc = discount.StartDateUtc;
+                            product.SpecialPriceEndDateTimeUtc = discount.EndDateUtc;
+                        }
+                        else if (discountType == DiscountType.AssignedToSkus && discountAmount > 0)
+                        {
+                            // For fixed amount discount
+                            product.SpecialPrice = Math.Max(0, product.Price - discountAmount);
+                            product.SpecialPriceStartDateTimeUtc = discount.StartDateUtc;
+                            product.SpecialPriceEndDateTimeUtc = discount.EndDateUtc;
+                        }
+                    }
+                    
+                    count++;
+                }
+
+
+                await _db.SaveChangesAsync();
+                
+                // Clear cache for these products
+                _db.DetachEntities(products);
+                
+                success = true;
+                message = T("Admin.Catalog.Products.Discounts.AppliedToProducts", count).Value;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+                message = T("Admin.Common.Error").Value;
+            }
+
+            return Json(new { success, message });
+        }
+
+        
         [HttpPost]
         [Permission(Permissions.Catalog.Product.Delete)]
         public async Task<IActionResult> Delete(int id)

@@ -1,10 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Smartstore.Web.Models.DataGrid;
 
 namespace Smartstore.Admin.Models.Catalog
 {
     [LocalizedDisplay("Admin.Catalog.Products.List.")]
+    public class ApplyDiscountToSelectedModel
+    {
+        public int[] SelectedIds { get; set; }
+        public int DiscountId { get; set; }
+    }
+
     public class ProductListModel : ModelBase
     {
         public GridModel<ProductModel> Products { get; set; }
