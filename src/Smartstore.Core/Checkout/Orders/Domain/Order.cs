@@ -463,7 +463,9 @@ namespace Smartstore.Core.Checkout.Orders
             set => ShippingStatusId = (int)value;
         }
 
- public string ByGroundAddress { get; set; }
+        public string ByGroundAddress { get; set; }
+         public string ByGroundLatitude { get; set; }
+        public string ByGroundLongitude { get; set; }
         /// <summary>
         /// Gets or sets the customer tax display type identifier
         /// </summary>

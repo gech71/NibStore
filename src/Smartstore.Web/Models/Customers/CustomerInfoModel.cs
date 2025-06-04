@@ -162,7 +162,7 @@ namespace Smartstore.Web.Models.Customers
 
             RuleFor(x => x.LastName).ValidPersonName(T);
 
-            if (customerSettings.CompanyRequired && customerSettings.CompanyEnabled)
+            /*if (customerSettings.CompanyRequired && customerSettings.CompanyEnabled)
             {
                 RuleFor(x => x.Company).NotEmpty();
             }
@@ -192,19 +192,19 @@ namespace Smartstore.Web.Models.Customers
                     .NotNull()
                     .NotEqual(0)
                     .WithMessage(T("Address.Fields.StateProvince.Required"));
-            }
+            }*/
             if (customerSettings.PhoneRequired && customerSettings.PhoneEnabled)
             {
                 RuleFor(x => x.Phone).NotEmpty();
             }
-            if (customerSettings.FaxRequired && customerSettings.FaxEnabled)
+           /* if (customerSettings.FaxRequired && customerSettings.FaxEnabled)
             {
                 RuleFor(x => x.Fax).NotEmpty();
             }
             if (taxSettings.EuVatEnabled && taxSettings.VatRequired)
             {
                 RuleFor(x => x.VatNumber).NotEmpty();
-            }
+            }*/
         }
     }
 }

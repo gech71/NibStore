@@ -11,7 +11,6 @@
 
     var dataDictAddress = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary());
     dataDictAddress["breakpoint"] = "sm";
-    // Merge ModelState (required for validation).
     dataDictAddress.ModelState.Merge(ViewData.ModelState);
     dataDictAddress.TemplateInfo.HtmlFieldPrefix = "NewAddress";
 }
@@ -46,35 +45,19 @@
                                     <div class="address-data mt-3">
                                         <div class="name pb-2">
                                             <strong>
-                                                <span sm-if="item.FirstName.IsEmpty() && item.LastName.IsEmpty()">@item.Company</span>
-                                                <span class="bidi-embed">@item.FirstName </span>
+                                                <span class="bidi-embed">@item.FirstName</span>
                                                 <span class="bidi-embed">@item.LastName</span>
                                             </strong>
                                         </div>
-                                        <div class="email">
-                                            <span>@T("Address.Fields.Email"):</span>
-                                            <span>@item.Email</span>
-                                        </div>
-                                        <div sm-if="item.PhoneEnabled" class="phone">
+                                        <div sm-if="item.PhoneEnabled && item.PhoneNumber.HasValue()" class="phone">
                                             <span>@T("Address.Fields.PhoneNumber"):</span>
                                             <span>@item.PhoneNumber</span>
-                                        </div>
-                                        <div sm-if="item.FaxEnabled && item.FaxNumber.HasValue()" class="fax">
-                                            <span>@T("Address.Fields.FaxNumber"):</span>
-                                            <span>@item.FaxNumber</span>
-                                        </div>
-                                        <div class="address">
-                                            @Html.Raw(item.FormattedAddress)
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     }
-
-                    <div class="col">
-                        <partial name="AddAddressButton" />
-                    </div>
                 </div>
             </fieldset>
 
