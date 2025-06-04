@@ -1,7 +1,7 @@
 ﻿@using Smartstore.Core.Checkout.Cart
 @using Smartstore.Web.Models.Catalog
 
-@model ProductSummaryItemModel
+@model Smartstore.Web.Models.Catalog.ProductSummaryItemModel
 
 @{
     var list = Model.Parent;
@@ -28,7 +28,7 @@
 
     void RenderBuyButton(bool blockStyle)
     {
-        var cssClasses = blockStyle ? "btn-block d-none d-md-block" : "btn-lg art-btn col";
+        var cssClasses = blockStyle ? "btn-block d-none d-md-block rounded" : "btn-lg art-btn col rounded";
         if (!blockStyle && isLinesMode)
         {
             cssClasses += " d-md-none";
@@ -90,72 +90,23 @@
     void RenderBuyNowButton(bool blockStyle)
     {
         var cssClasses = blockStyle
-            ? "btn btn-brown btn-lg art-btn col btn-block d-none d-md-block"
-            : "btn btn-brown btn-lg art-btn col";
+            ? "btn btn-brown btn-lg art-btn col btn-block d-none d-md-block rounded"
+            : "btn btn-brown btn-lg art-btn col rounded";
 
         if (!blockStyle && isLinesMode)
         {
             cssClasses += " d-md-none";
         }
 
-        var buyNowUrl = Url.Action("AddProductSimple", "ShoppingCart", new
-        {
-            productId = Model.Id,
-            forceredirection = Model.Parent.ForceRedirectionAfterAddingToCart,
-            area = ""
-        });
-        <text>
         <a href="javascript:void(0);"
            class="@cssClasses"
            rel="nofollow"
-           title="buy now"
+           title="Buy Now"
            data-toggle="tooltip"
            data-placement="bottom"
-           onclick="(async (btn) => {
-               try {
-                   btn.disabled = true;
-                   var originalHtml = btn.innerHTML;
-                   btn.innerHTML = '&lt;i class=&quot;fa fa-spinner fa-spin&quot;&gt;&lt;/i&gt; Processing';
-
-                   // Clear the cart
-                   const clearResponse = await fetch('@Url.Action("ClearCart", "ShoppingCart")', {
-                       method: 'POST',
-                       headers: {
-                           'X-Requested-With': 'XMLHttpRequest',
-                           'RequestVerificationToken': '@antiForgeryToken'
-                       }
-                   });
-                   if (!clearResponse.ok) throw new Error('clear cart is failed');
-
-                   // Add product with form data
-                   const form = document.querySelector('#pd-form');
-                   const formData = form ? new FormData(form) : new FormData();
-                   formData.set('productId', '@Model.Id');
-
-                   const addResponse = await fetch('@buyNowUrl', {
-                       method: 'POST',
-                       body: formData,
-                       headers: {
-                           'X-Requested-With': 'XMLHttpRequest',
-                           'RequestVerificationToken': '@antiForgeryToken'
-                       }
-                   });
-
-                   if (!addResponse.ok) throw new Error('add to cart is failed');
-
-                   // Redirect to checkout page
-                   window.location.href = '@checkoutUrl';
-               } catch (error) {
-                   console.error(error);
-                   alert(error.message || 'An unexpected error occurred');
-               } finally {
-                   btn.innerHTML = btn.innerHTML.includes('fa-spinner') ? btn.innerHTML = originalHtml : btn.innerHTML;
-                   btn.disabled = false;
-               }
-           })(this)">
-            <span>Buy Now</span>
+           onclick="buyNow('@Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id })')">
+            <span>Buy</span>
         </a>
-        </text>
     }
 }
 
@@ -185,7 +136,6 @@
             @{ RenderBuyNowButton(false); }
         </div>
     }
-
     @* @if (!price.DisableWishlistButton && list.WishlistEnabled)
     {
         <a data-href="@Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist, area = "" })"
@@ -243,4 +193,50 @@
     border-color: #6b3310 !important;
     color: #fff !important;
 }
+
+.btn, .art-btn {
+    border-radius: 15px !important;
+}
 </style>
+
+<script>
+window.isRegistered = @(WorkContext.CurrentCustomer.IsRegistered().ToString().ToLower());
+window.loginUrl = '@Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })';
+
+function buyNow(url) {
+    // Debug: check what isRegistered is
+    // console.log("isRegistered:", window.isRegistered);
+
+    if (!window.isRegistered) {
+        window.location.href = window.loginUrl;
+        return;
+    }
+    // First, clear the cart
+    fetch('/ShoppingCart/ClearCart', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(() => {
+        // Now add the product
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.redirect) {
+            window.location.href = data.redirect;
+        } else if (data.success) {
+            window.location.href = '/checkout'; // or use your checkout route
+        } else {
+            alert(data.message || 'Could not add product to cart.');
+        }
+    })
+    .catch(() => alert('An error occurred.'));
+}
+</script>
