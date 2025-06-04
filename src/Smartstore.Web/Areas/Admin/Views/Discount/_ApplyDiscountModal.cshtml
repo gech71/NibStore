@@ -1,0 +1,32 @@
+<div class="modal fade" id="apply-bulk-discount-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@T("Admin.Promotions.Discounts.ApplyDiscount")</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="discount-form">
+                <input type="hidden" id="selected-product-ids" name="selectedProductIds" />
+                
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Select Discount:</label>
+                        <select class="form-control" name="discountTemplateId" required>
+                            <option value="">-- Select --</option>
+                            <option value="1">Summer Sale (20%)</option>
+                            <option value="2">Clearance (30%)</option>
+                            <option value="3">Fixed Discount ($10)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">@T("Common.Cancel")</button>
+                    <button type="submit" class="btn btn-primary">@T("Admin.Common.Save")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

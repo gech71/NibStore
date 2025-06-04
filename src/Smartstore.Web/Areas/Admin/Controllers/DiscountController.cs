@@ -10,6 +10,10 @@ using Smartstore.Core.Rules.Filters;
 using Smartstore.Core.Security;
 using Smartstore.Web.Models;
 using Smartstore.Web.Models.DataGrid;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Smartstore.Core.Catalog.Pricing;
+
+
 
 namespace Smartstore.Admin.Controllers
 {
@@ -19,6 +23,7 @@ namespace Smartstore.Admin.Controllers
         private readonly IRuleService _ruleService;
         private readonly ICurrencyService _currencyService;
         private readonly ILocalizedEntityService _localizedEntityService;
+
 
         public DiscountController(
             SmartDbContext db,
@@ -354,6 +359,93 @@ namespace Smartstore.Admin.Controllers
 
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
+
+      [HttpGet]
+    [Permission(Permissions.Promotion.Discount.Read)]
+    public async Task<IActionResult> DiscountProductList()
+    {
+        var model = new DiscountProductListModel();
+
+        var products = await _db.Products
+            .AsNoTracking()
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
+        model.Products = products.Select(x => new DiscountProductModel
+        {
+            Id = x.Id,
+            Name = x.GetLocalized(y => y.Name),
+            Sku = x.Sku,
+            Price = _currencyService.CreateMoney(x.Price).ToString(),
+            StockQuantity = x.StockQuantity,
+            Published = x.Published
+        }).ToList();
+
+        return View(model);
+    }
+
+   [HttpPost]
+public async Task<IActionResult> ApplyPredefinedDiscount(int discountTemplateId, string selectedProductIds)
+{
+    var productIds = selectedProductIds.Split(',').Select(int.Parse).ToList();
+    var products = await _db.Products.Where(p => productIds.Contains(p.Id)).ToListAsync();
+
+    // Get discount template (in real implementation, fetch from database)
+    var discountTemplate = GetPredefinedDiscountTemplate(discountTemplateId);
+    
+    foreach (var product in products)
+    {
+        // Remove existing discounts
+        product.AppliedDiscounts.Clear();
+        
+        // Apply new discount
+        product.AppliedDiscounts.Add(new Discount {
+            Name = discountTemplate.Name,
+            UsePercentage = discountTemplate.IsPercentage,
+            DiscountPercentage = discountTemplate.Percentage,
+            DiscountAmount = discountTemplate.FixedAmount,
+            StartDateUtc = DateTime.UtcNow,
+            EndDateUtc = DateTime.UtcNow.AddDays(30)
+        });
+    }
+
+    await _db.SaveChangesAsync();
+    
+    return Json(new { 
+        success = true, 
+        message = $"Discount applied to {productIds.Count} products" 
+    });
+}
+
+private PredefinedDiscountModel GetPredefinedDiscountTemplate(int id)
+{
+    // In real implementation, get from database
+    return id switch {
+        1 => new PredefinedDiscountModel { Name = "Summer Sale", Percentage = 20, IsPercentage = true },
+        2 => new PredefinedDiscountModel { Name = "Clearance", Percentage = 30, IsPercentage = true },
+        3 => new PredefinedDiscountModel { Name = "Fixed Discount", FixedAmount = 10, IsPercentage = false },
+        4 => new PredefinedDiscountModel { Name = "Seasonal Offer", Percentage = 15, IsPercentage = true },
+        _ => throw new ArgumentException("Invalid discount template")
+    };
+}
+    [HttpGet]
+    [Permission(Permissions.Promotion.Discount.Read)]
+    public async Task<IActionResult> GetAppliedDiscounts()
+    {
+        var discounts = await _db.Discounts
+            .AsNoTracking()
+            .Include(x => x.AppliedToProducts)
+            .Where(x => x.AppliedToProducts.Any())
+            .OrderByDescending(x => x.Id)
+            .ToListAsync();
+        
+        // Replace SelectAsync with regular Select + Task.WhenAll
+        var modelTasks = discounts.Select(x => 
+            MapperFactory.MapAsync<Discount, DiscountModel>(x));
+        var models = await Task.WhenAll(modelTasks);
+        
+        return PartialView("_AppliedDiscountsTable", models.ToList());
+    }
 
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {

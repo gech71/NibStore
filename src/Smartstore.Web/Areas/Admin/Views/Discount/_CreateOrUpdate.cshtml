@@ -1,4 +1,5 @@
-﻿@model DiscountModel
+﻿@using Smartstore.Admin.Models.Discounts
+@model DiscountModel
 
 @{
     var primaryStoreCurrencyCode = (string)ViewBag.PrimaryStoreCurrencyCode;
@@ -214,6 +215,8 @@
         <tab sm-title="@T("Admin.Promotions.Discounts.History")" sm-adaptive-height="true">
             <partial name="_Grid.DiscountUsageHistory" model="null" view-data="discountUsageHistoryViewData" />
         </tab>
+        
+        
     }
 </tabstrip>
 

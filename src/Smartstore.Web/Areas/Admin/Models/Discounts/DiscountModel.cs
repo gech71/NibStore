@@ -163,5 +163,6 @@ namespace Smartstore.Admin.Models.Discounts
 
             return Task.CompletedTask;
         }
+
     }
 }
