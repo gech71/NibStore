@@ -1169,37 +1169,12 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> ProductMerchantStoreList(int productId)
         {
-            var currentUser = _workContext.CurrentCustomer;
-
-            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
-                m.CustomerId == currentUser.Id &&
-                m.CustomerRole.SystemName == "Merchant"
-            );
 
             var mappings = await _merchantStoreService
                 .GetProductMerchantStoreMappingsByProductIdAsync(productId);
 
             var allStores = await _merchantStoreService.GetAllMerchantStoresAsync();
             List<int> merchantStoreIds = new();
-
-            if (isMerchant)
-            {
-                merchantStoreIds = await _db.GenericAttributes
-                    .Where(a =>
-                        a.KeyGroup == "MerchantStore" &&
-                        a.Key == "CreatedByUserId" &&
-                        a.Value == currentUser.Id.ToString())
-                    .Select(a => a.EntityId)
-                    .ToListAsync();
-
-                allStores = allStores
-                    .Where(s => merchantStoreIds.Contains(s.Id))
-                    .ToList();
-
-                mappings = mappings
-                    .Where(x => merchantStoreIds.Contains(x.MerchantStoreId))
-                    .ToList();
-            }
 
             var storeDict = allStores.ToDictionary(x => x.Id, x => x.Name);
 

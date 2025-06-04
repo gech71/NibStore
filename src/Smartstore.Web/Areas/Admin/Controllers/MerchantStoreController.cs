@@ -40,7 +40,28 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> AllMerchantStores()
         {
+            var currentUser = _workContext.CurrentCustomer;
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id &&
+                m.CustomerRole.SystemName == "Merchant"
+            );
+
             var stores = await _merchantStoreService.GetAllMerchantStoresAsync();
+
+            if (isMerchant)
+            {
+                var merchantStoreIds = await _db.GenericAttributes
+                    .Where(a =>
+                        a.KeyGroup == "MerchantStore" &&
+                        a.Key == "CreatedByUserId" &&
+                        a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                stores = stores
+                    .Where(s => merchantStoreIds.Contains(s.Id))
+                    .ToList();
+            }
 
             var result = stores.Select(x => new
             {
@@ -50,7 +71,6 @@ namespace Smartstore.Admin.Controllers
 
             return Json(result);
         }
-
         [HttpPost]
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> MerchantStoreList(GridCommand command, MerchantStoreModel model)
