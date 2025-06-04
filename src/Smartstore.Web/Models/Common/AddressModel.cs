@@ -153,7 +153,7 @@ namespace Smartstore.Web.Models.Common
                 RuleFor(x => x.LastName).NotEmpty();
             });
 
-            /*if (addressSettings.CountryEnabled)
+            if (addressSettings.CountryEnabled)
             {
                 if (addressSettings.CountryRequired)
                 {
@@ -197,19 +197,19 @@ namespace Smartstore.Web.Models.Common
             if (addressSettings.CityRequired && addressSettings.CityEnabled)
             {
                 RuleFor(x => x.City).NotEmpty();
-            }*/
+            }
 
             if (addressSettings.PhoneRequired && addressSettings.PhoneEnabled)
             {
                 RuleFor(x => x.PhoneNumber).NotEmpty();
             }
 
-            /*if (addressSettings.FaxRequired && addressSettings.FaxEnabled)
+            if (addressSettings.FaxRequired && addressSettings.FaxEnabled)
             {
                 RuleFor(x => x.FaxNumber).NotEmpty();
             }
 
-            RuleFor(x => x.Email).EmailAddressStrict();
+            /*RuleFor(x => x.Email).EmailAddressStrict();
 
             if (addressSettings.ValidateEmailAddress)
             {
@@ -217,7 +217,7 @@ namespace Smartstore.Web.Models.Common
                     .NotEmpty()
                     .Equal(x => x.Email)
                     .WithMessage(T("Admin.Address.Fields.EmailMatch.MustMatchEmail"));
-            }
+            }*/
 
             When(x => x.CountryId != null && x.DefaultAddressesEnabled, () =>
             {
@@ -230,7 +230,7 @@ namespace Smartstore.Web.Models.Common
                     .Must((model, x) => db.Countries.Any(x => x.Id == model.CountryId.Value && x.AllowsShipping))
                     .When(x => x.IsDefaultShippingAddress)
                     .WithMessage((model, x) => T("Order.CountryNotAllowedForShipping", model.CountryName));
-            });*/
+            });
         }
     }
 }
