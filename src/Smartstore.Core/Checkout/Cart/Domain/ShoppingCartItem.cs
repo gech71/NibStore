@@ -30,6 +30,8 @@ namespace Smartstore.Core.Checkout.Cart
         /// Gets or sets the store identifier
         /// </summary>
         public int StoreId { get; set; }
+        [MaxLength(400)]
+        public string SelectedStore { get; set; }
 
         /// <summary>
         /// The parent shopping cart item identifier

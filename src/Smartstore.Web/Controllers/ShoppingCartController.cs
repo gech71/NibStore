@@ -25,6 +25,8 @@ using Smartstore.Core.Seo.Routing;
 using Smartstore.Utilities;
 using Smartstore.Utilities.Html;
 using Smartstore.Web.Models.Cart;
+using Smartstore.Core;
+
 
 namespace Smartstore.Web.Controllers
 {
@@ -51,6 +53,7 @@ namespace Smartstore.Web.Controllers
         private readonly MediaSettings _mediaSettings;
         private readonly CustomerSettings _customerSettings;
         private readonly CatalogSettings _catalogSettings;
+        private readonly IWorkContext _workContext;
 
         public ShoppingCartController(
             SmartDbContext db,
@@ -73,7 +76,8 @@ namespace Smartstore.Web.Controllers
             OrderSettings orderSettings,
             MediaSettings mediaSettings,
             CustomerSettings customerSettings,
-            CatalogSettings catalogSettings
+            CatalogSettings catalogSettings,
+            IWorkContext workContext
         )
         {
             _db = db;
@@ -97,6 +101,7 @@ namespace Smartstore.Web.Controllers
             _mediaSettings = mediaSettings;
             _customerSettings = customerSettings;
             _catalogSettings = catalogSettings;
+            _workContext = workContext;
         }
 
         #region Shopping cart
@@ -1711,5 +1716,29 @@ namespace Smartstore.Web.Controllers
 
             return Json(new { success = true, message = T("ShoppingCart.ClearAll.Success") });
         }
+        [HttpPost]
+public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeName)
+{
+    try
+    {
+        var customer = _workContext.CurrentCustomer;
+        var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart);
+        var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
+        
+        if (cartItem != null)
+        {
+            cartItem.Item.SelectedStore = storeName;
+            await _db.SaveChangesAsync();
+            
+            return Json(new { success = true });
+        }
+        
+        return Json(new { success = false, message = "Cart item not found" });
+    }
+    catch (Exception ex)
+    {
+        return Json(new { success = false, message = ex.Message });
+    }
+}
     }
 }

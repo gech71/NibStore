@@ -94,7 +94,7 @@ else
 
               @if (availableStores.Any())
               {
-      <select class="form-control form-control-sm store-select-dropdown" name="StoreFor_@item.Id" style="display:none; min-width: 150px;">
+      <select class="form-control store-select form-control-sm store-select-dropdown" data-item-id="@item.Id" name="StoreFor_@item.Id" style="display:none; min-width: 150px;">
         <option value="">-- Select Store --</option>
         @foreach (var store in availableStores)
         {
@@ -172,6 +172,7 @@ else
 <zone name="checkout_shipping_method_content_after" />
 
 <style>
+    
     .product-item:hover .store-select-dropdown {
         display: block !important;
     }
@@ -216,9 +217,42 @@ else
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<!-- Add this error container at the top of your content -->
+<div id="validationErrors" class="alert alert-danger d-none"></div>
+
 
 <script>
+    
     document.addEventListener('DOMContentLoaded', () => {
+
+     $(document).on('change', '.store-select', function () {
+    var storeName = $(this).val();
+    var itemId = $(this).data('item-id');
+
+    if (storeName) {
+        $.ajax({
+            url: '/ShoppingCart/UpdateCartItemStore', // Replace with actual route
+            method: 'POST',
+            data: {
+                itemId: itemId,
+                storeName: storeName
+            },
+            success: function (response) {
+                if (response.success) {
+                    console.log('Store updated successfully');
+                } else {
+                    alert(response.message || 'Failed to update store');
+                }
+            },
+            error: function () {
+                alert('Server error occurred.');
+            }
+        });
+    }
+});
+
+
+
         const storePickupProducts = document.getElementById('storePickupProducts');
         const storePickupMethodId = @storePickupMethodId;
         let map, marker;
