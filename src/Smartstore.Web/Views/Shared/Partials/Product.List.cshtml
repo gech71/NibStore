@@ -70,7 +70,7 @@
                 <h1 class="category-title">@Model.Title</h1>
             } *@
         </div>
-        <div class="d-flex gap-2">
+        @* <div class="d-flex gap-2">
             @if (Model.AllowSorting || Model.AllowFiltering)
             {
                 <partial name="Product.List.FilterSort" model="Model" />
@@ -79,7 +79,7 @@
             {
                 <partial name="Product.List.ViewMode" model="Model" />
             }
-        </div>
+        </div> *@
     </div>
 }
 

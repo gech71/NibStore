@@ -53,15 +53,28 @@
 </widget>
 
 <div class="page category-page">
-    <div class="page-title">
-        <h1 sm-language-attributes-for="categoryName" class="h3">
+    <div class="page-title d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 sm-language-attributes-for="categoryName" class="h3 mb-0">
             @Html.Raw(categoryName)
         </h1>
-        @if (Model.SearchResult.TotalHitsCount > 0)
+        @if (Model.Products != null && (Model.Products.AllowSorting || Model.Products.AllowViewModeChanging || Model.Products.AllowFiltering))
         {
-            <partial name="SearchResultHitsCount" model="Model.SearchResult" />
+            <div class="d-flex gap-2">
+                @if (Model.Products.AllowSorting || Model.Products.AllowFiltering)
+                {
+                    <partial name="Product.List.FilterSort" model="Model.Products" />
+                }
+                @if (Model.Products.AllowViewModeChanging)
+                {
+                    <partial name="Product.List.ViewMode" model="Model.Products" />
+                }
+            </div>
         }
     </div>
+    @if (Model.SearchResult.TotalHitsCount > 0)
+    {
+        <partial name="SearchResultHitsCount" model="Model.SearchResult" />
+    }
     <div class="page-body">
         <zone name="categorydetails_top" />
 
