@@ -353,7 +353,8 @@ namespace Smartstore.Core.Checkout.Orders
                         warnings.Add(T("Order.ShippingAddressMissing"));
                         throw new Exception();
                     }
-                    else if (!customer.ShippingAddress.Email.IsEmail())
+                    else if (!string.IsNullOrWhiteSpace(customer.ShippingAddress.Email) 
+                             && !customer.ShippingAddress.Email.IsEmail())
                     {
                         warnings.Add(T("Common.Error.InvalidEmail"));
                     }
