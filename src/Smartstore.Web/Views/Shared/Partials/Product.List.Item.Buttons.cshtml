@@ -200,8 +200,17 @@
 </style>
 
 <script>
-// Add this script to your view or a JS file
+window.isRegistered = @(WorkContext.CurrentCustomer.IsRegistered().ToString().ToLower());
+window.loginUrl = '@Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })';
+
 function buyNow(url) {
+    // Debug: check what isRegistered is
+    // console.log("isRegistered:", window.isRegistered);
+
+    if (!window.isRegistered) {
+        window.location.href = window.loginUrl;
+        return;
+    }
     // First, clear the cart
     fetch('/ShoppingCart/ClearCart', {
         method: 'POST',
