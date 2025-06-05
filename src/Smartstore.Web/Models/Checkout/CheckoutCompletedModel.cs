@@ -7,5 +7,8 @@ namespace Smartstore.Web.Models.Checkout
         public Order Order { get; set; }
         public int OrderId { get; set; }
         public string OrderNumber { get; set; }
+        public string ByGroundAddress { get; set; }
+         public string ByGroundLatitude { get; set; }
+        public string ByGroundLongitude { get; set; }
     }
 }

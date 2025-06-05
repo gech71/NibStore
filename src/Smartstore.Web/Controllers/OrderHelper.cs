@@ -331,6 +331,9 @@ namespace Smartstore.Web.Controllers
                 MerchantCompanyInfo = companyInfoSettings,
                 MerchantCompanyCountryName = countryName
             };
+            model.ByGroundAddress = o.ByGroundAddress;
+            model.ByGroundLatitude = o.ByGroundLatitude;    
+            model.ByGroundLongitude = o.ByGroundLongitude;
 
             if (o.ShippingStatus != ShippingStatus.ShippingNotRequired)
             {

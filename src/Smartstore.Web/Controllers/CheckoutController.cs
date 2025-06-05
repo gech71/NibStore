@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿﻿using Microsoft.AspNetCore.Http;
 using Smartstore.ComponentModel;
+using Smartstore.Core;
 using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Checkout.Orders;
 using Smartstore.Core.Checkout.Payment;
@@ -7,8 +8,10 @@ using Smartstore.Core.Identity;
 using Smartstore.Core.Localization.Routing;
 using Smartstore.Core.Seo.Routing;
 using Smartstore.Core.Stores;
+using Smartstore.Core.Common.Services; 
 using Smartstore.Web.Models.Checkout;
 using Smartstore.Web.Models.Common;
+
 
 namespace Smartstore.Web.Controllers
 {
@@ -23,6 +26,7 @@ namespace Smartstore.Web.Controllers
         private readonly ICheckoutStateAccessor _checkoutStateAccessor;
         private readonly OrderSettings _orderSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
+        private readonly IGenericAttributeService _genericAttributeService; // <-- added this
 
         public CheckoutController(
             SmartDbContext db,
@@ -33,7 +37,8 @@ namespace Smartstore.Web.Controllers
             IShoppingCartService shoppingCartService,
             ICheckoutStateAccessor checkoutStateAccessor,
             OrderSettings orderSettings,
-            ShoppingCartSettings shoppingCartSettings)
+            ShoppingCartSettings shoppingCartSettings,
+            IGenericAttributeService genericAttributeService)
         {
             _db = db;
             _storeContext = storeContext;
@@ -44,6 +49,7 @@ namespace Smartstore.Web.Controllers
             _checkoutStateAccessor = checkoutStateAccessor;
             _orderSettings = orderSettings;
             _shoppingCartSettings = shoppingCartSettings;
+            _genericAttributeService = genericAttributeService;
         }
 
         [DisallowRobot]
@@ -218,7 +224,33 @@ namespace Smartstore.Web.Controllers
         [FormValueRequired("nextstep")]
         public async Task<IActionResult> SelectShippingMethod(string shippingOption)
         {
-            var result = await _checkoutWorkflow.AdvanceAsync(await CreateCheckoutContext(shippingOption));
+            var context = await CreateCheckoutContext(shippingOption);
+            var customer = context.Cart.Customer;
+
+            var byGroundAddress = Request.Form["ByGroundAddress"].ToString();
+            if (!string.IsNullOrWhiteSpace(byGroundAddress))
+            {
+                // Store in GenericAttributes on the customer
+                customer.GenericAttributes.Set("ByGroundAddress", byGroundAddress);
+                await _db.SaveChangesAsync();
+            
+            }
+            var byGroundLatitude = Request.Form["ByGroundLatitude"].ToString();
+            if (!string.IsNullOrWhiteSpace(byGroundLatitude))
+            {
+                // Store in GenericAttributes on the customer
+                customer.GenericAttributes.Set("ByGroundLatitude", byGroundLatitude);
+                await _db.SaveChangesAsync();
+            }
+            var byGroundLongitude = Request.Form["ByGroundLongitude"].ToString();
+            if (!string.IsNullOrWhiteSpace(byGroundLongitude))
+            {
+                // Store in GenericAttributes on the customer
+                customer.GenericAttributes.Set("ByGroundLongitude", byGroundLongitude);
+                await _db.SaveChangesAsync();
+            }
+
+            var result = await _checkoutWorkflow.AdvanceAsync(context);
 
             result.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
 

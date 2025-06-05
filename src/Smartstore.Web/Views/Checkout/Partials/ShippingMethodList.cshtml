@@ -126,7 +126,7 @@ else
                                        placeholder="Enter delivery address" 
                                        name="ByGroundAddress" 
                                        id="addressInput"
-                                       value="" 
+                                       value="@Model.ByGroundAddress" 
                                        autocomplete="address-line1" />
                                 <button type="button" class="btn btn-primary current-location-btn">
                                     Current Location
@@ -139,9 +139,9 @@ else
                         </div>
                         
                         <input type="hidden" id="mapCoordinates" name="MapCoordinates" value="" />
-                        <input type="hidden" id="latitudeField" name="Latitude" value="" />
-                        <input type="hidden" id="longitudeField" name="Longitude" value="" />
-                        
+                        <input type="hidden" id="latitudeField" name="ByGroundLatitude" value="@Model.ByGroundLatitude" />
+                        <input type="hidden" id="longitudeField" name="ByGroundLongitude" value="@Model.ByGroundLongitude" />
+
                         <div id="leafletMap" style="height: 300px; width: 100%; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px; display: none;"></div>
                     </div>
                 }
@@ -186,6 +186,10 @@ else
         z-index: 10;
     }
     
+    .input-group {
+    position: relative;
+}
+
     .input-group .btn {
         display: flex;
         align-items: center;
@@ -214,9 +218,12 @@ else
     }
     
     #addressSuggestions {
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 1000;
+        position: relative;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #ccc;
+        left: 0;
+        right: 0;
     }
     #addressSuggestions .dropdown-item {
         cursor: pointer;

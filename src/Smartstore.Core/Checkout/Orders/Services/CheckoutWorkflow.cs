@@ -9,6 +9,7 @@ using Smartstore.Core.Localization;
 using Smartstore.Core.Logging;
 using Smartstore.Core.Stores;
 using Smartstore.Core.Web;
+using Smartstore.Core.Common.Services;
 using Smartstore.Events;
 using Smartstore.Http;
 using Smartstore.Utilities.Html;
@@ -32,6 +33,9 @@ namespace Smartstore.Core.Checkout.Orders
         private readonly ICheckoutStateAccessor _checkoutStateAccessor;
         private readonly OrderSettings _orderSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
+        private readonly IGenericAttributeService _genericAttributeService; // <-- added this
+
+
 
         public CheckoutWorkflow(
             SmartDbContext db,
@@ -46,7 +50,8 @@ namespace Smartstore.Core.Checkout.Orders
             ICheckoutFactory checkoutFactory,
             ICheckoutStateAccessor checkoutStateAccessor,
             OrderSettings orderSettings,
-            ShoppingCartSettings shoppingCartSettings)
+            ShoppingCartSettings shoppingCartSettings,
+            IGenericAttributeService genericAttributeService )
         {
             _db = db;
             _storeContext = storeContext;
@@ -61,6 +66,7 @@ namespace Smartstore.Core.Checkout.Orders
             _checkoutStateAccessor = checkoutStateAccessor;
             _orderSettings = orderSettings;
             _shoppingCartSettings = shoppingCartSettings;
+            _genericAttributeService = genericAttributeService;
         }
 
         public Localizer T { get; set; } = NullLocalizer.Instance;
@@ -282,6 +288,29 @@ namespace Smartstore.Core.Checkout.Orders
                 };
 
                 placeOrderResult = await _orderProcessingService.PlaceOrderAsync(paymentRequest, placeOrderExtraData);
+                var order = placeOrderResult.PlacedOrder;
+
+                // Retrieve the GenericAttribute from the customer
+                var byGroundAddress = cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+                if (!string.IsNullOrWhiteSpace(byGroundAddress))
+                {
+                    order.ByGroundAddress = byGroundAddress;
+                    await _db.SaveChangesAsync();
+                }
+
+                var byGroundLatitude = cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
+                if (!string.IsNullOrWhiteSpace(byGroundLatitude))
+                {
+                    order.ByGroundLatitude = byGroundLatitude;
+                    await _db.SaveChangesAsync();
+                }
+
+                var byGroundLongitude = cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
+                if (!string.IsNullOrWhiteSpace(byGroundLongitude))
+                {
+                    order.ByGroundLongitude = byGroundLongitude;
+                    await _db.SaveChangesAsync();
+                }
             }
             catch (PaymentException ex)
             {
