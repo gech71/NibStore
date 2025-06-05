@@ -1,92 +1,70 @@
-$(document).ready(function () {
-    // Initialize modal properly
-    var $modal = $('#apply-bulk-discount-modal');
-    $modal.modal({
-        show: false,
-        backdrop: true,
-        keyboard: true
-    });
-
-    // Checkbox handling
-    function updateSelections() {
+$(function () {
+    // Track checkbox selection
+    function updateApplyButtonState() {
         var anyChecked = $('.product-checkbox:checked').length > 0;
-        $('#apply-discount').prop('disabled', !anyChecked);
-        $('#select-all').prop('checked', 
-            anyChecked && $('.product-checkbox:checked').length === $('.product-checkbox').length
-        );
+        $('#apply-discount-btn').prop('disabled', !anyChecked);
     }
 
-    $('.product-checkbox, #select-all').on('change', function () {
-        if (this.id === 'select-all') {
-            $('.product-checkbox').prop('checked', this.checked);
-        }
-        updateSelections();
+    // Select All Checkbox
+    $('#select-all').on('change', function () {
+        $('.product-checkbox').prop('checked', $(this).is(':checked'));
+        updateApplyButtonState();
     });
 
-    // Apply discount button
-    $('#apply-discount').on('click', function (e) {
-        e.preventDefault();
-        var selectedIds = $('.product-checkbox:checked').map(function () {
-            return this.value;
-        }).get();
+    // Individual Checkbox Change
+    $('.product-checkbox').on('change', function () {
+        var allChecked = $('.product-checkbox:checked').length === $('.product-checkbox').length;
+        $('#select-all').prop('checked', allChecked);
+        updateApplyButtonState();
+    });
 
-        if (selectedIds.length === 0) {
+    // Show Popup When Clicking Apply Discount
+    $('#apply-discount-btn').on('click', function (e) {
+        e.preventDefault();
+
+        var selectedIds = $('.product-checkbox:checked')
+            .map(function () { return $(this).val(); }).get();
+
+        if (!selectedIds.length) {
             Smartstore.showToast('error', '@T("Admin.Promotions.Discounts.NoProductsSelected")');
             return;
         }
 
         $('#selected-product-ids').val(selectedIds.join(','));
-        
-        // Force modal to top layer
-        $modal.css('z-index', '99999');
-        $modal.modal('show');
-        
-        // Emergency fallback
-        setTimeout(function() {
-            if ($modal.hasClass('show')) return;
-            
-            $modal.addClass('show');
-            $modal.show();
-            $('body').addClass('modal-open');
-            $('<div class="modal-backdrop fade show"></div>').appendTo('body');
-        }, 100);
+        $('#discount-popup-overlay, #discount-popup-dialog').show();
     });
 
-    // Form submission
+    // Close Popup by Clicking Outside or Pressing Close Button
+    $('#discount-popup-overlay, #close-discount-popup').on('click', function () {
+        $('#discount-popup-overlay, #discount-popup-dialog').hide();
+    });
+
+    // Handle Form Submission
     $('#discount-form').on('submit', function (e) {
         e.preventDefault();
+
         var $form = $(this);
-        var $submitBtn = $form.find('[type="submit"]');
-        
-        $submitBtn.prop('disabled', true);
-        
+        var url = $form.attr('action');
+        var data = $form.serialize();
+
         $.ajax({
-            url: $form.attr('action'),
+            url: url,
             type: 'POST',
-            data: $form.serialize(),
-            success: function(response) {
+            data: data,
+            success: function (response) {
                 if (response.success) {
-                    Smartstore.showToast('success', response.message);
-                    $modal.modal('hide');
-                    
-                    // Reset selections
-                    $('.product-checkbox, #select-all').prop('checked', false);
-                    $('#apply-discount').prop('disabled', true);
+                    displayNotification(response.message, 'success');
+                    $('#discount-popup-overlay, #discount-popup-dialog').hide();
+                    window.location.reload();
                 } else {
-                    Smartstore.showToast('error', response.message);
+                    displayNotification(response.message, 'error');
                 }
             },
-            error: function() {
-                Smartstore.showToast('error', '@T("Admin.Common.Error")');
-            },
-            complete: function() {
-                $submitBtn.prop('disabled', false);
+            error: function () {
+                displayNotification('@T("Admin.Common.Error")', 'error');
             }
         });
     });
 
-    // Cleanup on modal close
-    $modal.on('hidden.bs.modal', function() {
-        $('.modal-backdrop').remove();
-    });
+    updateApplyButtonState();
 });

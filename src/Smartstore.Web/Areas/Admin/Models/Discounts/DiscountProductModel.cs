@@ -44,11 +44,11 @@ namespace Smartstore.Admin.Models.Discounts
         public DateTime? UpdatedOn { get; set; }
     }
 
-    public class DiscountProductListModel : ModelBase
+   public class DiscountProductListModel : ModelBase
 {
     public bool IsSingleStoreMode { get; set; }
-    public GridModel<DiscountProductModel> Grid { get; set; }
-    public List<DiscountProductModel> Products { get; set; } = new(); // Add this line
+    public List<DiscountProductModel> Products { get; set; } = new();
+    public List<DiscountModel> AvailableDiscounts { get; set; } = new(); // <-- Use your DiscountModel here
 }
 
     public class DiscountProductQueryModel 

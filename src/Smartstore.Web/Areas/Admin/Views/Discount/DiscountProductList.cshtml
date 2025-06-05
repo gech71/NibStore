@@ -1,30 +1,23 @@
 @using Smartstore.Admin.Models.Discounts
 @model DiscountProductListModel
+
 @{
     ViewBag.Title = T("Admin.Promotions.Discounts.ApplyToProducts").Value;
 }
-<style>
-    #apply-bulk-discount-modal {
-    z-index: 1050 !important;
-    pointer-events: auto !important;
-}
-.modal-backdrop {
-    z-index: 1040 !important;
-}
-</style>
+
 <div class="section-header">
     <div class="title">
         <i class="fa fa-tag"></i>
         <span>@ViewBag.Title</span>
     </div>
     <div class="options">
-        <button id="apply-discount" class="btn btn-primary" disabled>
-            <i class="fa fa-percentage"></i>
-            <span>@T("Admin.Promotions.Discounts.ApplyDiscount")</span>
+        <button id="apply-discount-btn" class="btn btn-primary" disabled>
+            <i class="fa fa-percent"></i> @T("Admin.Promotions.Discounts.ApplyDiscount")
         </button>
     </div>
 </div>
 
+<!-- Product Grid -->
 <form id="products-form">
     <div class="table-responsive">
         <table class="table table-hover table-striped" id="products-grid">
@@ -43,15 +36,11 @@
                 {
                     <tr>
                         <td><input type="checkbox" name="SelectedProductIds" value="@product.Id" class="product-checkbox" /></td>
-                        <td>
-                            <a href="@Url.Action("Edit", "Product", new { id = product.Id })">@product.Name</a>
-                        </td>
+                        <td><a href="@Url.Action("Edit", "Product", new { id = product.Id })">@product.Name</a></td>
                         <td>@product.Sku</td>
                         <td>@product.Price</td>
                         <td>@product.StockQuantity</td>
-                        <td>
-                            <i class="fa @(product.Published ? "fa-check" : "fa-times")"></i>
-                        </td>
+                        <td><i class="fa @(product.Published ? "fa-check" : "fa-times")"></i></td>
                     </tr>
                 }
             </tbody>
@@ -59,5 +48,62 @@
     </div>
 </form>
 
-<partial name="_ApplyDiscountModal" model="new DiscountModel()" />
+<!-- Custom Modal Overlay -->
+<div id="discount-popup-overlay" style="display: none;"></div>
+
+<!-- Custom Modal Dialog -->
+<div id="discount-popup-dialog" class="card shadow-sm" style="display: none; max-width: 500px;">
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">@T("Admin.Promotions.Discounts.SelectDiscount")</h6>
+        <button id="close-discount-popup" class="btn btn-sm btn-close text-white"></button>
+    </div>
+    <div class="card-body">
+        <form id="discount-form" asp-controller="Discount" asp-action="ApplyBulkDiscount" method="post">
+            <input type="hidden" id="selected-product-ids" name="SelectedProductIds" />
+
+            <!-- In your popup/modal -->
+            <div class="form-group">
+                <label for="DiscountId">@T("Admin.Promotions.Discounts.SelectDiscount")</label>
+                <select id="DiscountId" name="DiscountId" class="form-control select2-select" required>
+                    <option value="">-- @T("Admin.Common.Select") --</option>
+                    @foreach (var discount in Model.AvailableDiscounts)
+                    {
+                        <option value="@discount.Id">@discount.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group mt-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fa fa-check"></i> @T("Admin.Common.Apply")
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="~/admin/js/ApplyDiscount.js" asp-append-version="true"></script>
+<style>
+    #discount-popup-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+        display: none;
+    }
+
+    #discount-popup-dialog {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1060;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        display: none;
+    }
+
+    #close-discount-popup {
+        background: transparent;
+        border: none;
+        font-size: 1.2rem;
+    }
+</style>

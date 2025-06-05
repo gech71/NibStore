@@ -360,93 +360,171 @@ namespace Smartstore.Admin.Controllers
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
 
-      [HttpGet]
-    [Permission(Permissions.Promotion.Discount.Read)]
-    public async Task<IActionResult> DiscountProductList()
-    {
-        var model = new DiscountProductListModel();
-
-        var products = await _db.Products
-            .AsNoTracking()
-            .OrderBy(x => x.Name)
-            .ToListAsync();
-
-        model.Products = products.Select(x => new DiscountProductModel
+        [HttpGet]
+        [Permission(Permissions.Promotion.Discount.Read)]
+        public async Task<IActionResult> DiscountProductList()
         {
-            Id = x.Id,
-            Name = x.GetLocalized(y => y.Name),
-            Sku = x.Sku,
-            Price = _currencyService.CreateMoney(x.Price).ToString(),
-            StockQuantity = x.StockQuantity,
-            Published = x.Published
-        }).ToList();
+            var model = new DiscountProductListModel();
 
-        return View(model);
+            // Fetch products
+            var products = await _db.Products
+                .AsNoTracking()
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            model.Products = products.Select(x => new DiscountProductModel
+            {
+                Id = x.Id,
+                Name = x.GetLocalized(y => y.Name),
+                Sku = x.Sku,
+                Price = _currencyService.CreateMoney(x.Price).ToString(),
+                StockQuantity = x.StockQuantity,
+                Published = x.Published
+            }).ToList();
+
+            // Fetch discounts that are applied to products
+            var discounts = await _db.Discounts
+                .Where(x => x.AppliedToProducts.Any())
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            // Map to DiscountModel 
+            var mapper = MapperFactory.GetMapper<Discount, DiscountModel>();
+            var discountModels = new List<DiscountModel>();
+            foreach (var discount in discounts)
+            {
+                var discountModel = new DiscountModel();
+                await mapper.MapAsync(discount, discountModel);
+                discountModels.Add(discountModel);
+            }
+            model.AvailableDiscounts = discountModels;
+
+            return View(model);
+        }
+      [HttpPost]
+public async Task<IActionResult> ApplyBulkDiscount(string SelectedProductIds, int DiscountId)
+{
+    if (string.IsNullOrEmpty(SelectedProductIds) || DiscountId == 0)
+    {
+        TempData["Error"] = "Please select products and a discount.";
+        return RedirectToAction("DiscountProductList");
     }
 
-   [HttpPost]
-public async Task<IActionResult> ApplyPredefinedDiscount(int discountTemplateId, string selectedProductIds)
-{
-    var productIds = selectedProductIds.Split(',').Select(int.Parse).ToList();
+    var productIds = SelectedProductIds.Split(',').Select(int.Parse).ToList();
+
+    // Fetch the discount by ID and include its applied products
+    var discount = await _db.Discounts
+        .Include(x => x.AppliedToProducts)
+        .FirstOrDefaultAsync(x => x.Id == DiscountId);
+
+    if (discount == null)
+    {
+        TempData["Error"] = "Discount not found.";
+        return RedirectToAction("DiscountProductList");
+    }
+
+    // Fetch the products
     var products = await _db.Products.Where(p => productIds.Contains(p.Id)).ToListAsync();
 
-    // Get discount template (in real implementation, fetch from database)
-    var discountTemplate = GetPredefinedDiscountTemplate(discountTemplateId);
-    
+    // Apply the discount to each product
     foreach (var product in products)
     {
-        // Remove existing discounts
-        product.AppliedDiscounts.Clear();
-        
-        // Apply new discount
-        product.AppliedDiscounts.Add(new Discount {
-            Name = discountTemplate.Name,
-            UsePercentage = discountTemplate.IsPercentage,
-            DiscountPercentage = discountTemplate.Percentage,
-            DiscountAmount = discountTemplate.FixedAmount,
-            StartDateUtc = DateTime.UtcNow,
-            EndDateUtc = DateTime.UtcNow.AddDays(30)
-        });
+        if (!discount.AppliedToProducts.Any(p => p.Id == product.Id))
+        {
+            discount.AppliedToProducts.Add(product);
+        }
     }
 
     await _db.SaveChangesAsync();
-    
-    return Json(new { 
-        success = true, 
-        message = $"Discount applied to {productIds.Count} products" 
-    });
-}
 
-private PredefinedDiscountModel GetPredefinedDiscountTemplate(int id)
+    TempData["Success"] = "Discount applied successfully!";
+    return RedirectToAction("DiscountProductList");
+}
+        [HttpGet]
+[Permission(Permissions.Promotion.Discount.Read)]
+public async Task<IActionResult> ProductsWithDiscounts()
 {
-    // In real implementation, get from database
-    return id switch {
-        1 => new PredefinedDiscountModel { Name = "Summer Sale", Percentage = 20, IsPercentage = true },
-        2 => new PredefinedDiscountModel { Name = "Clearance", Percentage = 30, IsPercentage = true },
-        3 => new PredefinedDiscountModel { Name = "Fixed Discount", FixedAmount = 10, IsPercentage = false },
-        4 => new PredefinedDiscountModel { Name = "Seasonal Offer", Percentage = 15, IsPercentage = true },
-        _ => throw new ArgumentException("Invalid discount template")
-    };
-}
-    [HttpGet]
-    [Permission(Permissions.Promotion.Discount.Read)]
-    public async Task<IActionResult> GetAppliedDiscounts()
-    {
-        var discounts = await _db.Discounts
-            .AsNoTracking()
-            .Include(x => x.AppliedToProducts)
-            .Where(x => x.AppliedToProducts.Any())
-            .OrderByDescending(x => x.Id)
-            .ToListAsync();
-        
-        // Replace SelectAsync with regular Select + Task.WhenAll
-        var modelTasks = discounts.Select(x => 
-            MapperFactory.MapAsync<Discount, DiscountModel>(x));
-        var models = await Task.WhenAll(modelTasks);
-        
-        return PartialView("_AppliedDiscountsTable", models.ToList());
-    }
+    var products = await _db.Products
+        .Include(p => p.AppliedDiscounts)
+        .OrderBy(p => p.Name)
+        .ToListAsync();
 
+    var model = products.SelectMany(p => p.AppliedDiscounts.Select(d => new
+    {
+        ProductName = p.Name,
+        DiscountName = d.Name,
+        StartDate = d.StartDateUtc,
+        EndDate = d.EndDateUtc,
+        DiscountPercentage = d.UsePercentage ? d.DiscountPercentage : (decimal?)null,
+        DiscountAmount = !d.UsePercentage ? d.DiscountAmount : (decimal?)null
+    })).ToList();
+
+    return View(model);
+}
+[HttpGet]
+[Permission(Permissions.Promotion.Discount.Read)]
+public async Task<IActionResult> ManageDiscounts()
+{
+    // Prepare Discount List Model (for the grid)
+    var discountListModel = new DiscountListModel();
+
+    // Prepare Discount Product List Model (for apply discount)
+    var discountProductListModel = new DiscountProductListModel();
+
+    // Fetch all products for apply discount tab
+    var allProducts = await _db.Products
+        .AsNoTracking()
+        .OrderBy(x => x.Name)
+        .ToListAsync();
+
+    discountProductListModel.Products = allProducts.Select(x => new DiscountProductModel
+    {
+        Id = x.Id,
+        Name = x.GetLocalized(y => y.Name),
+        Sku = x.Sku,
+        Price = _currencyService.CreateMoney(x.Price).ToString(),
+        StockQuantity = x.StockQuantity,
+        Published = x.Published
+    }).ToList();
+
+    // Fetch discounts that are applied to products
+        var discounts = await _db.Discounts
+            .Where(x => x.AppliedToProducts.Any())
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
+    discountProductListModel.AvailableDiscounts = discounts.Select(d => new DiscountModel
+    {
+        Id = d.Id,
+        Name = d.Name
+        // Map other properties if needed
+    }).ToList();
+
+    // Prepare Products With Discounts (leave as is)
+    var products = await _db.Products
+        .Include(p => p.AppliedDiscounts)
+        .OrderBy(p => p.Name)
+        .ToListAsync();
+
+    var productsWithDiscounts = products.SelectMany(p => p.AppliedDiscounts.Select(d => new
+    {
+        ProductName = p.Name,
+        DiscountName = d.Name,
+        StartDate = d.StartDateUtc,
+        EndDate = d.EndDateUtc,
+        DiscountPercentage = d.UsePercentage ? d.DiscountPercentage : (decimal?)null,
+        DiscountAmount = !d.UsePercentage ? d.DiscountAmount : (decimal?)null
+    })).ToList();
+
+    var model = new ManageDiscountsViewModel
+    {
+        DiscountListModel = discountListModel,
+        DiscountProductListModel = discountProductListModel,
+        ProductsWithDiscounts = productsWithDiscounts
+    };
+
+    return View(model); // Make sure your view is named ManageDiscounts.cshtml
+}
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {
             foreach (var localized in model.Locales)
