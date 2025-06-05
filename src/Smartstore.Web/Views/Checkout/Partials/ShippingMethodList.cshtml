@@ -516,6 +516,30 @@ else
             document.getElementById('latitudeField').value = lat;
             document.getElementById('longitudeField').value = lng;
             
+            console.log('Sending By Ground address data:', { address, lat, lng });
+            
+            // Send the By Ground address information via AJAX
+            $.ajax({
+                url: '/Checkout/UpdateByGroundAddress',
+                method: 'POST',
+                data: {
+                    address: address,
+                    latitude: lat,
+                    longitude: lng
+                },
+                success: function(response) {
+                    console.log('Server response:', response);
+                    if (response.success) {
+                        console.log('By Ground address information saved successfully');
+                    } else {
+                        console.warn('Failed to save By Ground address information:', response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error saving By Ground address information:', { status, error, response: xhr.responseText });
+                }
+            });
+
             const googleMapLink = document.querySelector('.google-map-link');
             if (googleMapLink) {
                 googleMapLink.href = `https://maps.google.com/?q=${lat},${lng}`;

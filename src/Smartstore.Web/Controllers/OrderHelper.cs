@@ -373,6 +373,11 @@ namespace Smartstore.Web.Controllers
 
             model.VatNumber = o.VatNumber;
 
+            // Add By Ground properties mapping
+            model.ByGroundAddress = o.ByGroundAddress;
+            model.ByGroundLatitude = o.ByGroundLatitude;
+            model.ByGroundLongitude = o.ByGroundLongitude;
+
             var paymentMethod = await _paymentService.LoadPaymentProviderBySystemNameAsync(o.PaymentMethodSystemName);
             model.PaymentMethod = paymentMethod != null ? _moduleManager.Value.GetLocalizedFriendlyName(paymentMethod.Metadata) : o.PaymentMethodSystemName;
             model.PaymentMethodSystemName = o.PaymentMethodSystemName;

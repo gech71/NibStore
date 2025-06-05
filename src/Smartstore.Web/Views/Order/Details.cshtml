@@ -261,6 +261,29 @@
             </div>
         </div>
 
+        @if (Model.ShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress))
+        {
+            <div class="mb-4">
+                <h5>@T("Order.ByGround.DeliveryAddress")</h5>
+                <div class="row">
+                    <div class="col">
+                        <div class="by-ground-address">
+                            <p class="mb-1">@Model.ByGroundAddress</p>
+                            @if (!string.IsNullOrEmpty(Model.ByGroundLatitude) && !string.IsNullOrEmpty(Model.ByGroundLongitude))
+                            {
+                                <a href="https://maps.google.com/?q=@(Model.ByGroundLatitude),@(Model.ByGroundLongitude)" 
+                                   target="_blank" 
+                                   class="btn btn-sm btn-secondary">
+                                    <i class="fa fa-map-marker"></i>
+                                    @T("Order.ByGround.ViewOnMap")
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
         <zone name="orderdetails_page_beforeproducts" />
 
         <div sm-if="Model.Items.Count > 0" id="order-items" class="row cart-container">

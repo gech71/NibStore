@@ -79,6 +79,9 @@ namespace Smartstore.Web.Models.Orders
         public bool ShowProductImages { get; set; }
         public bool ShowProductBundleImages { get; set; }
         public int BundleThumbSize { get; set; }
+        public string ByGroundAddress { get; set; }
+        public string ByGroundLatitude { get; set; }
+        public string ByGroundLongitude { get; set; }
         public List<GiftCard> GiftCards { get; set; } = [];
         public List<OrderItemModel> Items { get; set; } = [];
         public List<OrderNote> OrderNotes { get; set; } = [];

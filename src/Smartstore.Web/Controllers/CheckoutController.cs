@@ -333,10 +333,7 @@ namespace Smartstore.Web.Controllers
             }
 
             var order = await _db.Orders
-                .AsNoTracking()
-                .Include(x => x.Customer)
-                .ApplyStandardFilter(customer.Id, store.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.CustomerId == customer.Id && x.OrderStatusId != (int)OrderStatus.Complete);
 
             if (order == null || customer.Id != order.CustomerId)
             {
@@ -354,6 +351,64 @@ namespace Smartstore.Web.Controllers
                 OrderNumber = order.GetOrderNumber(),
                 Order = order
             });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateByGroundAddress(string address, string latitude, string longitude)
+        {
+            try
+            {
+                Logger.Info("Received By Ground address update request: {0}, {1}, {2}", address, latitude, longitude);
+
+                var customer = Services.WorkContext.CurrentCustomer;
+                var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart, Services.StoreContext.CurrentStore.Id);
+                
+                if (cart == null || !cart.Items.Any())
+                {
+                    Logger.Warn("Cart is null or empty for customer {0}", customer.Id);
+                    return Json(new { success = false, message = "Cart is empty" });
+                }
+
+                var order = await _db.Orders
+                    .FirstOrDefaultAsync(x => x.CustomerId == customer.Id && x.OrderStatus != OrderStatus.Complete);
+
+                if (order == null)
+                {
+                    Logger.Info("Creating new order for customer {0}", customer.Id);
+                    // Create a new order if it doesn't exist
+                    order = new Order
+                    {
+                        CustomerId = customer.Id,
+                        StoreId = Services.StoreContext.CurrentStore.Id,
+                        OrderStatus = OrderStatus.Pending,
+                        CreatedOnUtc = DateTime.UtcNow,
+                        UpdatedOnUtc = DateTime.UtcNow,
+                        ByGroundAddress = address,
+                        ByGroundLatitude = latitude,
+                        ByGroundLongitude = longitude
+                    };
+                    _db.Orders.Add(order);
+                }
+                else
+                {
+                    Logger.Info("Updating existing order {0} for customer {1}", order.Id, customer.Id);
+                    // Update existing order
+                    order.ByGroundAddress = address;
+                    order.ByGroundLatitude = latitude;
+                    order.ByGroundLongitude = longitude;
+                    order.UpdatedOnUtc = DateTime.UtcNow;
+                }
+
+                await _db.SaveChangesAsync();
+                Logger.Info("Successfully saved By Ground address for order {0}", order.Id);
+
+                return Json(new { success = true, orderId = order.Id });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Error saving By Ground address");
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
         private async Task<CheckoutContext> CreateCheckoutContext(object model = null)
