@@ -34,34 +34,24 @@ namespace Smartstore.Core.Common.Services
         /// <summary>
         /// Gets the full store objects for a specific product.
         /// </summary>
-        public async Task<IList<MerchantStore>> GetStoreDetailsForProductAsync(int productId)
-        {
-            var stores = await _db.Set<ProductMerchantStoreMapping>()
-                .Include(p => p.MerchantStore)
-                .Where(p => p.ProductId == productId && p.MerchantStore.Published)
-                .OrderBy(p => p.MerchantStore.DisplayOrder)
-                .Select(p => p.MerchantStore)
-                .ToListAsync();
+        public async Task<IList<MerchantStore>> GetStoresForProductAsync(int productId, int requiredQuantity)
+{
+    var stores = await _db.Set<ProductMerchantStoreMapping>()
+        .Include(p => p.MerchantStore)
+        .Where(p =>
+            p.ProductId == productId &&
+            p.MerchantStore.Published &&
+            p.Quantity >= requiredQuantity)
+        .OrderBy(p => p.MerchantStore.DisplayOrder)
+        .Select(p => p.MerchantStore)
+        .ToListAsync();
 
-            return stores;
-        }
+    return stores;
+}
 
         /// <summary>
         /// Gets the names of published stores for a product where the stock quantity is sufficient.
         /// </summary>
-        public async Task<IList<string>> GetStoresForProductAsync(int productId, int requiredQuantity)
-        {
-            var storeNames = await _db.Set<ProductMerchantStoreMapping>()
-                .Include(p => p.MerchantStore)
-                .Where(p => 
-                    p.ProductId == productId &&
-                    p.MerchantStore.Published &&
-                    p.Quantity >= requiredQuantity)
-                .OrderBy(p => p.MerchantStore.DisplayOrder)
-                .Select(p => p.MerchantStore.Name)
-                .ToListAsync();
-
-            return storeNames;
-        }
+      
     }
 }

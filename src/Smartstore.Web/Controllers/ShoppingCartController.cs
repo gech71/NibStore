@@ -1716,23 +1716,25 @@ namespace Smartstore.Web.Controllers
 
             return Json(new { success = true, message = T("ShoppingCart.ClearAll.Success") });
         }
-        [HttpPost]
-public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeName)
+   
+[HttpPost]
+public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeName, int storeId)
 {
     try
     {
         var customer = _workContext.CurrentCustomer;
         var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart);
         var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
-        
+
         if (cartItem != null)
         {
             cartItem.Item.SelectedStore = storeName;
+            cartItem.Item.StoreId = storeId; // Add this line
             await _db.SaveChangesAsync();
-            
+
             return Json(new { success = true });
         }
-        
+
         return Json(new { success = false, message = "Cart item not found" });
     }
     catch (Exception ex)
@@ -1740,5 +1742,6 @@ public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeNam
         return Json(new { success = false, message = ex.Message });
     }
 }
+
     }
 }

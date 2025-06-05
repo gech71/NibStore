@@ -35,8 +35,10 @@
 <zone name="checkout_shipping_method_content_before" />
 
 @if (Model.Warnings.Count > 0)
+     
 {
     <div class="alert alert-danger">
+        
         <ul>
             @foreach (var warning in Model.Warnings)
             {
@@ -89,25 +91,34 @@ else
                                         <div class="product-quantity text-muted small">Qty: @item.Quantity</div>
                                     </div>
                                   @{
-                 var availableStores = await storeProductService.GetStoresForProductAsync(item.ProductId, item.Quantity);
-                              }
+                                        var availableStores = await storeProductService.GetStoresForProductAsync(item.ProductId, item.Quantity);
+                                    }
 
-              @if (availableStores.Any())
-              {
-      <select class="form-control store-select form-control-sm store-select-dropdown" data-item-id="@item.Id" name="StoreFor_@item.Id" style="display:none; min-width: 150px;">
-        <option value="">-- Select Store --</option>
-        @foreach (var store in availableStores)
-        {
-            <option value="@store">@store</option>
-        }
-      </select>
-         }
-               else
-              {
-    <div class="text-danger small mt-1">
-        No stores have sufficient stock for this item
-    </div>
-            }
+                                    @if (availableStores.Any())
+                                    {
+                                        <select class="form-control store-select form-control-sm store-select-dropdown" 
+        data-item-id="@item.Id" 
+        name="StoreFor_@item.Id" 
+        style="display:none; min-width: 150px;">
+    <option value="">-- Select Store --</option>
+    @foreach (var store in availableStores)
+    {
+        <option 
+            value="@store.Name" 
+            data-store-id="@store.Id" 
+            selected="@(item.StoreId == store.Id ? "selected" : null)">
+            @store.Name
+        </option>
+    }
+</select>
+
+                                    }
+                                    else
+                                    {
+                                        <div class="text-danger small mt-1">
+                                            No stores have sufficient stock for this item
+                                        </div>
+                                    }
 
 
                                 </div>
@@ -124,6 +135,7 @@ else
                             <button type="button" class="btn btn-sm btn-primary current-location-btn ms-auto">
                                 <i class="fa fa-location-arrow"></i> Current Location
                             </button>
+
                         </div>
                         
                         <div class="position-relative w-100">
@@ -225,21 +237,23 @@ else
     
     document.addEventListener('DOMContentLoaded', () => {
 
-     $(document).on('change', '.store-select', function () {
-    var storeName = $(this).val();
-    var itemId = $(this).data('item-id');
-
-    if (storeName) {
+    $(document).on('change', '.store-select', function () {
+    var storeName = $(this).val(); // store name from value
+    var itemId = $(this).data('item-id'); // get item ID
+    var storeId = $(this).find('option:selected').data('store-id'); // store ID from selected option
+    console.log(storeId);
+    if (storeName && storeId) {
         $.ajax({
-            url: '/ShoppingCart/UpdateCartItemStore', // Replace with actual route
+            url: '/ShoppingCart/UpdateCartItemStore',
             method: 'POST',
             data: {
                 itemId: itemId,
-                storeName: storeName
+                storeName: storeName,
+                storeId: storeId
             },
             success: function (response) {
                 if (response.success) {
-                    console.log('Store updated successfully');
+                    alert('Store updated successfully');
                 } else {
                     alert(response.message || 'Failed to update store');
                 }
@@ -250,7 +264,6 @@ else
         });
     }
 });
-
 
 
         const storePickupProducts = document.getElementById('storePickupProducts');
@@ -478,7 +491,7 @@ else
                 const data = await response.json();
                 return data.display_name || "Address not found";
             } catch (error) {
-                console.error('Reverse geocoding error:', error);
+                alert('Reverse geocoding error:', error);
                 return "Address not found";
             }
         }
