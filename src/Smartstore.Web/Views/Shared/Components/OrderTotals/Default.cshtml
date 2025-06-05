@@ -4,9 +4,7 @@
 
 @{
     var shippingInfoUrl = Model.RequiresShipping ? await Url.TopicAsync("ShippingInfo", true) : string.Empty;
-    var shippingLabelHtml = shippingInfoUrl.HasValue()
-        ? $"<a href='javascript:;' data-toggle='modal' data-target='#shipping-info-modal'>{T("ShoppingCart.Totals.Shipping")}</a>:"
-        : $"{T("ShoppingCart.Totals.Shipping")}:";
+    var shippingLabelHtml = $"<strong>{T("ShoppingCart.Totals.Shipping")}:</strong>";
 }
 
 <div sm-if="Model.ShowConfirmOrderLegalHint && !Model.IsEditable" class="alert alert-warning confirm-order-legal-hint">
@@ -53,9 +51,13 @@
                     @Model.SelectedShippingMethod
                 </span>
             </div>
-            <div sm-if="Model.ShippingCountry.HasValue()" class="text-muted small pt-1">
-                @Html.Raw(T("ShoppingCart.Totals.ShippingWithinCountry", Model.ShippingCountry))
-            </div>
+            @* Show ByGround address only for "By Ground" shipping method *@
+            @if (Model.SelectedShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress))
+            {
+                <div>
+                    @Model.ByGroundAddress
+                </div>
+            }
         </td>
         <td class="cart-summary-value">
             @if (Model.RequiresShipping)
@@ -79,7 +81,7 @@
         <td class="cart-summary-label">@T("ShoppingCart.Totals.PaymentMethodAdditionalFee"):</td>
         <td class="cart-summary-value">@Model.PaymentMethodAdditionalFee</td>
     </tr>
-    @if (Model.DisplayTaxRates)
+    @* @if (Model.DisplayTaxRates) 
     {
         foreach (var taxRate in Model.TaxRates)
         {
@@ -88,11 +90,11 @@
                 <td class="cart-summary-value">@taxRate.Value</td>
             </tr>
         }
-    }
-    <tr sm-if="Model.DisplayTax" class="cart-summary-tax">
-        <td class="cart-summary-label">@T("ShoppingCart.Totals.Tax"):</td>
-        <td class="cart-summary-value">@Model.Tax.ToString(true)</td>
-    </tr>
+     } *@
+    <!--<tr sm-if="Model.DisplayTax" class="cart-summary-tax">
+        @* <td class="cart-summary-label">@T("ShoppingCart.Totals.Tax"):</td> *@
+        @* <td class="cart-summary-value">@Model.Tax.ToString(true)</td> *@
+    </tr>-->
     <tr sm-if="Model.OrderTotalDiscount != decimal.Zero" class="cart-summary-totaldiscount cart-summary-pos">
         <td class="cart-summary-label">
             @if (Model.AllowRemovingOrderTotalDiscount)
@@ -164,7 +166,7 @@
     </tr>
 </table>
 
-@if (shippingInfoUrl.HasValue())
+@* @if (shippingInfoUrl.HasValue()) 
 {
     <modal id="shipping-info-modal" sm-render-at-page-end="true" sm-size="FlexSmall">
         <modal-body>
@@ -174,4 +176,4 @@
             <button type="button" class="btn btn-secondary" data-dismiss="modal">@T("Common.Close")</button>
         </modal-footer>
     </modal>
-}
+} *@
