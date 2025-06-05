@@ -1,4 +1,4 @@
-﻿@using Smartstore.Web.Models.Orders;
+﻿﻿@using Smartstore.Web.Models.Orders;
 @using Smartstore.Core.Catalog.Products;
 
 @model OrderDetailsModel
@@ -236,6 +236,12 @@
                             {
                                 <h5>@T("Order.ShippingMethod")</h5>
                                 <p>@Model.ShippingMethod</p>
+                            }
+                             @if (Model.ShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress))
+                            {
+                               <div>
+                               <strong>Delivery Address:</strong> @Model.ByGroundAddress
+                                  </div>
                             }
                             @if (Model.PaymentMethod.HasValue())
                             {

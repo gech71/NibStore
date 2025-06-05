@@ -78,6 +78,9 @@ namespace Smartstore.Web.Controllers
             }
 
             var model = await _orderHelper.PrepareOrderDetailsModelAsync(order);
+            model.ByGroundAddress = order.ByGroundAddress;
+            model.ByGroundLatitude = order.ByGroundLatitude;
+            model.ByGroundLongitude = order.ByGroundLongitude;
 
             return View(model);
         }

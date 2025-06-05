@@ -25,6 +25,9 @@ namespace Smartstore.Web.Models.Checkout
             public bool IsShippable { get; set; }
             public AddressModel ShippingAddress { get; set; }
             public string ShippingMethod { get; set; }
+            public string ByGroundAddress { get; set; }
+            public string ByGroundLatitude { get; set; }
+            public string ByGroundLongitude { get; set; }
             public bool DisplayShippingMethodChangeOption { get; set; }
 
             public bool IsPaymentRequired { get; set; }

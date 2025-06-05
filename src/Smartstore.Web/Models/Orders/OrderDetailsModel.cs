@@ -31,7 +31,11 @@ namespace Smartstore.Web.Models.Orders
         public string PaymentMethodSystemName { get; set; }
         public bool IsRecurring { get; set; }
         public string RecurringOrderName { get; set; } 
+        public string ByGroundAddress { get; set; }
+        public string ByGroundLatitude { get; set; }
+        public string ByGroundLongitude { get; set; }
         public DateTime SavedDate { get; set; } = DateTime.UtcNow;
+        
         
 
         [IgnoreDataMember]
