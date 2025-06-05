@@ -11,11 +11,14 @@ namespace Smartstore.Core.Common.Services
         /// </summary>
         Task<IList<string>> GetStoresForProductAsync(int productId);
          // New method with quantity filter
-       Task<IList<string>> GetStoresForProductAsync(int productId, int requiredQuantity);
+      
 
         /// <summary>
         /// Get full store details (address, hours, etc.) for a given product.
         /// </summary>
-        Task<IList<MerchantStore>> GetStoreDetailsForProductAsync(int productId);
+        Task<IList<MerchantStore>> GetStoresForProductAsync(int productId,int requiredQuantity);
     }
 }
+
+
+
