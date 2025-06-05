@@ -247,6 +247,8 @@ namespace Smartstore.Web.Components
                 model.CreditBalance = (convertedCreditBalance * -1).ToString(true);
             }
 
+            model.ByGroundAddress = customer.GenericAttributes.Get<string>("ByGroundAddress");
+
             return View(viewName, model);
         }
     }

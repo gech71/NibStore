@@ -14950,7 +14950,7 @@ within the observation window, additional requests may be denied, even if type-s
 		<Value>Confirm</Value>
 	</LocaleResource>
 	<LocaleResource Name="Checkout.ConfirmHint">
-		<Value>Please verify the order total and the specifics regarding the billing address and, if required, the shipping address. You can make corrections to your entry anytime by clicking on &lt;strong&gt;Change&lt;/strong&gt;. If everything is as it should be, submit your order to us by clicking &lt;strong&gt;Confirm&lt;/strong&gt;.</Value>
+		<Value>Please verify and confirm your order.</Value>
 	</LocaleResource>
 	<LocaleResource Name="Checkout.ConfirmOrder">
 		<Value>Confirm order</Value>
