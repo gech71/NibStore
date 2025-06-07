@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Smartstore.Core.Common;
 using Smartstore.Core.Localization;
+using Smartstore.Core.Checkout.Cart;
 
 namespace Smartstore.Core.Content.MerchantStores
 {
@@ -18,5 +19,6 @@ namespace Smartstore.Core.Content.MerchantStores
         public TimeSpan? ClosingTime { get; set; }
         public bool Published { get; set; }
         public int MediaFileId { get; set; }
+        //public virtual ICollection<ShoppingCartItem> ShoppingCartItems { get; set; } = new HashSet<ShoppingCartItem>();
     }
 }

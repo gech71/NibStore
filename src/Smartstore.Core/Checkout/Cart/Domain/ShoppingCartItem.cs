@@ -6,6 +6,7 @@ using Smartstore.Core.Catalog.Attributes;
 using Smartstore.Core.Catalog.Products;
 using Smartstore.Core.Identity;
 using Smartstore.Utilities;
+using Smartstore.Core.Content.MerchantStores;
 
 namespace Smartstore.Core.Checkout.Cart
 {
@@ -32,10 +33,13 @@ namespace Smartstore.Core.Checkout.Cart
         public int StoreId { get; set; }
         [MaxLength(400)]
         public string SelectedStore { get; set; }
-
         /// <summary>
-        /// The parent shopping cart item identifier
+        /// Gets or sets the merchant store identifier for pickup
         /// </summary>
+       //[ForeignKey("PickupStore")] // Add this attribute
+        public int? PickupStoreId { get; set; }  // Rename for clarity
+
+      
         public int? ParentItemId { get; set; }
 
         /// <summary>
