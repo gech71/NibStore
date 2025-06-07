@@ -1,10 +1,13 @@
-﻿@using Smartstore.Web.Rendering.Menus
+﻿@using Smartstore.Core.Security
+@using Smartstore.Web.Rendering.Menus
 @using Smartstore.Collections
 @using Smartstore.Core.Content.Menus
 
 @model MenuModel
 
 @{
+    bool isAdmin = ViewData["IsAdmin"] as bool? ?? false;
+
     var root = Model.Root;
     if (root == null)
     {
@@ -140,7 +143,7 @@
         </ul>
     }
 }
-
+@if(!isAdmin){
 <div id="lowStockAlert" class="alert alert-danger d-none">
     <div class="d-flex align-items-center">
         <span id="lowStockMessage" class="fw-medium flex-grow-1"></span>
@@ -149,20 +152,19 @@
         </a>
     </div>
 </div>
-
+   
 <script>
     $(function () {
-        $.post('@Url.Action("LowStockReportList", "Product")', function (data) {
-            if (data.lowStockCount > 0) {
-                const msg = `${data.lowStockCount} product(s) need restocking`;
-                $('#lowStockMessage').text(msg);
-                const $alert = $('#lowStockAlert').removeClass('d-none');
-
-                $alert.css('animation', 'pulse 2s infinite');
-            }
+            $.post('@Url.Action("LowStockReportList", "Product")', function (data) {
+                if (data.lowStockCount > 0) {
+                    const msg = `${data.lowStockCount} product(s) need restocking`;
+                    $('#lowStockMessage').text(msg);
+                    $('#lowStockAlert').removeClass('d-none');
+                }
+            });
         });
-    });
 </script>
+ }
 
 <style>
     #lowStockAlert {

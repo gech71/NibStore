@@ -1,16 +1,22 @@
 ﻿using Smartstore.Core.Content.Menus;
 using Smartstore.Core.OutputCache;
 using Smartstore.Web.Rendering.Menus;
+using Smartstore.Core.Identity;
+using Smartstore.Data;
 
 namespace Smartstore.Web.Components
 {
     public class MenuViewComponent : SmartViewComponent
     {
         private readonly IMenuService _menuService;
+        private readonly IWorkContext _workContext;
+        private readonly SmartDbContext _db;
 
-        public MenuViewComponent(IMenuService menuService)
+        public MenuViewComponent(IMenuService menuService, IWorkContext workContext, SmartDbContext db)
         {
             _menuService = menuService;
+            _workContext = workContext;
+            _db = db;
         }
 
         public async Task<IViewComponentResult> InvokeAsync(string name, string template = null)
@@ -24,7 +30,13 @@ namespace Smartstore.Web.Components
                 return Empty();
             }
 
+        var currentUser = _workContext.CurrentCustomer;
+        var isAdmin = await _db.CustomerRoleMappings
+            .AnyAsync(x => x.CustomerId == currentUser.Id && x.CustomerRole.SystemName == "Administrators");
+
             var model = await menu.CreateModelAsync(template, ViewContext);
+
+             ViewData["IsAdmin"] = isAdmin;
             
             var viewName = model.Template ?? model.Name;
             if (viewName[0] != '~' && !viewName.StartsWith("Menus/", StringComparison.OrdinalIgnoreCase))
