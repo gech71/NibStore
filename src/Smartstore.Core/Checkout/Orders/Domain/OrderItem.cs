@@ -43,16 +43,16 @@ namespace Smartstore.Core.Checkout.Orders
         /// Gets or sets the order identifier
         /// </summary>
         public int OrderId { get; set; }
-        /// <summary>
-    /// Gets or sets the store identifier.
-    /// </summary>
-        public int StoreId { get; set; }
 
     /// <summary>
     /// Gets or sets the store name at the time of order placement.
     /// </summary>
-    [StringLength(400)]
-    public string StoreName { get; set; } = string.Empty;
+  public int? StorePickupId { get; set; }
+
+// StoreName is already there:
+[StringLength(400)]
+public string StoreName { get; set; } = string.Empty;
+
 
 
         /// <summary>

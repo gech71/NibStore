@@ -1034,6 +1034,9 @@ namespace Smartstore.Core.Checkout.Orders
                             _catalogSettings
                         ),
                         DisplayDeliveryTime = displayDeliveryTime,
+                       // StorePickupId = item.PickupStoreId, // Assuming this comes from the cart item
+                         //StoreName = item.SelectedStore ?? string.Empty,
+
                     };
 
                     if (
@@ -1186,6 +1189,9 @@ namespace Smartstore.Core.Checkout.Orders
                         ProductCost = oi.ProductCost,
                         DeliveryTimeId = oi.DeliveryTimeId,
                         DisplayDeliveryTime = oi.DisplayDeliveryTime,
+                        //StorePickupId = oi.PickupStoreId, // Assuming this comes from the cart item
+                       // StoreName = oi.SelectedStore ?? string.Empty,
+
                     };
 
                     ctx.Order.OrderItems.Add(newOrderItem);
