@@ -1,4 +1,4 @@
-﻿﻿@using Smartstore.Web.Models.Checkout
+﻿﻿﻿﻿@using Smartstore.Web.Models.Checkout
 @using Smartstore.Core.Checkout.Cart
 @using Smartstore.Core
 @using Smartstore.Core.Common.Services
@@ -148,6 +148,7 @@ else
                             </div>
                             <div id="addressSuggestions" class="dropdown-menu w-100" style="display: none;"></div>
                         </div>
+                        <div id="addressError" class="text-danger small mt-1" style="display:none;"></div>
                         
                         <input type="hidden" id="mapCoordinates" name="MapCoordinates" value="" />
                         <input type="hidden" id="latitudeField" name="ByGroundLatitude" value="@Model.ByGroundLatitude" />
@@ -300,7 +301,6 @@ else
     }
 });
 
-
         const storePickupProducts = document.getElementById('storePickupProducts');
         const storePickupMethodId = @storePickupMethodId;
         let map, marker;
@@ -399,6 +399,11 @@ else
                 const container = selectedRadio.closest('[data-index]');
                 const extra = container.querySelector('.by-ground-extra');
                 if (extra) extra.style.display = 'flex';
+            } else {
+                // Clear the hidden fields if not By Ground/Delivery
+                document.getElementById('latitudeField').value = '';
+                document.getElementById('longitudeField').value = '';
+                document.getElementById('addressInput').value = '';
             }
         }
 
@@ -497,14 +502,15 @@ else
         }
 
         function validateAddressInput() {
-            setTimeout(() => hideAddressSuggestions(), 200);
-            
-            if (addressInput.value.trim() && !document.getElementById('latitudeField').value) {
-                alert('Please select a valid address from the suggestions or use the map');
-                addressInput.focus();
-                return false;
-            }
-            return true;
+            setTimeout(() => {
+                hideAddressSuggestions();
+                if (addressInput.value.trim() && !document.getElementById('latitudeField').value) {
+                    showAddressError('Please select a valid address from the suggestions or use the map');
+                    return false;
+                }
+                hideAddressError();
+                return true;
+            }, 350);
         }
 
         function handleCurrentLocation() {
@@ -565,5 +571,44 @@ else
                 // Could add a loading indicator for the address input if needed
             }
         }
+
+        const form = addressInput?.closest('form');
+if (form) {
+    form.addEventListener('submit', function(e) {
+        const selectedRadio = document.querySelector('input[name="shippingoption"]:checked');
+        if (selectedRadio && selectedRadio.dataset.shippingName.toLowerCase() === 'by ground') {
+            if (!document.getElementById('latitudeField').value) {
+                showAddressError('Please select a valid address from the suggestions or use the map');
+                e.preventDefault();
+                return false;
+            }
+        }
+        hideAddressError();
+    });
+}
+
+// Hide error as soon as user types
+if (addressInput) {
+    addressInput.addEventListener('input', hideAddressError);
+}
+
+function showAddressError(message) {
+    const errorDiv = document.getElementById('addressError');
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+    if (addressInput) {
+        addressInput.focus();
+    }
+}
+
+function hideAddressError() {
+    const errorDiv = document.getElementById('addressError');
+    if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.style.display = 'none';
+    }
+}
     });
 </script>

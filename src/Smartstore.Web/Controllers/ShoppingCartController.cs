@@ -1728,7 +1728,7 @@ public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeNam
         if (cartItem != null)
         {
             cartItem.Item.SelectedStore = storeName;
-            cartItem.Item.StoreId = storeId; // Add this line
+            cartItem.Item.PickupStoreId = storeId; // Add this line
             await _db.SaveChangesAsync();
 
             return Json(new { success = true });
