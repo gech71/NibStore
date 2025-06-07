@@ -1034,8 +1034,8 @@ namespace Smartstore.Core.Checkout.Orders
                             _catalogSettings
                         ),
                         DisplayDeliveryTime = displayDeliveryTime,
-                       // StorePickupId = item.PickupStoreId, // Assuming this comes from the cart item
-                         //StoreName = item.SelectedStore ?? string.Empty,
+                        StorePickupId = item.PickupStoreId, // Assuming this comes from the cart item
+                        StoreName = item.SelectedStore ?? string.Empty,
 
                     };
 
