@@ -1,24 +1,20 @@
 $(function () {
-    // Track checkbox selection
     function updateApplyButtonState() {
         var anyChecked = $('.product-checkbox:checked').length > 0;
         $('#apply-discount-btn').prop('disabled', !anyChecked);
     }
 
-    // Select All Checkbox
     $('#select-all').on('change', function () {
         $('.product-checkbox').prop('checked', $(this).is(':checked'));
         updateApplyButtonState();
     });
 
-    // Individual Checkbox Change
     $('.product-checkbox').on('change', function () {
         var allChecked = $('.product-checkbox:checked').length === $('.product-checkbox').length;
         $('#select-all').prop('checked', allChecked);
         updateApplyButtonState();
     });
 
-    // Show Popup When Clicking Apply Discount
     $('#apply-discount-btn').on('click', function (e) {
         e.preventDefault();
 
@@ -26,7 +22,8 @@ $(function () {
             .map(function () { return $(this).val(); }).get();
 
         if (!selectedIds.length) {
-            Smartstore.showToast('error', '@T("Admin.Promotions.Discounts.NoProductsSelected")');
+            const noProductsMsg = $('#no-products-msg').data('msg') || "No products selected.";
+            Smartstore.showToast('error', noProductsMsg);
             return;
         }
 
@@ -34,14 +31,11 @@ $(function () {
         $('#discount-popup-overlay, #discount-popup-dialog').show();
     });
 
-    // Close Popup by Clicking Outside or Pressing Close Button
     $('#discount-popup-overlay, #close-discount-popup').on('click', function () {
         $('#discount-popup-overlay, #discount-popup-dialog').hide();
     });
 
-    // Handle Form Submission
     $('#discount-form').on('submit', function (e) {
-        e.preventDefault();
 
         var $form = $(this);
         var url = $form.attr('action');
@@ -61,9 +55,17 @@ $(function () {
                 }
             },
             error: function () {
-                displayNotification('@T("Admin.Common.Error")', 'error');
+                const errorMsg = $('#error-msg').data('msg') || "An error occurred.";
+                displayNotification(errorMsg, 'error');
             }
         });
+    });
+
+    // Optional: Close popup on ESC key
+    $(document).on('keydown', function (e) {
+        if (e.key === "Escape") {
+            $('#discount-popup-overlay, #discount-popup-dialog').hide();
+        }
     });
 
     updateApplyButtonState();

@@ -5,32 +5,29 @@
     ViewBag.Title = T("Admin.Promotions.Discounts.ApplyToProducts").Value;
 }
 
-<div class="section-header">
-    <div class="title">
-        <i class="fa fa-tag"></i>
-        <span>@ViewBag.Title</span>
-    </div>
-    <div class="options">
-        <button id="apply-discount-btn" class="btn btn-primary" disabled>
-            <i class="fa fa-percent"></i> @T("Admin.Promotions.Discounts.ApplyDiscount")
-        </button>
-    </div>
-</div>
 
 <!-- Product Grid -->
 <form id="products-form">
     <div class="table-responsive">
         <table class="table table-hover table-striped" id="products-grid">
             <thead>
-                <tr>
-                    <th width="40"><input type="checkbox" id="select-all" /></th>
-                    <th>@T("Admin.Catalog.Products.Fields.Name")</th>
-                    <th>@T("Admin.Catalog.Products.Fields.Sku")</th>
-                    <th>@T("Admin.Catalog.Products.Fields.Price")</th>
-                    <th>@T("Admin.Catalog.Products.Fields.StockQuantity")</th>
-                    <th>@T("Admin.Catalog.Products.Fields.Published")</th>
-                </tr>
-            </thead>
+    <tr>
+        <th colspan="6" class="text-end">
+            <button id="apply-discount-btn" class="btn btn-primary" disabled>
+                <i class="fa fa-percent"></i> @T("Admin.Promotions.Discounts.ApplyDiscount")
+            </button>
+        </th>
+    </tr>
+    <tr>
+        <th width="40"><input type="checkbox" id="select-all" /></th>
+        <th>@T("Admin.Catalog.Products.Fields.Name")</th>
+        <th>@T("Admin.Catalog.Products.Fields.Sku")</th>
+        <th>@T("Admin.Catalog.Products.Fields.Price")</th>
+        <th>@T("Admin.Catalog.Products.Fields.StockQuantity")</th>
+        <th>@T("Admin.Catalog.Products.Fields.Published")</th>
+    </tr>
+</thead>
+
             <tbody>
                 @foreach (var product in Model.Products)
                 {
@@ -80,6 +77,9 @@
         </form>
     </div>
 </div>
+<!-- Localized error messages for JS -->
+<span id="no-products-msg" data-msg="@T("Admin.Promotions.Discounts.NoProductsSelected")" style="display:none;"></span>
+<span id="error-msg" data-msg="@T("Admin.Common.Error")" style="display:none;"></span>
 
 <script src="~/admin/js/ApplyDiscount.js" asp-append-version="true"></script>
 <style>
