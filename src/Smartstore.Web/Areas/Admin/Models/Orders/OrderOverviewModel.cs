@@ -114,6 +114,9 @@ namespace Smartstore.Admin.Models.Orders
         [LocalizedDisplay("*ShippingMethod")]
         public string ShippingMethod { get; set; }
         public string ViaShippingMethod { get; set; }
+        public string ByGroundAddress { get; set; }
+        public string ByGroundLatitude { get; set; }   
+        public string ByGroundLongitude { get; set; }
 
         [LocalizedDisplay("Common.CreatedOn")]
         public DateTime CreatedOn { get; set; }

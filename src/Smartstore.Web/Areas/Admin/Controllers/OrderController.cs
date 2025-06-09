@@ -322,6 +322,11 @@ namespace Smartstore.Admin.Controllers
                     var m = new OrderOverviewModel();
 
                     await PrepareOrderOverviewModel(m, x);
+                    // ✅ Add this block to inject the custom By Ground fields
+                    m.ByGroundAddress = x.ByGroundAddress;
+                    m.ByGroundLatitude = x.ByGroundLatitude;
+                    m.ByGroundLongitude = x.ByGroundLongitude;
+
 
                     m.PaymentMethod = paymentMethod.NullEmpty() ?? x.PaymentMethodSystemName;
                     m.ViaShippingMethod = viaShippingMethodString.FormatInvariant(m.ShippingMethod);
@@ -2555,7 +2560,7 @@ namespace Smartstore.Admin.Controllers
             if (product == null)
             {
                 throw new ArgumentException(T("Products.NotFound", model.ProductId));
-            }
+                       }
 
             var customer = Services.WorkContext.CurrentCustomer;
             var currency =
