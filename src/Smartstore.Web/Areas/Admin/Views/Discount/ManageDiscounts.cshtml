@@ -1,22 +1,4 @@
-@using Smartstore.Admin.Models.Discounts
 @model ManageDiscountsViewModel
-
-@{
-    ViewBag.Title = T("Admin.Promotions.Discounts").Value;
-
-    Assets.BodyAttributes.AppendCssClass("spa-layout");
-}
-
-<div class="section-header">
-    <div class="title">
-        <i class="fa fa-signal fa-flip-horizontal"></i>
-        <span>@ViewBag.Title</span>
-    </div>
-    <div class="options">
-        <zone name="admin_button_toolbar_before" />
-        <zone name="admin_button_toolbar_after" />
-    </div>
-</div>
 
 <ul class="nav nav-tabs" id="discountTabs" role="tablist">
     <li class="nav-item" role="presentation">
@@ -35,13 +17,10 @@
         </button>
     </li>
 </ul>
+
 <div class="tab-content mt-3" id="discountTabsContent">
     <div class="tab-pane fade show active" id="discounts" role="tabpanel">
-        @{
-            var gridViewData = new ViewDataDictionary(ViewData);
-            gridViewData["Parent"] = Model.DiscountListModel;
-        }
-        <partial name="_Grid.Discounts" model="Model.DiscountModel" view-data="gridViewData" />
+        <partial name="_Grid.Discounts" model="Model.DiscountModel" />
     </div>
     <div class="tab-pane fade" id="apply" role="tabpanel">
         <partial name="DiscountProductList" model="Model.DiscountProductListModel" />
@@ -50,32 +29,3 @@
         <partial name="ProductsWithDiscounts" model="Model.ProductsWithDiscounts" />
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<style>
-    .nav-tabs {
-        border-bottom: none !important; 
-    }
-
-    .nav-tabs .nav-link {
-        border: none;
-        border-bottom: 3px solid transparent;
-        color: #1c484c; /* Your primary color */
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .nav-tabs .nav-link:hover {
-        border-color: #ccc;
-        background-color: #f9f9f9;
-    }
-
-    .nav-tabs .nav-link.active {
-        border-color: #1c484c;
-        color: #1c484c;
-        background-color: #fff;
-    }
-
-    .tab-content {
-        padding-top: 1rem;
-    }
-</style>

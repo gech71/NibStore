@@ -1,65 +1,49 @@
-using Smartstore.Core.Catalog.Products;
+using System;
+using System.Collections.Generic;
 using Smartstore.Core.Localization;
 using Smartstore.Web.Models.Common;
-using Smartstore.Web.Models.DataGrid;
-
 
 namespace Smartstore.Admin.Models.Discounts
 {
-    [LocalizedDisplay("Admin.Catalog.Products.List.")]
+    public class ManageDiscountsViewModel
+    {
+        public DiscountListModel DiscountListModel { get; set; }
+        public DiscountProductListModel DiscountProductListModel { get; set; }
+        public List<ProductWithDiscountModel> ProductsWithDiscounts { get; set; }
+        public DiscountModel DiscountModel { get; set; }
+    }
+
+    public class DiscountProductListModel : ModelBase
+    {
+        public List<DiscountProductModel> Products { get; set; } = new();
+        public List<DiscountModel> AvailableDiscounts { get; set; } = new();
+    }
+
     public class DiscountProductModel : EntityModelBase
     {
-        [LocalizedDisplay("*Fields.Name")]
+        [LocalizedDisplay("*Name")]
         public string Name { get; set; }
-
-        [LocalizedDisplay("*Fields.Sku")]
+        [LocalizedDisplay("*Sku")]
         public string Sku { get; set; }
-
-        [LocalizedDisplay("*Fields.Price")]
+        [LocalizedDisplay("*Price")]
         public string Price { get; set; }
-
-        [LocalizedDisplay("*Fields.StockQuantity")]
+        [LocalizedDisplay("*StockQuantity")]
         public int StockQuantity { get; set; }
-
-        [LocalizedDisplay("*Fields.Published")]
+        [LocalizedDisplay("*Published")]
         public bool Published { get; set; }
-
         public int ProductTypeId { get; set; }
         public string ProductTypeName { get; set; }
-        public string ProductTypeLabelHint
-        {
-            get
-            {
-                return ProductTypeId switch
-                {
-                    (int)ProductType.SimpleProduct => "secondary",
-                    (int)ProductType.GroupedProduct => "info",
-                    (int)ProductType.BundledProduct => "success",
-                    _ => "secondary",
-                };
-            }
-        }
-
         public DateTime? CreatedOn { get; set; }
         public DateTime? UpdatedOn { get; set; }
     }
 
-   public class DiscountProductListModel : ModelBase
-{
-    public bool IsSingleStoreMode { get; set; }
-    public List<DiscountProductModel> Products { get; set; } = new();
-    public List<DiscountModel> AvailableDiscounts { get; set; } = new(); // <-- Use your DiscountModel here
-}
-
-    public class DiscountProductQueryModel 
+    public class ProductWithDiscountModel : ModelBase
     {
-        public string SearchProductName { get; set; }
-        public string SearchSku { get; set; }
-        public int? SearchCategoryId { get; set; }
-        public int? SearchManufacturerId { get; set; }
-        public int? SearchStoreId { get; set; }
-        public bool? SearchIsPublished { get; set; }
-        public int? SearchProductTypeId { get; set; }
-        public bool? SearchWithoutDiscount { get; set; } = true;
+        public string ProductName { get; set; }
+        public string DiscountName { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public decimal? DiscountPercentage { get; set; }
+        public decimal? DiscountAmount { get; set; }
     }
 }

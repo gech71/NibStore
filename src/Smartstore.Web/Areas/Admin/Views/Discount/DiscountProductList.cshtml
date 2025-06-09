@@ -1,54 +1,30 @@
 @using Smartstore.Admin.Models.Discounts
-@model DiscountProductListModel
+@model DiscountProductModel
 
-@{
-    ViewBag.Title = T("Admin.Promotions.Discounts.ApplyToProducts").Value;
-}
-
-
-<!-- Product Grid -->
-<form id="products-form">
-    <div class="table-responsive">
-        <table class="table table-hover table-striped" id="products-grid">
-            <thead>
-    <tr>
-        <th colspan="6" class="text-end">
-            <button id="apply-discount-btn" class="btn btn-primary" disabled>
-                <i class="fa fa-percent"></i> @T("Admin.Promotions.Discounts.ApplyDiscount")
-            </button>
-        </th>
-    </tr>
-    <tr>
-        <th width="40"><input type="checkbox" id="select-all" /></th>
-        <th>@T("Admin.Catalog.Products.Fields.Name")</th>
-        <th>@T("Admin.Catalog.Products.Fields.Sku")</th>
-        <th>@T("Admin.Catalog.Products.Fields.Price")</th>
-        <th>@T("Admin.Catalog.Products.Fields.StockQuantity")</th>
-        <th>@T("Admin.Catalog.Products.Fields.Published")</th>
-    </tr>
-</thead>
-
-            <tbody>
-                @foreach (var product in Model.Products)
-                {
-                    <tr>
-                        <td><input type="checkbox" name="SelectedProductIds" value="@product.Id" class="product-checkbox" /></td>
-                        <td><a href="@Url.Action("Edit", "Product", new { id = product.Id })">@product.Name</a></td>
-                        <td>@product.Sku</td>
-                        <td>@product.Price</td>
-                        <td>@product.StockQuantity</td>
-                        <td><i class="fa @(product.Published ? "fa-check" : "fa-times")"></i></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</form>
-
-<!-- Custom Modal Overlay -->
+<datagrid id="products-grid"
+          allow-resize="true"
+          allow-row-selection="true"
+          preserve-grid-state="true"
+          preserve-command-state="true"
+          allow-column-reordering="true"
+          model-type="Smartstore.Admin.Models.Discounts.DiscountProductModel"> 
+    <datasource read="@Url.Action("GetAllProductModels")" />
+    <paging position="Bottom" page-index="1" show-size-chooser="true" />
+    <sorting allow-unsort="true" allow-multisort="false">
+        <sort by="Name" />
+    </sorting>
+    <columns>
+        <column for="Name" hideable="false" />
+        <column for="Sku" />
+        <column for="Price" />
+        <column for="StockQuantity" halign="center" />
+        <column for="Published" halign="center" />
+    </columns>
+</datagrid>
+<!-- Modal Overlay -->
 <div id="discount-popup-overlay" style="display: none;"></div>
 
-<!-- Custom Modal Dialog -->
+<!-- Modal Dialog -->
 <div id="discount-popup-dialog" class="card shadow-sm" style="display: none; max-width: 500px;">
     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
         <h6 class="mb-0">@T("Admin.Promotions.Discounts.SelectDiscount")</h6>
@@ -58,17 +34,13 @@
         <form id="discount-form" asp-controller="Discount" asp-action="ApplyBulkDiscount" method="post">
             <input type="hidden" id="selected-product-ids" name="SelectedProductIds" />
 
-            <!-- In your popup/modal -->
             <div class="form-group">
                 <label for="DiscountId">@T("Admin.Promotions.Discounts.SelectDiscount")</label>
                 <select id="DiscountId" name="DiscountId" class="form-control select2-select" required>
                     <option value="">-- @T("Admin.Common.Select") --</option>
-                    @foreach (var discount in Model.AvailableDiscounts)
-                    {
-                        <option value="@discount.Id">@discount.Name</option>
-                    }
                 </select>
             </div>
+
             <div class="form-group mt-3">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="fa fa-check"></i> @T("Admin.Common.Apply")
@@ -77,11 +49,13 @@
         </form>
     </div>
 </div>
-<!-- Localized error messages for JS -->
+
+<!-- Localized messages for JS -->
 <span id="no-products-msg" data-msg="@T("Admin.Promotions.Discounts.NoProductsSelected")" style="display:none;"></span>
 <span id="error-msg" data-msg="@T("Admin.Common.Error")" style="display:none;"></span>
 
 <script src="~/admin/js/ApplyDiscount.js" asp-append-version="true"></script>
+
 <style>
     #discount-popup-overlay {
         position: fixed;

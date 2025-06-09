@@ -1,4 +1,6 @@
 $(function () {
+    var isSubmitting = false;
+
     function updateApplyButtonState() {
         var anyChecked = $('.product-checkbox:checked').length > 0;
         $('#apply-discount-btn').prop('disabled', !anyChecked);
@@ -18,16 +20,18 @@ $(function () {
     $('#apply-discount-btn').on('click', function (e) {
         e.preventDefault();
 
-        var selectedIds = $('.product-checkbox:checked')
-            .map(function () { return $(this).val(); }).get();
+        var grid = $("#products-grid").data("datagrid");
+        var selectedRows = grid.getSelectedRows();
 
-        if (!selectedIds.length) {
+        if (!selectedRows.length) {
             const noProductsMsg = $('#no-products-msg').data('msg') || "No products selected.";
             Smartstore.showToast('error', noProductsMsg);
             return;
         }
 
-        $('#selected-product-ids').val(selectedIds.join(','));
+        var selectedIds = selectedRows.map(x => x.Id).join(',');
+        $('#selected-product-ids').val(selectedIds);
+
         $('#discount-popup-overlay, #discount-popup-dialog').show();
     });
 
@@ -35,7 +39,20 @@ $(function () {
         $('#discount-popup-overlay, #discount-popup-dialog').hide();
     });
 
+    function loadAvailableDiscounts() {
+        $.get('@Url.Action("GetAvailableDiscounts")', function (data) {
+            var select = $('#DiscountId').empty().append('<option value="">-- @T("Admin.Common.Select") --</option>');
+            $.each(data, function (i, item) {
+                select.append(`<option value="${item.id}">${item.name}</option>`);
+            });
+        });
+    }
+
     $('#discount-form').on('submit', function (e) {
+        e.preventDefault();
+
+        if (isSubmitting) return;
+        isSubmitting = true;
 
         var $form = $(this);
         var url = $form.attr('action');
@@ -47,16 +64,19 @@ $(function () {
             data: data,
             success: function (response) {
                 if (response.success) {
-                    displayNotification(response.message, 'success');
+                    Smartstore.showToast('success', response.message);
                     $('#discount-popup-overlay, #discount-popup-dialog').hide();
                     window.location.reload();
                 } else {
-                    displayNotification(response.message, 'error');
+                    Smartstore.showToast('error', response.message);
                 }
             },
             error: function () {
                 const errorMsg = $('#error-msg').data('msg') || "An error occurred.";
-                displayNotification(errorMsg, 'error');
+                Smartstore.showToast('error', errorMsg);
+            },
+            complete: function () {
+                isSubmitting = false;
             }
         });
     });
@@ -67,6 +87,9 @@ $(function () {
             $('#discount-popup-overlay, #discount-popup-dialog').hide();
         }
     });
+
+    // Load available discounts on page load
+    loadAvailableDiscounts();
 
     updateApplyButtonState();
 });

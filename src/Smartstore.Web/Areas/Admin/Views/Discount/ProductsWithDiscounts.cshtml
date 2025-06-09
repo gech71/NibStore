@@ -1,27 +1,23 @@
-@model IEnumerable<dynamic>
+@using Smartstore.Admin.Models.Discounts
+@model ProductWithDiscountModel
 
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Product Name</th>
-            <th>Discount Applied</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            <th>Discount %</th>
-            <th>Discount Amount</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.ProductName</td>
-                <td>@item.DiscountName</td>
-                <td>@(item.StartDate?.ToString("yyyy-MM-dd") ?? "-")</td>
-                <td>@(item.EndDate?.ToString("yyyy-MM-dd") ?? "-")</td>
-                <td>@(item.DiscountPercentage?.ToString("0.##") ?? "-")</td>
-                <td>@(item.DiscountAmount?.ToString("0.##") ?? "-")</td>
-            </tr>
-        }
-    </tbody>
-</table>      
+<datagrid id="products-with-discounts-grid"
+          allow-resize="true"
+          allow-row-selection="false"
+          preserve-grid-state="true" 
+          preserve-command-state="true"
+          allow-column-reordering="true">
+    <datasource read="@Url.Action("GetProductsWithDiscounts")" />
+    <paging position="Bottom" page-index="1" show-size-chooser="true" />
+    <sorting allow-unsort="true" allow-multisort="false">
+        <sort by="ProductName" />
+    </sorting>
+    <columns>
+        <column for="ProductName" hideable="false" />
+        <column for="DiscountName" hideable="false" />
+        <column for="StartDate" width="auto" halign="center" />
+        <column for="EndDate" width="auto" halign="center" />
+        <column for="DiscountPercentage" width="auto" halign="center" />
+        <column for="DiscountAmount" width="auto" halign="center" />
+    </columns>
+</datagrid>
