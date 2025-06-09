@@ -144,6 +144,13 @@
     
     padding: var(--art-padding); 
     
+    // padding: var(--art-padding);
+
+    // Reduce horizontal padding on small screens
+    @media (max-width: 575.98px) {
+        padding-inline: calc(var(--art-padding) / 2); // Reduce horizontal padding
+    }
+
     border: 1px solid transparent;
     background: transparent;   
 
@@ -572,6 +579,17 @@
 
 .artlist-grid {
     @include make-art-row();
+    
+
+    // Adjust padding and margin for better spacing on small screens
+    @media (max-width: 575.98px) {
+        // justify-content: center;
+        > .art {
+            padding: 10px 5px !important; // Reduced horizontal padding to 5px
+            margin: 5px !important;
+            width: 45% !important; // Set width to 50% for two columns on mobile
+        }
+    }
 
     &.artlist-boxed {
         --gutter-x: var(--art-gutter);
@@ -649,6 +667,9 @@
         &.artlist-1-col .art {
             flex-basis: 100% !important;
             max-width: initial !important;
+        }
+        &.artlist-4-cols {
+            @include make-art-col(3);
         }
     }
 
