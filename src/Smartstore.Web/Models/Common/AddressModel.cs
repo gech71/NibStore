@@ -27,7 +27,6 @@ namespace Smartstore.Web.Models.Common
         public string LastName { get; set; }
         public bool LastNameEnabled { get; set; } = true;
 
-        [Required]
         [LocalizedDisplay("*Email")]
         [DataType(DataType.EmailAddress)]
         public string Email { get; set; }
@@ -38,6 +37,7 @@ namespace Smartstore.Web.Models.Common
         public string EmailMatch { get; set; }
         public bool ValidateEmailAddress { get; set; }
 
+        // Property declarations should be here, outside of any method
         [LocalizedDisplay("*Company")]
         public string Company { get; set; }
 
@@ -105,6 +105,10 @@ namespace Smartstore.Web.Models.Common
         public IList<SelectListItem> AvailableSalutations { get; set; } = new List<SelectListItem>();
 
         public string FormattedAddress { get; set; }
+
+        public string ByGroundAddress { get; set; }
+        public string ByGroundLatitude { get; set; }
+        public string ByGroundLongitude { get; set; }
 
         public string GetFormattedCityStateZip()
         {
@@ -209,15 +213,15 @@ namespace Smartstore.Web.Models.Common
                 RuleFor(x => x.FaxNumber).NotEmpty();
             }
 
-            /*RuleFor(x => x.Email).EmailAddressStrict();
+            // RuleFor(x => x.Email).EmailAddressStrict();
 
-            if (addressSettings.ValidateEmailAddress)
-            {
-                RuleFor(x => x.EmailMatch)
-                    .NotEmpty()
-                    .Equal(x => x.Email)
-                    .WithMessage(T("Admin.Address.Fields.EmailMatch.MustMatchEmail"));
-            }*/
+            // if (addressSettings.ValidateEmailAddress)
+            // {
+            //     RuleFor(x => x.EmailMatch)
+            //         .NotEmpty()
+            //         .Equal(x => x.Email)
+            //         .WithMessage(T("Admin.Address.Fields.EmailMatch.MustMatchEmail"));
+            // }
 
             When(x => x.CountryId != null && x.DefaultAddressesEnabled, () =>
             {

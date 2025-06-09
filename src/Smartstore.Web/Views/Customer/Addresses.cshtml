@@ -38,22 +38,22 @@
                         </a>
                     </h4>
                     <div class="mb-2">
-                        <div class="email">
+                        @* <div class="email">
                             <label asp-for="@address.Email" class="m-0"></label>:
                             @address.Email
-                        </div>
+                        </div>  *@
                         <div sm-if="address.PhoneEnabled" class="phone">
                             <label asp-for="@address.PhoneNumber" class="m-0"></label>:
                             @address.PhoneNumber
                         </div>
-                        <div sm-if="address.FaxEnabled && address.FaxNumber.HasValue()" class="fax">
+                        @* <div sm-if="address.FaxEnabled && address.FaxNumber.HasValue()" class="fax">
                             <label asp-for="@address.FaxNumber" class="m-0"></label>:
                             @address.FaxNumber
-                        </div>
+                        </div> *@
                     </div>
-                    <div>
+                    @* <div>
                         @Html.Raw(address.FormattedAddress)
-                    </div>
+                    </div> *@
                 </div>
 
                 <div class="card-footer d-flex p-2">
