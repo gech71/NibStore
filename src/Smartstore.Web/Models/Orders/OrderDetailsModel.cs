@@ -93,6 +93,8 @@ namespace Smartstore.Web.Models.Orders
         {
             public string Sku { get; set; }
             public int ProductId { get; set; }
+             public int? PickupStoreId { get; set; }
+            public string SelectedStoreName { get; set; }
             public bool IsProductSoftDeleted { get; set; }
             public LocalizedValue<string> ProductName { get; set; }
             public string ProductSeName { get; set; }

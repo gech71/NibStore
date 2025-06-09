@@ -64,6 +64,23 @@
                         {
                             @Html.Raw(item.AttributeInfo)
                         }
+
+                         @* ✅ Show Selected Store Name *@
+    @if (!string.IsNullOrEmpty(item.SelectedStoreName))
+    {
+        <div class="pickup-store-info">
+            <span class="fw-semibold">Store:</span>
+            <span>@item.SelectedStoreName</span>
+        </div>
+    }
+
+    @* ✅ Optional: Show Pickup Store ID (if needed for internal/debugging) 
+    @if (item.PickupStoreId > 0)
+    {
+        <div class="pickup-store-id pd-muted fs-sm">
+            <span>ID:</span> <span>@item.PickupStoreId</span>
+        </div>
+    }*@
                     </div>
 
                     @* Single unit price *@
@@ -298,7 +315,7 @@
                     </div>
                 </div>
             </div>
-
+       <div> tadele added here</div>
             @* Order summary *@
             <div class="col-lg-5 col-xl-4">
                 <div class="cart-footer">
