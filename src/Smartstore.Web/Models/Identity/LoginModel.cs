@@ -18,6 +18,10 @@ namespace Smartstore.Web.Models.Identity
         [LocalizedDisplay("*UserName", Prompt = "*UserName")]
         public string Username { get; set; }
 
+        [LocalizedDisplay("*Phone", Prompt = "*PhoneNumber")]
+        [DataType(DataType.PhoneNumber)]
+        public string Phone { get; set; }
+
         [LocalizedDisplay("*UsernameOrEmail", Prompt = "*UsernameOrEmail")]
         public string UsernameOrEmail { get; set; }
 
@@ -27,30 +31,37 @@ namespace Smartstore.Web.Models.Identity
 
         [LocalizedDisplay("*RememberMe")]
         public bool RememberMe { get; set; }
-
         public bool DisplayCaptcha { get; set; }
+        public bool ShowPasswordField { get; set; } = false;
     }
 
     public class LoginValidator : SmartValidator<LoginModel>
     {
         public LoginValidator(CustomerSettings customerSettings)
         {
-            var loginType = customerSettings.CustomerLoginType;
+            // var loginType = customerSettings.CustomerLoginType;
 
-            if (loginType == CustomerLoginType.Email)
-            {
-                RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
-            }
-            else if (loginType == CustomerLoginType.Username)
-            {
-                RuleFor(x => x.Username).NotEmpty();
-            }
-            else
-            {
-                RuleFor(x => x.UsernameOrEmail).NotEmpty();
-            }
+            // if (loginType == CustomerLoginType.Email)
+            // {
+            //     RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
+            // }
+            // else if (loginType == CustomerLoginType.Username)
+            // {
+            //     RuleFor(x => x.Username).NotEmpty();
+            // }
+            // else
+            // {
+            //     RuleFor(x => x.UsernameOrEmail).NotEmpty();
+            // }
 
-            RuleFor(x => x.Password).NotEmpty();
+            RuleFor(x => x.Phone)
+                .NotEmpty()
+                .WithMessage("Phone number is required.");
+
+            RuleFor(x => x.Password)
+                .NotEmpty()
+                .When(x => x.ShowPasswordField)
+                .WithMessage("Password is required.");
         }
     }
 }
