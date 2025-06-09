@@ -98,7 +98,7 @@
             <display-template>
                 <div class="dg-cell-value">
                     <i :class="item.row.ShippingStatusLabelClass" :title="item.row.ShippingStatusString"></i>
-                    <span v-if="item.row.IsShippable" class="text-truncate">{{ item.row.ShippingAddressString }}</span>
+                    <span v-if="item.row.IsShippable" class="text-truncate">{{ item.row.ByGroundAddress }}</span>
                     <div v-if="item.row.IsShippable" class="text-muted text-truncate">{{ item.row.ViaShippingMethod }}
                     </div>
                     <span v-if="!item.row.IsShippable" class="text-muted text-truncate">{{ item.row.ShippingStatusString
