@@ -164,6 +164,8 @@ namespace Smartstore.Web.Controllers
                 Id = orderItem.Id,
                 Sku = orderItem.Sku.NullEmpty() ?? product.Sku,
                 ProductId = product.Id,
+                SelectedStoreName =  orderItem.StoreName,
+                PickupStoreId = orderItem.StorePickupId,
                 IsProductSoftDeleted = product.Deleted,
                 ProductName = product.GetLocalized(x => x.Name),
                 ProductSeName = await product.GetActiveSlugAsync(),
