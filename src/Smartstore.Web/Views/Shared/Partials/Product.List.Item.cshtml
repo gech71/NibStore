@@ -37,7 +37,7 @@
                href="@Model.DetailUrl"
                title="@T("Media.Product.ImageLinkTitleFormat", Model.Name)"
                attr-data-content='(!hasImage, T("Common.NoImageAvail"))'>
-                <img sm-model="image" loading="lazy" attr-alt='(image.Alt.IsEmpty(), Model.Name)' />
+                <img sm-model="image" loading="lazy" alt="@(!string.IsNullOrEmpty(image?.Alt) ? image.Alt : Model.Name)" />
             </a>
         }
     </div>
@@ -101,6 +101,7 @@
             <td>@T("Products.Dimensions") <span class="lrm">(@Model.DimensionMeasureUnit)</span></td>
             <td>@Model.Dimensions</td>
         </tr>
+        
     </table>
 
     @if (!isLinesMode)
