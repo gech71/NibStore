@@ -1,31 +1,62 @@
-@model ManageDiscountsViewModel
+@using Smartstore.Admin.Models.Discounts
+@model YourNamespace.Models.DiscountModel
+@{
+    ViewBag.Title = T("Admin.Promotions.ManageDiscounts").Value;
+    Assets.BodyAttributes.AppendCssClass("spa-layout");
+}
 
-<ul class="nav nav-tabs" id="discountTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="discounts-tab" data-bs-toggle="tab" data-bs-target="#discounts" type="button" role="tab">
-            @T("Admin.Promotions.Discounts")
-        </button>
+<div class="section-header">
+    <div class="title">
+        <i class="fa fa-signal fa-flip-horizontal"></i>
+        @T("Admin.Promotions.ManageDiscounts")
+    </div>
+</div>
+
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#tab-discounts">@T("Admin.Promotions.Discounts")</a>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="apply-tab" data-bs-toggle="tab" data-bs-target="#apply" type="button" role="tab">
-            @T("Admin.Promotions.Discounts.ApplyDiscount")
-        </button>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-apply">@T("Admin.Promotions.ApplyDiscount")</a>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="productswith-tab" data-bs-toggle="tab" data-bs-target="#productswith" type="button" role="tab">
-            @T("Admin.Promotions.Discounts.ProductsWithDiscounts")
-        </button>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-products-with-discounts">@T("Admin.Promotions.ProductsWithDiscounts")</a>
     </li>
 </ul>
 
-<div class="tab-content mt-3" id="discountTabsContent">
-    <div class="tab-pane fade show active" id="discounts" role="tabpanel">
-        <partial name="_Grid.Discounts" model="Model.DiscountModel" />
+<div class="tab-content mt-4">
+    <!-- Tab 1: Existing Discounts -->
+    <div id="tab-discounts" class="tab-pane fade show active">
+        <partial name="_Grid.Discounts" />
     </div>
-    <div class="tab-pane fade" id="apply" role="tabpanel">
-        <partial name="DiscountProductList" model="Model.DiscountProductListModel" />
+
+    <!-- Tab 2: Apply Discount -->
+    <div id="tab-apply" class="tab-pane fade">
+        <partial name="_Grid.ApplyDiscount" />
     </div>
-    <div class="tab-pane fade" id="productswith" role="tabpanel">
-        <partial name="ProductsWithDiscounts" model="Model.ProductsWithDiscounts" />
+
+    <!-- Tab 3: Products with Discounts -->
+    <div id="tab-products-with-discounts" class="tab-pane fade">
+        <partial name="_Grid.ProductsWithDiscounts" />
     </div>
 </div>
+
+<!-- Modal: Apply Discount -->
+<modal id="apply-discount-modal" title="@T("Admin.Promotions.ApplyDiscount.SelectDiscount")">
+    <modal-body>
+        <select id="selected-discount-id" class="form-control">
+            @if (Model.AvailableDiscounts != null)
+            {
+                foreach (var discount in Model.AvailableDiscounts)
+                {
+                    <option value="@discount.Id">@discount.Name</option>
+                }
+            }
+        </select>
+        <input type="hidden" id="selected-product-ids" />
+    </modal-body>
+    <modal-footer>
+        <button type="button" id="apply-selected-discount-btn" class="btn btn-primary">@T("Admin.Common.Apply")</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@T("Admin.Common.Cancel")</button>
+    </modal-footer>
+</modal>

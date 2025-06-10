@@ -1,0 +1,23 @@
+@using Smartstore.Admin.Models.Discounts
+<datagrid id="products-with-discounts-grid"
+          allow-resize="true"
+          allow-row-selection="true"
+          preserve-grid-state="true"
+          allow-column-reordering="true">
+
+    <datasource read="@Url.Action("GetProductsWithDiscounts", "Discount")" />
+    <paging position="Bottom" show-size-chooser="true" />
+    <sorting allow-unsort="true" allow-multisort="false">
+        <sort by="ProductName" />
+    </sorting>
+
+    <columns>
+        <column for="ProductId" visible="false" />
+        <column for="ProductName" />
+        <column for="DiscountName" />
+        <column for="StartDate" format="{0:d}" />
+        <column for="EndDate" format="{0:d}" />
+        <column for="DiscountPercentage" format="{0:N2}%" />
+        <column for="DiscountAmount" format="{0:C}" />
+    </columns>
+</datagrid>
