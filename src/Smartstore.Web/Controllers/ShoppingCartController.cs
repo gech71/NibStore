@@ -1716,31 +1716,61 @@ namespace Smartstore.Web.Controllers
 
             return Json(new { success = true, message = T("ShoppingCart.ClearAll.Success") });
         }
-       [HttpPost]
-public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeName, int storeId)
+        [HttpPost]
+        public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeName, int storeId)
+        {
+            try
+            {
+                var customer = _workContext.CurrentCustomer;
+                var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart);
+                var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
+
+                if (cartItem != null)
+                {
+                    cartItem.Item.SelectedStore = storeName;
+                    cartItem.Item.PickupStoreId = storeId; // Add this line
+                    await _db.SaveChangesAsync();
+
+                    return Json(new { success = true });
+                }
+
+                return Json(new { success = false, message = "Cart item not found" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
+
+[HttpPost]
+public async Task<IActionResult> RemoveCartItem(int itemId)
 {
     try
     {
-        var customer = _workContext.CurrentCustomer;
-        var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart);
-        var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
+        var customer = Services.WorkContext.CurrentCustomer;
+        var storeId = Services.StoreContext.CurrentStore.Id;
+        var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart, storeId);
 
+        var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
         if (cartItem != null)
         {
-            cartItem.Item.SelectedStore = storeName;
-            cartItem.Item.PickupStoreId = storeId; // Add this line
-            await _db.SaveChangesAsync();
+            // Use UpdateCartItemAsync to set quantity to 0 (removes item)
+            await _shoppingCartService.UpdateCartItemAsync(customer, itemId, 0, null);
 
-            return Json(new { success = true });
+            return Json(new { success = true, message = "Item removed successfully." });
         }
 
-        return Json(new { success = false, message = "Cart item not found" });
+        return Json(new { success = false, message = "Cart item not found." });
     }
     catch (Exception ex)
     {
         return Json(new { success = false, message = ex.Message });
     }
 }
+
+
 
     }
 }

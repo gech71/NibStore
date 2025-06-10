@@ -16,7 +16,7 @@ namespace Smartstore.Core.Common.Services
             _db = db;
         }
 
-       
+
         public async Task<IList<string>> GetStoresForProductAsync(int productId)
         {
             var storeNames = await _db.Set<ProductMerchantStoreMapping>()
@@ -29,7 +29,7 @@ namespace Smartstore.Core.Common.Services
             return storeNames;
         }
 
-       
+
         public async Task<IList<MerchantStore>> GetStoresForProductAsync(int productId, int requiredQuantity)
         {
             var stores = await _db.Set<ProductMerchantStoreMapping>()
@@ -43,6 +43,21 @@ namespace Smartstore.Core.Common.Services
                 .ToListAsync();
 
             return stores;
+        }
+
+        public async Task<bool> AdjustStoreInventoryAsync(int productId, int storeId, int quantityToReduce)
+        {
+            var mapping = await _db.Set<ProductMerchantStoreMapping>()
+                .FirstOrDefaultAsync(m => m.ProductId == productId && m.MerchantStoreId == storeId);
+
+            if (mapping == null || mapping.Quantity < quantityToReduce)
+            {
+                return false;
+            }
+
+            mapping.Quantity -= quantityToReduce;
+            await _db.SaveChangesAsync();
+            return true;
         }
     }
 }
