@@ -147,7 +147,7 @@ namespace Smartstore.Core.Common
                 Title = this.Title,
                 FirstName = this.FirstName,
                 LastName = this.LastName,
-                Email = this.Email,
+                // Email = this.Email,
                 Company = this.Company,
                 Country = this.Country,
                 CountryId = this.CountryId,

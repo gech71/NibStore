@@ -63,7 +63,7 @@ namespace Smartstore.Core.Installation
     {
         public InstallationModelValidator(IInstallationService installService)
         {
-            RuleFor(x => x.AdminEmail).NotEmpty().WithMessage(Res("AdminEmailRequired")).EmailAddress();
+            // RuleFor(x => x.AdminEmail).NotEmpty().WithMessage(Res("AdminEmailRequired")).EmailAddress();
             RuleFor(x => x.AdminPassword).NotEmpty().WithMessage(Res("AdminPasswordRequired"));
             RuleFor(x => x.ConfirmPassword).NotEmpty().WithMessage(Res("ConfirmPasswordRequired"));
             RuleFor(x => x.AdminPassword).Equal(x => x.ConfirmPassword).WithMessage(Res("PasswordsDoNotMatch"));

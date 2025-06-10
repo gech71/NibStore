@@ -83,8 +83,7 @@ namespace Smartstore.Core.Common.Services
             Guard.NotNull(address);
 
             if (!address.FirstName.HasValue() || 
-                !address.LastName.HasValue() || 
-                !address.Email.HasValue())
+                !address.LastName.HasValue())
                 return false;
 
             if (_addressSettings.CompanyEnabled &&

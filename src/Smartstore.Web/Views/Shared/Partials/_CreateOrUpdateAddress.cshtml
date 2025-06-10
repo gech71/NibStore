@@ -53,7 +53,7 @@
             <span asp-validation-for="LastName"></span>
         </div>
     </div>
-    <div sm-if="Model.StreetAddressEnabled" class="form-group row">
+    @* <div sm-if="Model.StreetAddressEnabled" class="form-group row">
         <label asp-for="Address1" class="col-@(breakpoint)-3 col-form-label@(Model.StreetAddressRequired ? " required" : "")"></label>
         <div class="col-@(breakpoint)-9">
             <input asp-for="Address1" sm-required="Model.StreetAddressRequired" autocomplete="address-line1" />
@@ -139,7 +139,7 @@
             <input asp-for="EmailMatch" sm-required="true" autocomplete="email" />
             <span asp-validation-for="EmailMatch"></span>
         </div>
-    </div>
+    </div> *@
     <div sm-if="Model.PhoneEnabled" class="form-group row">
         <label asp-for="PhoneNumber" class="col-@(breakpoint)-3 col-form-label@(Model.PhoneRequired ? " required" : "")"></label>
         <div class="col-@(breakpoint)-9">
@@ -147,13 +147,20 @@
             <span asp-validation-for="PhoneNumber"></span>
         </div>
     </div>
-    <div sm-if="Model.FaxEnabled" class="form-group row">
+    @* <div class="form-group row">
+        <label asp-for="ByGroundAddress" class="col-@(breakpoint)-3 col-form-label"></label>
+        <div class="col-@(breakpoint)-9">
+            <input asp-for="ByGroundAddress" class="form-control" autocomplete="off" />
+            <span asp-validation-for="ByGroundAddress"></span>
+        </div>
+    </div> *@
+    @* <div sm-if="Model.FaxEnabled" class="form-group row">
         <label asp-for="FaxNumber" class="col-@(breakpoint)-3 col-form-label@(Model.FaxRequired ? " required" : "")"></label>
         <div class="col-@(breakpoint)-9">
             <input asp-for="FaxNumber" sm-required="Model.FaxRequired" />
             <span asp-validation-for="FaxNumber"></span>
         </div>
-    </div>
+    </div> *@
 
     <div sm-if="Model.DefaultAddressesEnabled && Model.Id != 0">
         <div class="row form-group">
@@ -166,7 +173,7 @@
                     <span asp-validation-for="IsDefaultBillingAddress"></span>
                 </div>
             </div>
-        </div>
+        </div> 
         <div class="row form-group">
             <div class="col">
                 <div class="form-check">
@@ -181,9 +188,9 @@
     </div>
 
     <div class="form-group row">
-        <div class="col-@breakpoint-9 text-muted address-required-hint">
+        @* <div class="col-@breakpoint-9 text-muted address-required-hint">
             @T("Common.FormFields.Required.Hint")
-        </div>
+        </div> *@
     </div>
 </div>
 

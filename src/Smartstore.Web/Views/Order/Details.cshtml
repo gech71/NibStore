@@ -11,7 +11,7 @@
     var hasOrderDetails1 = Model.BillingAddress != null || (Model.IsShippable && Model.ShippingAddress != null);
     var hasOrderDetails2 = Model.PaymentMethod.HasValue() || Model.IsShippable || Model.VatNumber.HasValue();
 
-    async Task RenderAddress(AddressModel address)
+    @* async Task RenderAddress(AddressModel address)
     {
         <div class="mb-2">
             @Html.Raw(address.FormattedAddress)
@@ -25,7 +25,7 @@
         <div sm-if="address.FaxEnabled && address.FaxNumber.HasValue()" class="fax">
             @T("Order.Fax"): @address.FaxNumber
         </div>
-    }
+    } *@
 
     async Task SimpleProduct(OrderDetailsModel.OrderItemModel item)
     {
@@ -235,13 +235,24 @@
             <div class="row">
                 <div sm-if="hasOrderDetails1" class="col-md-8">
                     <div class="row">
-                        <div sm-if="Model.BillingAddress != null" class="col mb-4 mb-lg-0 billinginfo">
+                        @* <div sm-if="Model.BillingAddress != null" class="col mb-4 mb-lg-0 billinginfo">
                             <h5>@T("Order.BillingAddress")</h5>
                             @{ await RenderAddress(Model.BillingAddress); }
-                        </div>
+                        </div> *@
                         <div sm-if="Model.IsShippable && Model.ShippingAddress != null" class="col mb-4 mb-lg-0 shippinginfo">
                             <h5>@T("Order.ShippingAddress")</h5>
-                            @{ await RenderAddress(Model.ShippingAddress); }
+                            <div>
+                                <div>
+                                    <strong>@Model.ShippingAddress.FirstName @Model.ShippingAddress.LastName</strong>
+                                </div>
+                                @if (Model.ShippingAddress.PhoneEnabled && !string.IsNullOrEmpty(Model.ShippingAddress.PhoneNumber))
+                                {
+                                    <div>
+                                        <span>@T("Order.Phone"):</span>
+                                        <span>@Model.ShippingAddress.PhoneNumber</span>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -8,15 +8,15 @@
                 <div class="mb-2">
                     @Html.Raw(address.FormattedAddress)
                 </div>
-                <div class="email">
+                @* <div class="email">
                     @T("Order.Email"): @address.Email
-                </div>
+                </div> *@
                 <div sm-if="address.PhoneNumber.HasValue()" class="phone">
                     @T("Order.Phone"): @address.PhoneNumber
                 </div>
-                <div sm-if="address.FaxNumber.HasValue()" class="fax">
+                @* <div sm-if="address.FaxNumber.HasValue()" class="fax">
                     @T("Order.Fax"): @address.FaxNumber
-                </div>
+                </div> *@
             </div>
             <div class="card-footer d-flex p-2">
                 <a asp-action="AddressEdit" asp-controller="Customer" asp-route-customerId="@Model.Id" asp-route-addressId="@address.Id"
