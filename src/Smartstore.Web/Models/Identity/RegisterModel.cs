@@ -96,6 +96,13 @@ namespace Smartstore.Web.Models.Identity
 
         [LocalizedDisplay("*Phone")]
         [DataType(DataType.PhoneNumber)]
+        [Required(ErrorMessage = "*Phone is required")]
+        [StringLength(
+            20,
+            MinimumLength = 7,
+            ErrorMessage = "*Phone must be between 7 and 20 digits"
+        )]
+        [RegularExpression(@"^\+?[0-9\s\-]+$", ErrorMessage = "*Invalid phone number format")]
         public string Phone { get; set; }
 
         public bool FaxEnabled { get; set; }
@@ -134,20 +141,20 @@ namespace Smartstore.Web.Models.Identity
             TaxSettings taxSettings
         )
         {
-            RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
-            RuleFor(x => x.Password).NotEmpty();
-            RuleFor(x => x.ConfirmPassword)
-                .NotEmpty()
-                .Equal(x => x.Password)
-                .WithMessage(T("Identity.Error.PasswordMismatch"));
+            // RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
+            // RuleFor(x => x.Password).NotEmpty();
+            // RuleFor(x => x.ConfirmPassword)
+            //     .NotEmpty()
+            //     .Equal(x => x.Password)
+            //     .WithMessage(T("Identity.Error.PasswordMismatch"));
 
             // Form fields.
-            if (customerSettings.FirstNameRequired)
-            {
-                RuleFor(x => x.FirstName).NotEmpty();
-            }
+            // if (customerSettings.FirstNameRequired)
+            // {
+            //     RuleFor(x => x.FirstName).NotEmpty();
+            // }
 
-            RuleFor(x => x.FirstName).ValidPersonName(T);
+            // RuleFor(x => x.FirstName).ValidPersonName(T);
 
             if (customerSettings.LastNameRequired)
             {
@@ -189,7 +196,10 @@ namespace Smartstore.Web.Models.Identity
             }
             if (customerSettings.PhoneRequired && customerSettings.PhoneEnabled)
             {
-                RuleFor(x => x.Phone).NotEmpty();
+                RuleFor(x => x.Phone)
+                    .NotEmpty()
+                    .Matches(@"^\+?[0-9\s\-]+$")
+                    .WithMessage(T("Account.Fields.Phone.Invalid"));
             }
             if (customerSettings.FaxRequired && customerSettings.FaxEnabled)
             {

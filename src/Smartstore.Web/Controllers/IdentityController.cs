@@ -95,10 +95,10 @@ namespace Smartstore.Web.Controllers
         {
             var model = new LoginModel
             {
-                CustomerLoginType = _customerSettings.CustomerLoginType,
+                // CustomerLoginType = _customerSettings.CustomerLoginType,
                 CheckoutAsGuest = checkoutAsGuest.GetValueOrDefault(),
-                DisplayCaptcha =
-                    _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnLoginPage,
+                // DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnLoginPage,
+                // ShowPasswordField = false
             };
 
             ViewBag.ReturnUrl = returnUrl ?? Url.Content("~/");
@@ -107,109 +107,84 @@ namespace Smartstore.Web.Controllers
         }
 
         [HttpPost]
-        [TypeFilter(typeof(DisplayExternalAuthWidgets))]
         [AllowAnonymous, NeverAuthorize]
         [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnLoginPage))]
         [ValidateAntiForgeryToken, CheckStoreClosed(false)]
         [LocalizedRoute("/login", Name = "Login")]
-        public async Task<IActionResult> Login(
-            LoginModel model,
-            string returnUrl,
-            string captchaError
-        )
+        public async Task<IActionResult> Login(LoginModel model, string returnUrl, string captchaError)
         {
-            if (_captchaSettings.ShowOnLoginPage && captchaError.HasValue())
-            {
-                ModelState.AddModelError(string.Empty, captchaError);
-            }
-
             ViewBag.ReturnUrl = returnUrl;
 
-            if (ModelState.IsValid)
+            if (string.IsNullOrEmpty(model.Password))
             {
-                Customer customer;
-
-                if (model.CustomerLoginType == CustomerLoginType.Username)
-                {
-                    customer = await _userManager.FindByNameAsync(model.Username.TrimSafe());
-                }
-                else if (model.CustomerLoginType == CustomerLoginType.Email)
-                {
-                    customer = await _userManager.FindByEmailAsync(model.Email.TrimSafe());
-                }
-                else
-                {
-                    customer =
-                        await _userManager.FindByEmailAsync(model.UsernameOrEmail.TrimSafe())
-                        ?? await _userManager.FindByNameAsync(model.UsernameOrEmail.TrimSafe());
-                }
+                var phone = model.Phone?.Trim();
+                var customer = await _userManager.Users.FirstOrDefaultAsync(c => c.Phone == phone);
 
                 if (customer != null)
                 {
-                    var result = await _signInManager.PasswordSignInAsync(
-                        customer,
-                        model.Password,
-                        model.RememberMe,
-                        lockoutOnFailure: false
-                    );
+                    var roles = await _db.CustomerRoleMappings
+                        .Where(m => m.CustomerId == customer.Id)
+                        .Select(m => m.CustomerRole.SystemName)
+                        .ToListAsync();
 
-                    if (result.Succeeded)
+                    if (roles.Contains("Administrators") || roles.Contains("Merchant"))
                     {
-                        await Services.EventPublisher.PublishAsync(
-                            new CustomerSignedInEvent { Customer = customer }
-                        );
-
-                        await _shoppingCartService.MigrateCartAsync(
-                            Services.WorkContext.CurrentCustomer,
-                            customer
-                        );
-
-                        Services.ActivityLogger.LogActivity(
-                            KnownActivityLogTypes.PublicStoreLogin,
-                            T("ActivityLog.PublicStore.Login"),
-                            customer
-                        );
-
-                        if (customer.IsAdmin() || customer.IsInRole("Merchant"))
-                        {
-                            return RedirectToAction("Index", "Home", new { area = "Admin" });
-                        }
-                        else if (
-                            returnUrl.IsEmpty()
-                            || returnUrl == "/"
-                            || returnUrl.Contains(
-                                "/passwordrecovery",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                            || returnUrl.Contains("/activation", StringComparison.OrdinalIgnoreCase)
-                          || !Url.IsLocalUrl(returnUrl)
-                        )
-                        {
-                            return RedirectToRoute("Homepage");
-                        }
-
-                        return RedirectToReferrer(returnUrl);
+                        model.ShowPassword = true;
+                        // Don't try to sign in yet. Show password field on next render.
+                        return View(model);
+                    }
+                    else if (roles.Count == 1 && roles.Contains("Registered"))
+                    {
+                        await _signInManager.SignInAsync(customer, isPersistent: false);
+                        return RedirectToRoute("Homepage");
                     }
                     else
                     {
-                        if (
-                            _customerSettings.UserRegistrationType
-                                == UserRegistrationType.EmailValidation
-                            && customer.Active == false
-                        )
+                        ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
+                    }
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
+                }
+
+                return View(model);
+            }
+            else
+            {
+                var phone = model.Phone?.Trim();
+                var customer = await _userManager.Users.FirstOrDefaultAsync(c => c.Phone == phone); if (customer != null)
+                {
+                    var roles = await _db.CustomerRoleMappings
+                        .Where(m => m.CustomerId == customer.Id)
+                        .Select(m => m.CustomerRole.SystemName)
+                        .ToListAsync();
+
+                    if (roles.Contains("Administrators") || roles.Contains("Merchants"))
+                    {
+                        var result = await _signInManager.PasswordSignInAsync(
+                            customer,
+                            model.Password,
+                            model.RememberMe,
+                            lockoutOnFailure: false);
+
+                        if (result.Succeeded)
                         {
-                            ModelState.AddModelError(
-                                string.Empty,
-                                T("Account.Login.CheckEmailAccount")
-                            );
+                            await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
+                            await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
+                            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
+
+                            return RedirectToAction("Index", "Home", new { area = "Admin" });
                         }
                         else
                         {
-                            ModelState.AddModelError(
-                                string.Empty,
-                                T("Account.Login.WrongCredentials")
-                            );
+                            ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
+                            model.ShowPassword = true;
                         }
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
                     }
                 }
                 else
@@ -218,11 +193,7 @@ namespace Smartstore.Web.Controllers
                 }
             }
 
-            // If we got this far something failed. Redisplay form!
-            model.CustomerLoginType = _customerSettings.CustomerLoginType;
-            model.DisplayCaptcha =
-                _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnLoginPage;
-
+            model.DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnLoginPage;
             return View(model);
         }
 
@@ -321,10 +292,12 @@ namespace Smartstore.Web.Controllers
                 ModelState.AddModelError(string.Empty, captchaError);
             }
 
+            var tempPassword = "Temp@" + Guid.NewGuid().ToString("N").Substring(0, 8) + "A";
+
             foreach (var validator in _userManager.PasswordValidators)
             {
                 AddModelStateErrors(
-                    await validator.ValidateAsync(_userManager, customer, model.Password)
+                    await validator.ValidateAsync(_userManager, customer, tempPassword)
                 );
             }
 
@@ -340,9 +313,9 @@ namespace Smartstore.Web.Controllers
                 var oldCreatedOn = customer.CreatedOnUtc;
                 var oldLastActivityDate = customer.LastActivityDateUtc;
 
-                customer.Username =
-                    model.Username != null ? model.Username.Trim() : model.Email.Trim();
-                customer.Email = model.Email.Trim();
+                customer.Username = model.Username;
+                customer.Email = "user" + model.Phone + "@mystore.com";
+                customer.Phone = model.Phone?.Trim();
                 customer.PasswordFormat = _customerSettings.DefaultPasswordFormat;
                 customer.Active =
                     _customerSettings.UserRegistrationType == UserRegistrationType.Standard;
@@ -356,7 +329,7 @@ namespace Smartstore.Web.Controllers
                     {
                         var passwordResult = await _userManager.AddPasswordAsync(
                             customer,
-                            model.Password
+                            tempPassword
                         );
                         succeeded = passwordResult.Succeeded;
                         AddModelStateErrors(passwordResult);
@@ -900,56 +873,56 @@ namespace Smartstore.Web.Controllers
             switch (_customerSettings.UserRegistrationType)
             {
                 case UserRegistrationType.EmailValidation:
-                {
-                    // Send an email with generated token.
-                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(customer);
-
-                    customer.GenericAttributes.AccountActivationToken = code;
-                    await _db.SaveChangesAsync();
-                    await _messageFactory.SendCustomerEmailValidationMessageAsync(
-                        customer,
-                        Services.WorkContext.WorkingLanguage.Id
-                    );
-
-                    return RedirectToRoute(
-                        "RegisterResult",
-                        new { resultId = (int)UserRegistrationType.EmailValidation }
-                    );
-                }
-                case UserRegistrationType.AdminApproval:
-                {
-                    return RedirectToRoute(
-                        "RegisterResult",
-                        new { resultId = (int)UserRegistrationType.AdminApproval }
-                    );
-                }
-                case UserRegistrationType.Standard:
-                {
-                    // Send customer welcome message.
-                    await _messageFactory.SendCustomerWelcomeMessageAsync(
-                        customer,
-                        Services.WorkContext.WorkingLanguage.Id
-                    );
-                    await _signInManager.SignInAsync(customer, isPersistent: false);
-
-                    var redirectUrl = Url.RouteUrl(
-                        "RegisterResult",
-                        new { resultId = (int)UserRegistrationType.Standard }
-                    );
-                    if (returnUrl.HasValue())
                     {
-                        redirectUrl = _webHelper.ModifyQueryString(
-                            redirectUrl,
-                            "returnUrl=" + returnUrl.UrlEncode()
+                        // Send an email with generated token.
+                        var code = await _userManager.GenerateEmailConfirmationTokenAsync(customer);
+
+                        customer.GenericAttributes.AccountActivationToken = code;
+                        await _db.SaveChangesAsync();
+                        await _messageFactory.SendCustomerEmailValidationMessageAsync(
+                            customer,
+                            Services.WorkContext.WorkingLanguage.Id
+                        );
+
+                        return RedirectToRoute(
+                            "RegisterResult",
+                            new { resultId = (int)UserRegistrationType.EmailValidation }
                         );
                     }
+                case UserRegistrationType.AdminApproval:
+                    {
+                        return RedirectToRoute(
+                            "RegisterResult",
+                            new { resultId = (int)UserRegistrationType.AdminApproval }
+                        );
+                    }
+                case UserRegistrationType.Standard:
+                    {
+                        // Send customer welcome message.
+                        await _messageFactory.SendCustomerWelcomeMessageAsync(
+                            customer,
+                            Services.WorkContext.WorkingLanguage.Id
+                        );
+                        await _signInManager.SignInAsync(customer, isPersistent: false);
 
-                    return Redirect(redirectUrl);
-                }
+                        var redirectUrl = Url.RouteUrl(
+                            "RegisterResult",
+                            new { resultId = (int)UserRegistrationType.Standard }
+                        );
+                        if (returnUrl.HasValue())
+                        {
+                            redirectUrl = _webHelper.ModifyQueryString(
+                                redirectUrl,
+                                "returnUrl=" + returnUrl.UrlEncode()
+                            );
+                        }
+
+                        return Redirect(redirectUrl);
+                    }
                 default:
-                {
-                    return RedirectToRoute("Homepage");
-                }
+                    {
+                        return RedirectToRoute("Homepage");
+                    }
             }
         }
 
@@ -1074,7 +1047,7 @@ namespace Smartstore.Web.Controllers
             }
             if (_customerSettings.PhoneEnabled)
             {
-                customer.GenericAttributes.Phone = model.Phone;
+                customer.Phone = model.Phone;
             }
             if (_customerSettings.FaxEnabled)
             {
@@ -1127,7 +1100,7 @@ namespace Smartstore.Web.Controllers
                 City = customer.GenericAttributes.City,
                 Address1 = customer.GenericAttributes.StreetAddress,
                 Address2 = customer.GenericAttributes.StreetAddress2,
-                PhoneNumber = customer.GenericAttributes.Phone,
+                PhoneNumber = customer.Phone,
                 FaxNumber = customer.GenericAttributes.Fax,
                 CreatedOnUtc = customer.CreatedOnUtc,
             };
