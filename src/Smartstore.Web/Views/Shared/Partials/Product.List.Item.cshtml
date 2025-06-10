@@ -20,7 +20,7 @@
     ViewBag.ArtDetailUrl = Model.DetailUrl;
 }
 
-<article class="art product-item-container" data-id="@Model.Id" style="background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 15px; margin: 10px; transition: all 0.3s ease; height: 340px;">
+<article class="art product-item-container" data-id="@Model.Id" style="background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 15px; margin: 10px; transition: all 0.3s ease;">
 
 
     <div class="art-picture-block">
@@ -37,7 +37,7 @@
                href="@Model.DetailUrl"
                title="@T("Media.Product.ImageLinkTitleFormat", Model.Name)"
                attr-data-content='(!hasImage, T("Common.NoImageAvail"))'>
-                <img sm-model="image" loading="lazy" attr-alt='(image.Alt.IsEmpty(), Model.Name)' />
+                <img sm-model="image" loading="lazy" alt="@(!string.IsNullOrEmpty(image?.Alt) ? image.Alt : Model.Name)" />
             </a>
         }
     </div>
@@ -101,6 +101,7 @@
             <td>@T("Products.Dimensions") <span class="lrm">(@Model.DimensionMeasureUnit)</span></td>
             <td>@Model.Dimensions</td>
         </tr>
+        
     </table>
 
     @if (!isLinesMode)
