@@ -37,63 +37,45 @@
             </div>
 
             <zone name="checkout_shipping_method_bottom" />
+            <button type="submit" id="nextstep" class="d-none"></button>
+            <button type="button" class="btn btn-primary shipping-method-next-step-button">@T("Checkout.Next")</button>
         </form>
     </div>
 </div>
 
 <script sm-target-zone="scripts" data-origin="shipping-method">
 $(function () {
-    // Highlight selected shipping method
-    $('.checkout-data .opt-radio').on('change', function () {
-        $('.checkout-data .opt-list-item').removeClass('active');
-        var item = $(this).closest('.opt-list-item');
-        item.addClass("active");
-
-        $('#validationSummary').addClass('d-none').empty();
-    });
-
-    // Handle next step click
-    $('.shipping-method-next-step-button').on('click', function () {
-        if (!validateShippingMethodSelections()) {
-            return false; // Stop progression
-        }
-
-        $('#nextstep').trigger('click');
-        return false;
-    });
-
     const storePickupMethodId = @pickupMethodId;
 
-    // Check if store selections are valid for store pickup items
+    function isStorePickupSelected() {
+        return $(`input[name="shippingoption"][data-shippingmethodid="${storePickupMethodId}"]`).is(':checked');
+    }
+
     function validateStoreSelections() {
-        if (!storePickupMethodId) return true;
-
-        const isStorePickupSelected = $(`input[name="shippingoption"][data-shippingmethodid="${storePickupMethodId}"]`).is(':checked');
-        if (!isStorePickupSelected) return true;
-
         let isValid = true;
         $('.store-select').each(function () {
             if (!$(this).val()) {
                 isValid = false;
-                return false; // Exit loop early
+                return false; // exit each loop
             }
         });
-
         return isValid;
     }
 
-    // Check if any items have no stock in any store
     function validateNoStoreStockItems() {
-        const noStockItems = $('.no-store-no-stock');
-        return noStockItems.length === 0;
+        return $('.no-store-no-stock').length === 0;
     }
 
-    // Combine all validations
     function validateShippingMethodSelections() {
         const validationSummary = $('#validationSummary');
         validationSummary.addClass('d-none').empty();
 
-        // Check for items without store stock
+        if (!isStorePickupSelected()) {
+            // If NOT store pickup, no need to validate store selection or stock
+            return true;
+        }
+
+        // For store pickup selected, validate all
         if (!validateNoStoreStockItems()) {
             validationSummary.removeClass('d-none').append(
                 `<div>Some items have no available stores with sufficient stock. Please remove them before continuing your order.</div>`
@@ -102,7 +84,6 @@ $(function () {
             return false;
         }
 
-        // Check for unselected stores
         if (!validateStoreSelections()) {
             validationSummary.removeClass('d-none').append(
                 `<div>Please select a store for all items before proceeding.</div>`
@@ -113,12 +94,28 @@ $(function () {
 
         return true;
     }
-});
-//remove all Items which handleAddressInput no-store-no-stock store
-$(function () {
+
+    // Highlight selected shipping method on change
+    $('.checkout-data .opt-radio').on('change', function () {
+        $('.checkout-data .opt-list-item').removeClass('active');
+        $(this).closest('.opt-list-item').addClass("active");
+
+        $('#validationSummary').addClass('d-none').empty();
+    });
+
+    // Handle next step button click
+    $('.shipping-method-next-step-button').on('click', function () {
+        if (!validateShippingMethodSelections()) {
+            return false;
+        }
+        $('#nextstep').trigger('click');
+        return false;
+    });
+
+    // Remove items with no stock from store on remove click
     $(document).on('click', '.remove-item-x', function (e) {
-        e.preventDefault();          // Prevent any default behavior (like scrolling or form submission)
-        e.stopPropagation();         // Prevent bubbling up to parent dropdowns or handlers
+        e.preventDefault();
+        e.stopPropagation();
 
         const $parentDiv = $(this).closest('.no-store-no-stock');
         const itemId = $parentDiv.data('item-id');
@@ -132,7 +129,7 @@ $(function () {
             success: function (response) {
                 if (response.success) {
                     $parentDiv.closest('.product-item').remove();
-                    // Optionally update the order totals or re-run validation here
+                    // Optionally update totals or revalidate here
                 } else {
                     alert(response.message || 'Failed to remove the item.');
                 }
@@ -143,6 +140,4 @@ $(function () {
         });
     });
 });
-
-
 </script>
