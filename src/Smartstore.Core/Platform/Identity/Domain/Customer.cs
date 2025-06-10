@@ -19,26 +19,27 @@ namespace Smartstore.Core.Identity
 
             builder
                 .HasMany(c => c.Addresses)
-                .WithMany("Customers")  // Refers to private Address.Customers.
+                .WithMany("Customers") // Refers to private Address.Customers.
                 .UsingEntity<Dictionary<string, object>>(
                     "CustomerAddresses",
-                    c => c
-                        .HasOne<Address>()
-                        .WithMany()
-                        .HasForeignKey("Address_Id")
-                        .HasConstraintName("FK_dbo.CustomerAddresses_dbo.Address_Address_Id")
-                        .OnDelete(DeleteBehavior.Cascade),
-                    c => c
-                        .HasOne<Customer>()
-                        .WithMany()
-                        .HasForeignKey("Customer_Id")
-                        .HasConstraintName("FK_dbo.CustomerAddresses_dbo.Customer_Customer_Id")
-                        .OnDelete(DeleteBehavior.Cascade),
+                    c =>
+                        c.HasOne<Address>()
+                            .WithMany()
+                            .HasForeignKey("Address_Id")
+                            .HasConstraintName("FK_dbo.CustomerAddresses_dbo.Address_Address_Id")
+                            .OnDelete(DeleteBehavior.Cascade),
+                    c =>
+                        c.HasOne<Customer>()
+                            .WithMany()
+                            .HasForeignKey("Customer_Id")
+                            .HasConstraintName("FK_dbo.CustomerAddresses_dbo.Customer_Customer_Id")
+                            .OnDelete(DeleteBehavior.Cascade),
                     c =>
                     {
                         c.HasIndex("Customer_Id");
                         c.HasKey("Customer_Id", "Address_Id");
-                    });
+                    }
+                );
 
             // INFO: we cannot set both addresses to DeleteBehavior.SetNull. It would produce cycles or multiple cascade paths.
             builder
@@ -218,6 +219,9 @@ namespace Smartstore.Core.Identity
         [StringLength(450)]
         public string FullName { get; set; }
 
+        [StringLength(100)]
+        public string Phone { get; set; }
+
         [StringLength(255)]
         public string Company { get; set; }
 
@@ -249,8 +253,8 @@ namespace Smartstore.Core.Identity
         public int? ShippingAddressId { get; set; }
 
         [NotMapped, IgnoreDataMember]
-        public override CustomerAttributeCollection GenericAttributes
-            => new(base.GenericAttributes);
+        public override CustomerAttributeCollection GenericAttributes =>
+            new(base.GenericAttributes);
 
         /// <inheritdoc/>
         public bool LimitedToStores { get; set; }
@@ -258,6 +262,7 @@ namespace Smartstore.Core.Identity
         #region Navigation properties
 
         private Address _billingAddress;
+
         /// <summary>
         /// Default billing address
         /// </summary>
@@ -268,6 +273,7 @@ namespace Smartstore.Core.Identity
         }
 
         private Address _shippingAddress;
+
         /// <summary>
         /// Default shipping address
         /// </summary>
@@ -278,94 +284,128 @@ namespace Smartstore.Core.Identity
         }
 
         private ICollection<Address> _addresses;
+
         /// <summary>
         /// Gets or sets customer addresses
         /// </summary>
         public ICollection<Address> Addresses
         {
-            get => _addresses ?? LazyLoader.Load(this, ref _addresses) ?? (_addresses ??= new HashSet<Address>());
+            get =>
+                _addresses
+                ?? LazyLoader.Load(this, ref _addresses)
+                ?? (_addresses ??= new HashSet<Address>());
             protected set => _addresses = value;
         }
 
         private ICollection<ExternalAuthenticationRecord> _externalAuthenticationRecords;
+
         /// <summary>
         /// Gets or sets external authentication records.
         /// </summary>
         [IgnoreDataMember]
         public ICollection<ExternalAuthenticationRecord> ExternalAuthenticationRecords
         {
-            get => _externalAuthenticationRecords ?? LazyLoader.Load(this, ref _externalAuthenticationRecords) ?? (_externalAuthenticationRecords ??= new HashSet<ExternalAuthenticationRecord>());
+            get =>
+                _externalAuthenticationRecords
+                ?? LazyLoader.Load(this, ref _externalAuthenticationRecords)
+                ?? (_externalAuthenticationRecords ??= new HashSet<ExternalAuthenticationRecord>());
             protected set => _externalAuthenticationRecords = value;
         }
 
         private ICollection<CustomerContent> _customerContent;
+
         /// <summary>
         /// Gets or sets customer generated content.
         /// </summary>
         [IgnoreDataMember]
         public ICollection<CustomerContent> CustomerContent
         {
-            get => _customerContent ?? LazyLoader.Load(this, ref _customerContent) ?? (_customerContent ??= new HashSet<CustomerContent>());
+            get =>
+                _customerContent
+                ?? LazyLoader.Load(this, ref _customerContent)
+                ?? (_customerContent ??= new HashSet<CustomerContent>());
             protected set => _customerContent = value;
         }
 
         private ICollection<CustomerRoleMapping> _customerRoleMappings;
+
         /// <summary>
         /// Gets or sets the customer role mappings.
         /// </summary>
         public ICollection<CustomerRoleMapping> CustomerRoleMappings
         {
-            get => _customerRoleMappings ?? LazyLoader.Load(this, ref _customerRoleMappings) ?? (_customerRoleMappings ??= new HashSet<CustomerRoleMapping>());
+            get =>
+                _customerRoleMappings
+                ?? LazyLoader.Load(this, ref _customerRoleMappings)
+                ?? (_customerRoleMappings ??= new HashSet<CustomerRoleMapping>());
             protected set => _customerRoleMappings = value;
         }
 
         private ICollection<ShoppingCartItem> _shoppingCartItems;
+
         /// <summary>
         /// Gets or sets shopping cart items
         /// </summary>
         public ICollection<ShoppingCartItem> ShoppingCartItems
         {
-            get => _shoppingCartItems ?? LazyLoader.Load(this, ref _shoppingCartItems) ?? (_shoppingCartItems ??= new HashSet<ShoppingCartItem>());
+            get =>
+                _shoppingCartItems
+                ?? LazyLoader.Load(this, ref _shoppingCartItems)
+                ?? (_shoppingCartItems ??= new HashSet<ShoppingCartItem>());
             set => _shoppingCartItems = value;
         }
 
         private ICollection<Order> _orders;
+
         /// <summary>
         /// Gets or sets orders
-        /// </summary>        
+        /// </summary>
         public ICollection<Order> Orders
         {
-            get => _orders ?? LazyLoader.Load(this, ref _orders) ?? (_orders ??= new HashSet<Order>());
+            get =>
+                _orders ?? LazyLoader.Load(this, ref _orders) ?? (_orders ??= new HashSet<Order>());
             protected internal set => _orders = value;
         }
 
         private ICollection<RewardPointsHistory> _rewardPointsHistory;
+
         /// <summary>
         /// Gets or sets the reward points history.
         /// </summary>
         public ICollection<RewardPointsHistory> RewardPointsHistory
         {
-            get => _rewardPointsHistory ?? LazyLoader.Load(this, ref _rewardPointsHistory) ?? (_rewardPointsHistory ??= new HashSet<RewardPointsHistory>());
+            get =>
+                _rewardPointsHistory
+                ?? LazyLoader.Load(this, ref _rewardPointsHistory)
+                ?? (_rewardPointsHistory ??= new HashSet<RewardPointsHistory>());
             protected set => _rewardPointsHistory = value;
         }
 
         private ICollection<WalletHistory> _walletHistory;
+
         /// <summary>
         /// Gets or sets the wallet history.
         /// </summary>
         public ICollection<WalletHistory> WalletHistory
         {
-            get => _walletHistory ?? LazyLoader.Load(this, ref _walletHistory) ?? (_walletHistory ??= new HashSet<WalletHistory>());
+            get =>
+                _walletHistory
+                ?? LazyLoader.Load(this, ref _walletHistory)
+                ?? (_walletHistory ??= new HashSet<WalletHistory>());
             protected set => _walletHistory = value;
         }
 
         private ICollection<ReturnRequest> _returnRequests;
+
         /// <summary>
         /// Gets or sets the return requests.
         /// </summary>
         public ICollection<ReturnRequest> ReturnRequests
         {
-            get => _returnRequests ?? LazyLoader.Load(this, ref _returnRequests) ?? (_returnRequests ??= new HashSet<ReturnRequest>());
+            get =>
+                _returnRequests
+                ?? LazyLoader.Load(this, ref _returnRequests)
+                ?? (_returnRequests ??= new HashSet<ReturnRequest>());
             protected set => _returnRequests = value;
         }
 
@@ -429,20 +469,23 @@ namespace Smartstore.Core.Identity
             int points,
             string message = "",
             Order usedWithOrder = null,
-            decimal usedAmount = 0M)
+            decimal usedAmount = 0M
+        )
         {
             var newPointsBalance = GetRewardPointsBalance() + points;
 
-            RewardPointsHistory.Add(new RewardPointsHistory
-            {
-                Customer = this,
-                UsedWithOrder = usedWithOrder,
-                Points = points,
-                PointsBalance = newPointsBalance,
-                UsedAmount = usedAmount,
-                Message = message,
-                CreatedOnUtc = DateTime.UtcNow
-            });
+            RewardPointsHistory.Add(
+                new RewardPointsHistory
+                {
+                    Customer = this,
+                    UsedWithOrder = usedWithOrder,
+                    Points = points,
+                    PointsBalance = newPointsBalance,
+                    UsedAmount = usedAmount,
+                    Message = message,
+                    CreatedOnUtc = DateTime.UtcNow,
+                }
+            );
         }
 
         /// <summary>
