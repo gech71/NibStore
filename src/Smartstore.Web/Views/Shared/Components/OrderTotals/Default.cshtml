@@ -51,13 +51,9 @@
                     @Model.SelectedShippingMethod
                 </span>
             </div>
-            @* Show ByGround address only for "By Ground" shipping method *@
-            @if (Model.SelectedShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress))
-            {
-                <div>
-                    @Model.ByGroundAddress
-                </div>
-            }
+            <div class="by-ground-address-display" style="@(Model.SelectedShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress) ? "" : "display: none;")">
+                <div class="address-content" id="liveByGroundAddress">@Model.ByGroundAddress</div>
+            </div>
         </td>
         <td class="cart-summary-value">
             @if (Model.RequiresShipping)
