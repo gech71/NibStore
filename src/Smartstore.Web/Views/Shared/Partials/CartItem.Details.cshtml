@@ -1,8 +1,9 @@
 ﻿@using Smartstore.Core.Catalog
 @using Smartstore.Core.Checkout.Cart
 @using Smartstore.Web.Models.Cart
-
+@using Smartstore.Core.Common.Services
 @inject CatalogSettings _catalogSettings
+@inject IStoreProductService _storeProductService
 
 @model CartEntityModelBase
 
@@ -55,7 +56,8 @@
 
 <div class="cart-item-price-group cart-item-group">
     <partial name="CartItem.Price" model="Model.Price" />
-
+    <div>@await Component.InvokeAsync("SelectedStore", new { cartItemId = Model.Id })
+</div>
     <div sm-if="!parentModel.IsEditable" class="cart-item-qty pd-muted">
         <span>@T("Order.Product(s).Quantity"):</span> <span>@Model.EnteredQuantity @(Model.EnteredQuantity > 1 ? Model.QuantityUnitNamePlural : Model.QuantityUnitName)</span>
     </div>
