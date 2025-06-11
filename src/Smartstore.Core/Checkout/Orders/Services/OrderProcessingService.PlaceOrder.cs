@@ -1440,13 +1440,13 @@ private async Task DecrementStoreStockAsync(PlaceOrderContext ctx)
 
                     // Optionally log these values if you add a logger later.
                     // _logger.Info($"Attempting to adjust inventory. ProductId: {productId}, StoreId: {storeId}, Quantity: {qty}");
-                    Console.WriteLine("before");
+                
             var success = await _storeProductService.AdjustStoreInventoryAsync(
                 productId: productId,
                 storeId: storeId,
                 quantityToReduce: qty
             );
-             Console.WriteLine("after");
+            
 
             if (!success)
                     {

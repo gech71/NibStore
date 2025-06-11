@@ -19,6 +19,7 @@ namespace Smartstore.Core.Common.Services
         Task<IList<MerchantStore>> GetStoresForProductAsync(int productId, int requiredQuantity);
 
         Task<bool> AdjustStoreInventoryAsync(int productId, int? storeId, int quantityToReduce);
+        Task<string> GetSelectedStoreByCartItemIdAsync(int cartItemId);
     }
 }
 
