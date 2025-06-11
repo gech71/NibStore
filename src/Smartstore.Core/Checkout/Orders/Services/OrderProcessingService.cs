@@ -57,6 +57,8 @@ namespace Smartstore.Core.Checkout.Orders
         private readonly PaymentSettings _paymentSettings;
         private readonly Currency _primaryCurrency;
         private readonly Currency _workingCurrency;
+        private readonly IStoreProductService _storeProductService;
+
 
         public OrderProcessingService(
             SmartDbContext db,
@@ -88,7 +90,8 @@ namespace Smartstore.Core.Checkout.Orders
             ShoppingCartSettings shoppingCartSettings,
             LocalizationSettings localizationSettings,
             TaxSettings taxSettings,
-            PaymentSettings paymentSettings)
+            PaymentSettings paymentSettings,
+            IStoreProductService storeProductService)
         {
             _db = db;
             _workContext = workContext;
@@ -123,6 +126,7 @@ namespace Smartstore.Core.Checkout.Orders
 
             _primaryCurrency = currencyService.PrimaryCurrency;
             _workingCurrency = workContext.WorkingCurrency;
+            _storeProductService = storeProductService;
         }
 
         public Localizer T { get; set; } = NullLocalizer.Instance;
