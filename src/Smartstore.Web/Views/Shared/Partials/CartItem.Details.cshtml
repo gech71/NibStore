@@ -56,7 +56,7 @@
 
 <div class="cart-item-price-group cart-item-group">
     <partial name="CartItem.Price" model="Model.Price" />
-    <div>@await Component.InvokeAsync("SelectedStore", new { cartItemId = Model.Id })
+    <div>Store:@await Component.InvokeAsync("SelectedStore", new { cartItemId = Model.Id })
 </div>
     <div sm-if="!parentModel.IsEditable" class="cart-item-qty pd-muted">
         <span>@T("Order.Product(s).Quantity"):</span> <span>@Model.EnteredQuantity @(Model.EnteredQuantity > 1 ? Model.QuantityUnitNamePlural : Model.QuantityUnitName)</span>
