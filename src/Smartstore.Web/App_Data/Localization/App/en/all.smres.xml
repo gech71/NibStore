@@ -15070,8 +15070,12 @@ within the observation window, additional requests may be denied, even if type-s
 		<Value>Select a shipping address from your address book or enter a new address.</Value>
 	</LocaleResource>
 	<LocaleResource Name="Checkout.SelectShippingMethod">
-		<Value>Select shipping method</Value>
+		<Value>Receive Your Order By</Value>
 	</LocaleResource>
+	<LocaleResource Name="ShippingMethod.ByGround.DisplayName">
+        <Value>Delivery</Value>
+    </LocaleResource>
+	
 	<LocaleResource Name="Checkout.ShippingAddress">
 		<Value>Shipping address</Value>
 	</LocaleResource>
