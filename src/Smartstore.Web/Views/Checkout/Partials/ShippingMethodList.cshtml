@@ -417,15 +417,15 @@ else
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            L.Control.geocoder({
-                defaultMarkGeocode: false
-            })
-            .on('markgeocode', function(e) {
-                const center = e.geocode.center;
-                map.setView(center, 13);
-                marker.setLatLng(center);
-                updateAddressAndCoordinates(e.geocode.name, center.lat, center.lng);
-            }).addTo(map);
+            //L.Control.geocoder({
+            //    defaultMarkGeocode: false
+            //})
+            //.on('markgeocode', function(e) {
+            //    const center = e.geocode.center;
+            //    map.setView(center, 13);
+            //    marker.setLatLng(center);
+            //    updateAddressAndCoordinates(e.geocode.name, center.lat, center.lng);
+            //}).addTo(map);
 
             marker = L.marker([lat, lng], { draggable: true }).addTo(map);
             marker.on('dragend', async () => {
