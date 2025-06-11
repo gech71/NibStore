@@ -47,8 +47,11 @@
                 <span class="text-nowrap">
                     @Html.Raw(shippingLabelHtml)
                 </span>
+                @{
+                    var displayName = Model.SelectedShippingMethod == "By Ground" ? "Delivery" : Model.SelectedShippingMethod;
+                }
                 <span sm-if="Model.RequiresShipping && Model.SelectedShippingMethod.HasValue()" class="font-weight-medium">
-                    @Model.SelectedShippingMethod
+                    @displayName
                 </span>
             </div>
             <div class="by-ground-address-display" style="@(Model.SelectedShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress) ? "" : "display: none;")">

@@ -65,7 +65,10 @@ else
                                data-shipping-fee="@shippingMethod.Fee"
                                @(shippingMethod.Selected ? "checked" : "") />
                         <label class="form-check-label" for="shippingoption_@(i)">
-                            <span class="opt-name">@Html.Raw(shippingMethod.Name.HtmlDecode())</span>
+                            @{
+                                var displayName = shippingMethod.Name == "By Ground" ? "Delivery" : shippingMethod.Name;
+                            }
+                            <span class="opt-name">@Html.Raw(displayName.HtmlDecode())</span>
                         </label>
                     </div>
 
@@ -646,6 +649,12 @@ $(document).ready(function () {
         if (!$selectedRadio.length) return;
 
         var shippingName = $selectedRadio.data('shipping-name');
+        var originalShippingName = shippingName; // Save the original
+
+        // Alias for UI only
+        if (shippingName && shippingName.trim().toLowerCase() === "by ground") {
+            shippingName = "Delivery";
+        }
         var $shippingLabel = $('.cart-summary-shipping .cart-summary-label span.font-weight-medium');
         if (shippingName) {
             $shippingLabel.text(shippingName).show();
@@ -653,7 +662,8 @@ $(document).ready(function () {
             $shippingLabel.hide();
         }
 
-        if (shippingName && shippingName.trim().toLowerCase() === "by ground") {
+        // Use the original name for logic
+        if (originalShippingName && originalShippingName.trim().toLowerCase() === "by ground") {
             $('.by-ground-address-display').show();
         } else {
             $('.by-ground-address-display').hide();

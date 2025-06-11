@@ -262,10 +262,13 @@
                         <div class="col">
                             @if (Model.IsShippable)
                             {
+                                var displayName = Model.ShippingMethod == "By Ground"
+                                    ? "Delivery"
+                                    : Model.ShippingMethod;
                                 <h5>@T("Order.ShippingMethod")</h5>
-                                <p>@Model.ShippingMethod</p>
+                                <p>@displayName</p>
                             }
-                             @if (Model.ShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress))
+                            @if (Model.ShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress))
                             {
                                <div>
                                <strong>Delivery Address:</strong> @Model.ByGroundAddress
