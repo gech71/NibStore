@@ -1,5 +1,4 @@
 ﻿@using Smartstore.Web.Models.Checkout
-
 @model CheckoutShippingMethodModel
 
 @{
@@ -7,6 +6,9 @@
     Assets.AppendTitleParts(T("PageTitle.Checkout.ShippingMethod"));
     Assets.BodyAttributes.AppendCssClass("no-offcanvas-cart content-overflow-initial");
     Assets.AddMetaRobots();
+
+    var pickupMethod = Model.ShippingMethods.FirstOrDefault(sm => (sm.Name ?? "").ToLowerInvariant().Contains("store pickup"));
+    var pickupMethodId = pickupMethod?.ShippingMethodId ?? 0;
 }
 
 <widget target-zone="order_progress">
@@ -19,6 +21,8 @@
     </div>
     <div class="page-body checkout-data">
         <form asp-action="ShippingMethod" asp-controller="Checkout" method="post">
+            <div id="validationSummary" class="alert alert-danger d-none mb-3"></div>
+
             <zone name="checkout_shipping_method_top" />
 
             <div class="order-summary-content">
@@ -33,21 +37,107 @@
             </div>
 
             <zone name="checkout_shipping_method_bottom" />
+            <button type="submit" id="nextstep" class="d-none"></button>
+            <button type="button" class="btn btn-primary shipping-method-next-step-button">@T("Checkout.Next")</button>
         </form>
     </div>
 </div>
 
 <script sm-target-zone="scripts" data-origin="shipping-method">
-    $(function () {
-        $('.checkout-data .opt-radio').on('change', function (e) {
-            $('.checkout-data .opt-list-item').removeClass('active');
-            var item = $(this).closest('.opt-list-item');
-            item.addClass("active");
-        });
+$(function () {
+    const storePickupMethodId = @pickupMethodId;
 
-        $('.shipping-method-next-step-button').on('click', function () {
-            $('#nextstep').trigger('click');
+    function isStorePickupSelected() {
+        return $(`input[name="shippingoption"][data-shippingmethodid="${storePickupMethodId}"]`).is(':checked');
+    }
+
+    function validateStoreSelections() {
+        let isValid = true;
+        $('.store-select').each(function () {
+            if (!$(this).val()) {
+                isValid = false;
+                return false; // exit each loop
+            }
+        });
+        return isValid;
+    }
+
+    function validateNoStoreStockItems() {
+        return $('.no-store-no-stock').length === 0;
+    }
+
+    function validateShippingMethodSelections() {
+        const validationSummary = $('#validationSummary');
+        validationSummary.addClass('d-none').empty();
+
+        if (!isStorePickupSelected()) {
+            // If NOT store pickup, no need to validate store selection or stock
+            return true;
+        }
+
+        // For store pickup selected, validate all
+        if (!validateNoStoreStockItems()) {
+            validationSummary.removeClass('d-none').append(
+                `<div>Some items have no available stores with sufficient stock. Please remove them before continuing your order.</div>`
+            );
+            $('html, body').animate({ scrollTop: validationSummary.offset().top - 20 }, 400);
             return false;
+        }
+
+        if (!validateStoreSelections()) {
+            validationSummary.removeClass('d-none').append(
+                `<div>Please select a store for all items before proceeding.</div>`
+            );
+            $('html, body').animate({ scrollTop: validationSummary.offset().top - 20 }, 400);
+            return false;
+        }
+
+        return true;
+    }
+
+    // Highlight selected shipping method on change
+    $('.checkout-data .opt-radio').on('change', function () {
+        $('.checkout-data .opt-list-item').removeClass('active');
+        $(this).closest('.opt-list-item').addClass("active");
+
+        $('#validationSummary').addClass('d-none').empty();
+    });
+
+    // Handle next step button click
+    $('.shipping-method-next-step-button').on('click', function () {
+        if (!validateShippingMethodSelections()) {
+            return false;
+        }
+        $('#nextstep').trigger('click');
+        return false;
+    });
+
+    // Remove items with no stock from store on remove click
+    $(document).on('click', '.remove-item-x', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $parentDiv = $(this).closest('.no-store-no-stock');
+        const itemId = $parentDiv.data('item-id');
+
+        if (!itemId) return;
+
+        $.ajax({
+            url: '/ShoppingCart/RemoveCartItem',
+            method: 'POST',
+            data: { itemId: itemId },
+            success: function (response) {
+                if (response.success) {
+                    $parentDiv.closest('.product-item').remove();
+                    // Optionally update totals or revalidate here
+                } else {
+                    alert(response.message || 'Failed to remove the item.');
+                }
+            },
+            error: function () {
+                alert('Server error occurred while removing the item.');
+            }
         });
     });
+});
 </script>

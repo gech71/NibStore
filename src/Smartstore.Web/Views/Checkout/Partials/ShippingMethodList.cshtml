@@ -76,56 +76,60 @@ else
                     }
                 </div>
 
-                @if (isStorePickup)
-                {
-                    <div id="storePickupProducts" class="mt-3">
-                        <label class="form-label font-weight-bold">Your Cart Items:</label>
-                        <div class="list-group">
-                            @foreach (var item in _cartItems)
-                            {
-                                <div class="list-group-item d-flex justify-content-between align-items-center product-item" style="position: relative;">
-                                    <div>
-                                        <div class="product-name">@item.Product.Name</div>
-                                        <div class="product-quantity text-muted small">Qty: @item.Quantity</div>
-                                    </div>
-                                  @{
-                                        var availableStores = await storeProductService.GetStoresForProductAsync(item.ProductId, item.Quantity);
-                                    }
-
-                                    @if (availableStores.Any())
-                                    {
-                                        <select class="form-control store-select form-control-sm store-select-dropdown" 
-        data-item-id="@item.Id" 
-        name="StoreFor_@item.Id" 
-        style="display:none; min-width: 150px;">
-    <option value="">-- Select Store --</option>
-    @foreach (var store in availableStores)
-    {
-        <option 
-            value="@store.Name" 
-            data-store-id="@store.Id" 
-            selected="@(item.StoreId == store.Id ? "selected" : null)">
-            @store.Name
-        </option>
-    }
-</select>
-
-                                    }
-                                    else
-                                    {
-                                        <div class="text-danger small mt-1">
-                                            No stores have sufficient stock for this item
-                                        </div>
-                                    }
-
-
-
-
-                                </div>
-                            }
-                        </div>
+               @if (isStorePickup)
+{
+    <div id="storePickupProducts" class="mt-3">
+        <label class="form-label font-weight-bold">Your Cart Items:</label>
+        <div class="list-group">
+            @foreach (var item in _cartItems)
+            {
+                <div class="list-group-item d-flex justify-content-between align-items-center product-item" style="position: relative;">
+                    <div>
+                        <div class="product-name">@item.Product.Name</div>
+                        <div class="product-quantity text-muted small">Qty: @item.Quantity</div>
                     </div>
-                }
+                    @{
+                        var availableStores = await storeProductService.GetStoresForProductAsync(item.ProductId, item.Quantity);
+                    }
+
+                    @if (availableStores.Any())
+                    {
+                        <div>
+                            <select class="form-control store-select form-control-sm store-select-dropdown"
+                                    data-item-id="@item.Id"
+                                    name="StoreFor_@item.Id"
+                                    style="min-width: 150px;">
+                                <option value="">-- Select Store --</option>
+                                @foreach (var store in availableStores)
+                                {
+                                    <option value="@store.Name"
+                                            data-store-id="@store.Id"
+                                            selected="@(item.StoreId == store.Id ? "selected" : null)">
+                                        @store.Name
+                                    </option>
+                                }
+                            </select>
+                            <span class="store-feedback small d-block mt-1" style="display:none;"></span>
+                        </div>
+                    }
+                    else
+                    {
+                       <div class="no-store-no-stock" data-item-id="@item.Id">
+                              <span>No stores have sufficient stock for this item</span>
+                               <button class="remove-item-x">x</button>
+                           </div>
+
+                    }
+                </div>
+            }
+            <!-- Existing validation error -->
+            <div class="store-pickup-validation-error text-danger small d-none mt-2">
+                Please select a store for every item in your cart.
+            </div>
+        </div>
+    </div>
+}
+
 
                 @if (isByGround)
                 {
@@ -273,11 +277,17 @@ else
     
     document.addEventListener('DOMContentLoaded', () => {
 
-     $(document).on('change', '.store-select', function () {
-    var storeName = $(this).val(); // store name from value
-    var itemId = $(this).data('item-id'); // get item ID
-    var storeId = $(this).find('option:selected').data('store-id'); // store ID from selected option
-    console.log(storeId);
+   
+
+    $(document).on('change', '.store-select', function () {
+    var $select = $(this);
+    var storeName = $select.val();
+    var itemId = $select.data('item-id');
+    var storeId = $select.find('option:selected').data('store-id');
+    var $feedback = $select.siblings('.store-feedback');
+
+    $feedback.text('').removeClass('text-success text-danger');
+
     if (storeName && storeId) {
         $.ajax({
             url: '/ShoppingCart/UpdateCartItemStore',
@@ -289,13 +299,13 @@ else
             },
             success: function (response) {
                 if (response.success) {
-                    alert('Store updated successfully');
+                    $feedback.text('Store updated successfully').addClass('text-success').show();
                 } else {
-                    alert(response.message || 'Failed to update store');
+                    $feedback.text(response.message || 'Failed to update store').addClass('text-danger').show();
                 }
             },
             error: function () {
-                alert('Server error occurred.');
+                $feedback.text('Server error occurred.').addClass('text-danger').show();
             }
         });
     }
@@ -610,5 +620,9 @@ function hideAddressError() {
         errorDiv.style.display = 'none';
     }
 }
+
+
+
+
     });
 </script>
