@@ -333,6 +333,11 @@ namespace Smartstore.Web.Controllers
 
             var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(context);
 
+            // Add these lines to ensure ByGround fields are populated
+            model.OrderReviewData.ByGroundAddress = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+            model.OrderReviewData.ByGroundLatitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
+            model.OrderReviewData.ByGroundLongitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
+
             return View(result.ViewPath, model);
         }
 
@@ -345,6 +350,11 @@ namespace Smartstore.Web.Controllers
             {
                 var context = await CreateCheckoutContext();
                 var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(context);
+
+                // Add these lines here as well
+                model.OrderReviewData.ByGroundAddress = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+                model.OrderReviewData.ByGroundLatitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
+                model.OrderReviewData.ByGroundLongitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
 
                 result.Errors.Each(x => model.Warnings.Add(x.ErrorMessage));
 
