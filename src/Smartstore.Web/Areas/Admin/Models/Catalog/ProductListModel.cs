@@ -50,5 +50,7 @@ namespace Smartstore.Admin.Models.Catalog
         public List<SelectListItem> AvailableManufacturers { get; set; } = new();
         public List<SelectListItem> AvailableStores { get; set; } = new();
         public List<SelectListItem> AvailableProductTypes { get; set; } = new();
+        public List<SelectListItem> AvailableDiscounts { get; set; } = new();
+
     }
 }

@@ -350,10 +350,9 @@
                 title="Bulk Products Discount"
                 resKey="Admin.Promotions.Discounts.BulkProductsDiscount"
                 permissionNames="promotion.discount"
-                controller="Discount"
-                action="DiscountProductList"  
-                area="Admin"
+                url="~/Admin/Discount/ApplyDiscount?discountId=1"
             />
+
             <siteMapNode
                 id="cart-rules"
                 icon="bi:funnel"

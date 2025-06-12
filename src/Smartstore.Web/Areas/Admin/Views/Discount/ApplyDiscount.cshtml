@@ -1,0 +1,100 @@
+@model ApplyDiscountViewModel
+
+@{
+    ViewData["Parent"] = Model.ProductList;
+}
+
+@* <!-- Search form (reuse from Product/List.cshtml) -->
+<form method="get" asp-action="ApplyDiscount" asp-route-discountId="@Model.Discount.Id">
+     ...search fields... 
+    <button type="submit">@T("Admin.Common.Search")</button>
+</form> *@
+
+<!-- Product grid (reuse) -->
+<partial name="~/Areas/Admin/Views/Product/Grids/_Grid.Products.cshtml" model="null" view-data="ViewData" />
+
+<!-- Apply Discount Button -->
+<button type="button" id="applyDiscountBtn" class="btn btn-primary" disabled>
+    <i class="fa fa-tags"></i> @T("Admin.Promotions.Discounts.Apply")
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="applyDiscountModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <form id="applyDiscountForm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@T("Admin.Promotions.Discounts.ApplyDiscount")</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="@T("Common.Close")">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <select id="discountId" name="discountId" class="form-control" required>
+                        <option value="">@T("Admin.Common.Select")...</option>
+                        @foreach (var discount in Model.ProductList.AvailableDiscounts)
+                        {
+                            <option value="@discount.Value">@discount.Text</option>
+                        }
+                    </select>
+                    <input type="hidden" id="selectedProductIds" name="productIds" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">@T("Common.Cancel")</button>
+                    <button type="submit" class="btn btn-primary">@T("Admin.Promotions.Discounts.Apply")</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section scripts {
+<script>
+    $(function () {
+        var grid = App.datagrid.get("products-grid");
+
+        // Enable/disable button based on selection
+        grid.onSelectionChange = function () {
+            var selectedIds = grid.getSelectedRowIds();
+            $('#applyDiscountBtn').prop('disabled', selectedIds.length === 0);
+        };
+
+        // Open modal with selected product IDs
+        $('#applyDiscountBtn').on('click', function () {
+            var selectedIds = grid.getSelectedRowIds();
+            $('#selectedProductIds').val(selectedIds.join(','));
+            $('#applyDiscountModal').modal('show');
+        });
+
+        // Handle form submit
+        $('#applyDiscountForm').on('submit', function (e) {
+            e.preventDefault();
+
+            var discountId = $('#discountId').val();
+            var selectedIds = $('#selectedProductIds').val();
+
+            if (!discountId) {
+                alert('@T("Admin.Promotions.Discounts.SelectDiscount.Required")');
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ApplyDiscountToProducts", "Discount")',
+                type: 'POST',
+                data: {
+                    discountId: discountId,
+                    productIds: selectedIds.split(',')
+                },
+                success: function () {
+                    $('#applyDiscountModal').modal('hide');
+                    App.notify.success('@T("Admin.Promotions.Discounts.Applied.Success")');
+                    grid.refresh();
+                },
+                error: function () {
+                    App.notify.error('@T("Admin.Promotions.Discounts.Applied.Failed")');
+                }
+            });
+        });
+    });
+</script>
+}
