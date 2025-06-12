@@ -1,7 +1,11 @@
 ﻿@model TopBarModel
 
 @{
-    string accountUrl = Model.IsAuthenticated ? Url.Action("Info", "Customer") : Url.RouteUrl("Login", new { returnUrl = Request.RawUrl() });
+    string accountUrl = Model.IsAuthenticated ? Url.Action("Info", "Customer") : Url.RouteUrl("Login", new
+    {
+        returnUrl =
+    Request.RawUrl()
+    });
 }
 
 <zone name="header_menu_top"></zone>
@@ -17,10 +21,10 @@
     <nav class="menubar-group ml-auto">
         <zone name="header_menu_before" preview-style="max-width: 100px"></zone>
 
-        @if (Model.HasContactUsPage)
+        @* @if (Model.HasContactUsPage)
         {
             <a asp-route="ContactUs" class="menubar-link">@T("ContactUs")</a>
-        }
+        } *@
 
         <menu name="HelpAndService" template="Dropdown" />
 
@@ -43,7 +47,8 @@
 
     <nav id="menubar-my-account" class="menubar-group">
         <div class="dropdown">
-            <a class="menubar-link" attr-data-toggle='(Model.IsAuthenticated, "dropdown")' aria-haspopup="true" aria-expanded="false" href="@accountUrl" rel="nofollow">
+            <a class="menubar-link" attr-data-toggle='(Model.IsAuthenticated, "dropdown")' aria-haspopup="true"
+                aria-expanded="false" href="@accountUrl" rel="nofollow">
                 <i class="@(Model.IsAuthenticated ? "fas" : "fal") fa-user-circle menubar-icon"></i>
 
                 @if (Model.IsAuthenticated)
@@ -66,7 +71,8 @@
     </nav>
 
     <nav sm-if="Model.DisplayAdminLink" class="menubar-group menubar-group--special d-none d-xl-block">
-        <a class="menubar-link" asp-area="Admin" asp-controller="Home" asp-action="Index" target="_admin" rel="nofollow">
+        <a class="menubar-link" asp-area="Admin" asp-controller="Home" asp-action="Index" target="_admin"
+            rel="nofollow">
             <i class="fal fa-cog menubar-icon"></i>
             <span>@T("Account.Administration")</span>
         </a>
