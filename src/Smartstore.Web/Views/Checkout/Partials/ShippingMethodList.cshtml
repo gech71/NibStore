@@ -148,7 +148,10 @@ else
                                        value="@Model.ByGroundAddress" 
                                        autocomplete="address-line1" />
                                 <button type="button" class="btn btn-primary current-location-btn">
-                                    Current Location
+                                    <span class="btn-label">
+                                        <i class="fa fa-location-dot me-1"></i>
+                                        <span class="text">Current Location</span>
+                                    </span>
                                 </button>
                                 <button type="button" class="btn btn-light map-toggle-btn" title="Show/Hide Map">
                                     <i class="fa fa-globe"></i>
@@ -233,6 +236,10 @@ else
         white-space: nowrap;
     }
 
+    .input-group .current-location-btn .text {
+        display: inline;
+    }
+
     .input-group .map-toggle-btn:hover {
         background-color: #e9ecef;
     }
@@ -254,17 +261,11 @@ else
     }
     
     @@media (max-width: 768px) {
-        .by-ground-extra {
-            flex-direction: column;
-            align-items: flex-start;
+        .input-group .current-location-btn .text {
+            display: none;
         }
-        
-        .map-address-input {
-            max-width: 100% !important;
-        }
-        
-        #leafletMap {
-            max-width: 100% !important;
+        .input-group .current-location-btn i {
+            margin-right: 0 !important;
         }
     }
 </style>
