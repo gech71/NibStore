@@ -145,13 +145,13 @@ namespace Smartstore.Web.Models.Customers
             TaxSettings taxSettings
         )
         {
-            RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
+            /*RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
 
             //form fields
             if (customerSettings.FirstNameRequired)
             {
                 RuleFor(x => x.FirstName).NotEmpty();
-            }
+            }*/
 
             RuleFor(x => x.FirstName).ValidPersonName(T);
 

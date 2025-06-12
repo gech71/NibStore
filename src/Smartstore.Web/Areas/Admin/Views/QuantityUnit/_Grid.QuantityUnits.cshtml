@@ -1,47 +1,73 @@
 ﻿@using Smartstore.Admin.Models.Common
+@using Smartstore.Core.Security
+@inject Smartstore.Core.Security.IPermissionService permissionService
 
 @model QuantityUnitModel
 
-<datagrid id="quantity-unit-grid" 
-          allow-resize="true" 
-          allow-row-selection="true" 
-          allow-edit="true"
-          allow-column-reordering="true">
+@{
+    var canCreate = await permissionService.AuthorizeAsync(Permissions.Configuration.Measure.Create);
+    var canDelete = await permissionService.AuthorizeAsync(Permissions.Configuration.Measure.Delete);
+    var canEdit = await permissionService.AuthorizeAsync(Permissions.Configuration.Measure.Update);
+}
+
+<datagrid id="quantity-unit-grid" allow-resize="true" allow-row-selection="true" allow-edit="true"
+    allow-column-reordering="true">
     <datasource read="@Url.Action("QuantityUnitList", "QuantityUnit")"
-                delete="@Url.Action("QuantityUnitDelete", "QuantityUnit")" />
+        delete="@Url.Action("QuantityUnitDelete", "QuantityUnit")" />
     <sorting enabled="true">
         <sort by="DisplayOrder" />
     </sorting>
     <paging position="Bottom" show-size-chooser="true" />
     <toolbar>
-        <toolbar-group>
-            <a href="#" class="add-quantity-unit btn btn-primary btn-flat">
-                <i class="fa fa-plus"></i>
-                <span>@T("Admin.Common.AddNew")...</span>
-            </a>
-            <button datagrid-action="DataGridToolAction.SaveChanges" type="button" class="btn btn-warning no-anims btn-flat">
-                <i class="fa fa-check"></i>
-                <span>@T("Admin.Common.SaveChanges")</span>
-            </button>
-        </toolbar-group>
+        @if (canCreate)
+        {
+            <toolbar-group>
+                <a href="#" class="add-quantity-unit btn btn-primary btn-flat">
+                    <i class="fa fa-plus"></i>
+                    <span>@T("Admin.Common.AddNew")...</span>
+                </a>
+                <button datagrid-action="DataGridToolAction.SaveChanges" type="button"
+                    class="btn btn-warning no-anims btn-flat">
+                    <i class="fa fa-check"></i>
+                    <span>@T("Admin.Common.SaveChanges")</span>
+                </button>
+            </toolbar-group>
+        }
+
         <zone name="datagrid_toolbar_alpha"></zone>
         <toolbar-group class="omega"></toolbar-group>
         <zone name="datagrid_toolbar_omega"></zone>
-        <toolbar-group>
-            <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button" class="btn btn-danger no-anims btn-flat">
-                <i class="far fa-trash-can"></i>
-                <span>@T("Admin.Common.Delete.Selected")</span>
-            </button>
-        </toolbar-group>
+        @if (canDelete)
+        {
+            <toolbar-group>
+                <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button"
+                    class="btn btn-danger no-anims btn-flat">
+                    <i class="far fa-trash-can"></i>
+                    <span>@T("Admin.Common.Delete.Selected")</span>
+                </button>
+            </toolbar-group>
+        }
+
     </toolbar>
     <columns>
         <column for="Id" halign="center" visible="false" type="string" />
         <column for="Name" width="2fr" hideable="false">
+
+        @if(canEdit)
+        {
             <display-template>
                 <a href="#" class="grid-edit-quantity-unit text-truncate" :data-key="item.row.Id">
                     {{ item.value }}
                 </a>
             </display-template>
+        }
+        else
+        {
+            <display-template>
+                <span class="text-truncate">{{ item.value }}</span>
+            </display-template>
+        }
+            
         </column>
         <column for="NamePlural" title="@T("Common.Plural")" />
         <column for="Description" />
@@ -49,10 +75,20 @@
         <column for="IsDefault" halign="center" />
     </columns>
     <row-commands>
-        <a datarow-action="DataRowAction.Custom" class="grid-edit-quantity-unit" :data-key="item.row.Id">@T("Common.Edit")</a>
-        <a datarow-action="DataRowAction.Custom" class="grid-set-default" :data-key="item.row.Id" v-bind:class="{ disabled: item.row.IsDefault }">@T("Common.SetDefault")</a>
-        <div class="dropdown-divider"></div>
-        <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
+        @if(canEdit)
+        {
+            <a datarow-action="DataRowAction.Custom" class="grid-edit-quantity-unit"
+            :data-key="item.row.Id">@T("Common.Edit")</a>
+        <a datarow-action="DataRowAction.Custom" class="grid-set-default" :data-key="item.row.Id"
+            v-bind:class="{ disabled: item.row.IsDefault }">@T("Common.SetDefault")</a>
+        <div class="dropdown-divider"></div>   
+        }
+
+        @if(canDelete)
+        {
+            <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
+        }
+        
     </row-commands>
 </datagrid>
 
@@ -77,14 +113,14 @@
 
         $(document).on('click', '.grid-set-default', function (e) {
             e.preventDefault();
-            
+
             $.ajax({
-				cache: false,
-				type: 'POST',
-				url: '@(Url.Action("SetDefault", "QuantityUnit"))',
-				data: {
-					"id": $(this).data("key")
-				},
+                cache: false,
+                type: 'POST',
+                url: '@(Url.Action("SetDefault", "QuantityUnit"))',
+                data: {
+                    "id": $(this).data("key")
+                },
                 success: function () {
                     window["quantity-unit-grid"].$children[0].read();
                 }

@@ -151,3 +151,9 @@
 @import "custom";
 @import "user";
 @import "_variables-custom";
+
+.btn-danger.btn-lg:not(.entity-commit-trigger) {
+    background-color: #f5b718 !important;
+    border-color: #f5b718 !important;
+    color: #000 !important; /* Adjust text color for contrast */
+}

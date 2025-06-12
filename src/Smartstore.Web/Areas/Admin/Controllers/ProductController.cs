@@ -319,6 +319,10 @@ namespace Smartstore.Admin.Controllers
             var model = await MapperFactory.MapAsync<Product, ProductModel>(product);
             await PrepareProductModelAsync(model, product, false, false);
 
+            model.StockQuantity = await _db.ProductMerchantStoreMappings
+                .Where(m => m.ProductId == product.Id)
+                .SumAsync(m => (int?)m.Quantity) ?? 0;
+
             await AddLocalesAsync(
                 model.Locales,
                 async (locale, languageId) =>
@@ -398,6 +402,11 @@ namespace Smartstore.Admin.Controllers
             if (ModelState.IsValid)
             {
                 await MapModelToProductAsync(model, product, form);
+
+                product.StockQuantity = await _db.ProductMerchantStoreMappings
+            .Where(m => m.ProductId == product.Id)
+            .SumAsync(m => (int?)m.Quantity) ?? 0;
+
                 await UpdateDataOfExistingProductAsync(product, model, true);
 
                 Services.ActivityLogger.LogActivity(
@@ -1160,38 +1169,59 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> ProductMerchantStoreList(int productId)
         {
-            var mappings =
-                await _merchantStoreService.GetProductMerchantStoreMappingsByProductIdAsync(
-                    productId
-                );
-            var allStores = await _merchantStoreService.GetAllMerchantStoresAsync();
+            var currentUser = _workContext.CurrentCustomer;
 
-            var storeSelectList = allStores
-                .Select(s => new SelectListItem { Value = s.Id.ToString(), Text = s.Name })
-                .ToList();
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id &&
+                m.CustomerRole.SystemName == "Merchant"
+            );
+
+            var mappings = await _merchantStoreService
+                .GetProductMerchantStoreMappingsByProductIdAsync(productId);
+
+            var allStores = await _merchantStoreService.GetAllMerchantStoresAsync();
+            List<int> merchantStoreIds = new();
+
+            if (isMerchant)
+            {
+                merchantStoreIds = await _db.GenericAttributes
+                    .Where(a =>
+                        a.KeyGroup == "MerchantStore" &&
+                        a.Key == "CreatedByUserId" &&
+                        a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                allStores = allStores
+                    .Where(s => merchantStoreIds.Contains(s.Id))
+                    .ToList();
+
+                mappings = mappings
+                    .Where(x => merchantStoreIds.Contains(x.MerchantStoreId))
+                    .ToList();
+            }
 
             var storeDict = allStores.ToDictionary(x => x.Id, x => x.Name);
 
             var rows = mappings
+                .Where(x => storeDict.ContainsKey(x.MerchantStoreId))
                 .Select(x => new ProductModel.ProductMerchantStoreModel
                 {
                     Id = x.Id,
                     ProductId = x.ProductId,
                     MerchantStoreId = x.MerchantStoreId,
-                    MerchantStore = storeDict.GetValueOrDefault(x.MerchantStoreId),
-                    DisplayOrder = x.DisplayOrder,
+                    MerchantStore = storeDict[x.MerchantStoreId],
                     Quantity = x.Quantity,
+                    DisplayOrder = x.DisplayOrder,
                     EditUrl = Url.Action("Edit", "MerchantStore", new { id = x.MerchantStoreId }),
                 })
                 .ToList();
 
-            return Json(
-                new GridModel<ProductModel.ProductMerchantStoreModel>
-                {
-                    Rows = rows,
-                    Total = rows.Count(),
-                }
-            );
+            return Json(new GridModel<ProductModel.ProductMerchantStoreModel>
+            {
+                Rows = rows,
+                Total = rows.Count
+            });
         }
 
         [HttpPost]
@@ -1215,8 +1245,8 @@ namespace Smartstore.Admin.Controllers
             {
                 ProductId = productId,
                 MerchantStoreId = model.MerchantStoreId,
-                DisplayOrder = model.DisplayOrder,
                 Quantity = model.Quantity,
+                DisplayOrder = model.DisplayOrder,
             };
 
             _db.ProductMerchantStoreMappings.Add(mapping);
@@ -1259,8 +1289,8 @@ namespace Smartstore.Admin.Controllers
             }
 
             mapping.MerchantStoreId = model.MerchantStoreId;
-            mapping.DisplayOrder = model.DisplayOrder;
             mapping.Quantity = model.Quantity;
+            mapping.DisplayOrder = model.DisplayOrder;
 
             try
             {
