@@ -9,12 +9,14 @@ namespace Smartstore.Core.Migrations
         public override void Up()
         {
             Alter.Table("OrderItem")
-                .AddColumn("StorePickupId").AsInt32().Nullable();
+                .AddColumn("StorePickupId").AsInt32().Nullable()
+                .AddColumn("StoreName").AsString(400).Nullable();
         }
 
         public override void Down()
         {
             Delete.Column("StorePickupId").FromTable("OrderItem");
+            Delete.Column("StoreName").FromTable("OrderItem");
         }
     }
 }
