@@ -51,7 +51,7 @@ namespace Smartstore.Core.Common.Services
         {
             try
             {
-               
+
 
                 if (storeId == null)
                 {
@@ -68,14 +68,14 @@ namespace Smartstore.Core.Common.Services
                     throw new NullReferenceException("DbContext (_db) is null.");
                 }
 
-               
+
                 var dbSet = _db.Set<ProductMerchantStoreMapping>();
                 if (dbSet == null)
                 {
                     throw new NullReferenceException("DbSet<ProductMerchantStoreMapping> is null.");
                 }
 
-               
+
                 var mapping = await dbSet.FirstOrDefaultAsync(m =>
                     m.ProductId == productId &&
                     m.MerchantStoreId == storeId
@@ -86,25 +86,25 @@ namespace Smartstore.Core.Common.Services
                     throw new InvalidOperationException($"No ProductMerchantStoreMapping found.");
                 }
 
-               
+
 
                 if (mapping.Quantity < quantityToReduce)
                 {
                     throw new InvalidOperationException($"Insufficient stock: Available={mapping.Quantity}, Requested={quantityToReduce}");
                 }
 
-                
+
                 mapping.Quantity -= quantityToReduce;
 
-                
+
                 await _db.SaveChangesAsync();
 
-                
+
                 return true;
             }
             catch (Exception ex)
             {
-            
+
                 throw new Exception(
                     $"Failed to adjust inventory for ProductId={productId}, StoreId={storeId}, Qty={quantityToReduce}: {ex.Message}",
                     ex
@@ -114,16 +114,37 @@ namespace Smartstore.Core.Common.Services
 
 
         //store for cart item
-public async Task<string> GetSelectedStoreByCartItemIdAsync(int cartItemId)
-{
-    var selectedStore = await  _db.Set<ShoppingCartItem>()
-                             .Where(c => c.Id == cartItemId)
-                             .Select(c => c.SelectedStore)
-                             .FirstOrDefaultAsync();
+        public async Task<string> GetSelectedStoreByCartItemIdAsync(int cartItemId)
+        {
+            var selectedStore = await _db.Set<ShoppingCartItem>()
+                                     .Where(c => c.Id == cartItemId)
+                                     .Select(c => c.SelectedStore)
+                                     .FirstOrDefaultAsync();
 
-    return selectedStore ?? "No selected store";
-}
+            return selectedStore ?? "No selected store";
+        }
 
+
+
+//  // ========== NEW DELIVERY DEDUCTION METHOD ==========
+//         public async Task<bool> DeductWarehouseInventoryAsync(int productId, int quantity)
+//         {
+//             if (quantity <= 0)
+//                 throw new ArgumentOutOfRangeException(nameof(quantity), "Deduction quantity must be positive");
+
+//             var product = await _db.Products.FindByIdAsync(productId);
+//             if (product == null)
+//                 throw new InvalidOperationException($"Product {productId} not found in warehouse");
+
+//             if (product.StockQuantity < quantity)
+//                 throw new InvalidOperationException(
+//                     $"Insufficient warehouse stock. Product: {productId}, Available: {product.StockQuantity}, Needed: {quantity}");
+
+//             product.StockQuantity -= quantity;
+//             await _db.SaveChangesAsync();
+
+//             return true;
+//         }
 
 
     }

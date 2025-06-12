@@ -7,26 +7,89 @@
         return;
     }
 
-    var items = themes.Select(x => new SelectListItem
-    {
-        Text = x.Title,
-        Value = x.Name,
-        Selected = x.Name.EqualsNoCase(currentTheme.Name)
-    });
+    var brownTheme = themes.FirstOrDefault(x => x.Name.ToLower().Contains("brown"));
+    var yellowTheme = themes.FirstOrDefault(x => x.Name.ToLower().Contains("yellow"));
+    var isYellow = currentTheme?.Name == yellowTheme?.Name;
 }
 
 <form id="store-theme-selector" sm-ajax method="post" asp-action="ChangeTheme" asp-controller="Common" sm-oncomplete="onStoreThemeChangedRequestCompleted">
-    <select id="themeName" name="themeName" class="store-theme-list noskin form-control rounded-pill shadow-xs" asp-items="items"></select>
+    <input type="hidden" name="themeName" id="themeNameInput" value="@currentTheme?.Name" />
+
+    <div class="theme-toggle" id="themeToggle">
+        <div class="toggle-slider @(isYellow ? "toggle-brown" : "toggle-yellow")">
+            <div class="toggle-knob"></div>
+        </div>
+    </div>
 </form>
+
+<style>
+/* Smaller size toggle */
+.theme-toggle {
+    width: 48px;
+    height: 24px;
+    border-radius: 24px;
+    cursor: pointer;
+    position: relative;
+}
+
+/* Opposite background based on theme */
+.toggle-slider {
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
+    position: relative;
+    transition: background-color 0.3s ease;
+}
+
+/* If current theme is yellow, slider background should be brown (opposite) */
+.toggle-brown {
+    background-color: #7B4A1E; /* brown */
+}
+
+/* If current theme is brown, slider background should be yellow (opposite) */
+.toggle-yellow {
+    background-color: #FFD600; /* yellow */
+}
+
+/* White circular knob */
+.toggle-knob {
+    width: 18px;
+    height: 18px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: left 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Shift knob to right if yellow is active */
+.toggle-brown .toggle-knob {
+    left: 3px;
+}
+
+.toggle-yellow .toggle-knob {
+    left: 27px;
+}
+</style>
 
 <script>
     $(function () {
-        $("#themeName").change(onStoreThemeChanged);
-    });
+        $('#themeToggle').on('click', function () {
+            const isCurrentlyYellow = $(this).find('.toggle-slider').hasClass('toggle-yellow');
 
-    function onStoreThemeChanged() {
-        $("#store-theme-selector").submit();
-    }
+            const newTheme = isCurrentlyYellow ? '@brownTheme?.Name' : '@yellowTheme?.Name';
+
+            // Toggle slider background class
+            const slider = $(this).find('.toggle-slider');
+            slider.toggleClass('toggle-yellow toggle-brown');
+
+            // Update hidden input and submit
+            $('#themeNameInput').val(newTheme);
+            $('#store-theme-selector').submit();
+        });
+    });
 
     function onStoreThemeChangedRequestCompleted() {
         location.reload();
