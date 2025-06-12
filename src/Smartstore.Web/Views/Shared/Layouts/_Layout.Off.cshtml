@@ -14,8 +14,16 @@
 <div id="page">
     <div class="page-main">
         <header id="header">
-            <div class="container text-center p-5">
-                @await Component.InvokeAsync("ShopLogo")
+            <div class="container-fluid px-4 pt-3 pb-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        @await Component.InvokeAsync("CurrencySelector")
+                        @await Component.InvokeAsync("LanguageSelector")
+                    </div>
+                    <div class="flex-grow-1 text-center">
+                        @await Component.InvokeAsync("ShopLogo")
+                    </div>
+                </div>
             </div>
         </header>
 
