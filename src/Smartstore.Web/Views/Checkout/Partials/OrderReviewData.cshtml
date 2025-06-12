@@ -54,7 +54,18 @@
                     </a>
                 </div>
             </div>
-            <div>@Model.ShippingMethod</div>
+            @{
+                var shippingDisplayName = Model.ShippingMethod == "By Ground"
+                    ? "<strong>Delivery</strong>"
+                    : Model.ShippingMethod;
+            }
+            <div>@Html.Raw(shippingDisplayName)</div>
+            @if (Model.ShippingMethod == "By Ground" && !string.IsNullOrEmpty(Model.ByGroundAddress))
+            {
+                <div>
+                 @Model.ByGroundAddress
+                </div>
+            }
         </div>
         <div sm-if="Model.IsPaymentRequired" class="col payment-method">
             <div class="row sm-gutters d-flex flex-nowrap">
