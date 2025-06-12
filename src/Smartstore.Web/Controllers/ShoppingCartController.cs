@@ -556,14 +556,12 @@ namespace Smartstore.Web.Controllers
             var product = await _db.Products.FindByIdAsync(productId);
             if (product == null)
             {
-                return Json(
-                    new
-                    {
-                        success = false,
-                        productId,
-                        message = T("Products.NotFound", productId),
-                    }
-                );
+                return Json(new
+                {
+                    success = false,
+                    productId,
+                    message = T("Products.NotFound", productId),
+                });
             }
 
             // Filter out cases where a product cannot be added to the cart.
@@ -573,14 +571,34 @@ namespace Smartstore.Web.Controllers
                 || product.IsGiftCard
             )
             {
-                return await RedirectToProduct();
+                return Json(
+                    new
+                    {
+                        success = false,
+                        productId,
+                        redirect = Url.RouteUrl(
+                            "Product",
+                            new { SeName = await product.GetActiveSlugAsync() }
+                        ),
+                    }
+                );
             }
 
             var allowedQuantities = product.ParseAllowedQuantities();
             if (allowedQuantities.Length > 0)
             {
                 // The user must select a quantity from the dropdown list, therefore the product cannot be added to the cart.
-                return await RedirectToProduct();
+                return Json(
+                    new
+                    {
+                        success = false,
+                        productId,
+                        redirect = Url.RouteUrl(
+                            "Product",
+                            new { SeName = await product.GetActiveSlugAsync() }
+                        ),
+                    }
+                );
             }
 
             // Product looks good so far, let's try adding the product to the cart (with product attribute validation etc.).
@@ -596,8 +614,17 @@ namespace Smartstore.Web.Controllers
 
             if (!await _shoppingCartService.AddToCartAsync(addToCartContext))
             {
-                // Item could not be added to the cart. Most likely, the customer has to select something on the product detail page e.g. variant attributes, giftcard infos, etc..
-                return await RedirectToProduct();
+                // Item could not be added to the cart.
+                return Json(new
+                {
+                    success = false,
+                    productId,
+                    message = addToCartContext.Warnings.ToArray(),
+                    redirect = Url.RouteUrl(
+                        "Product",
+                        new { SeName = await product.GetActiveSlugAsync() }
+                    )
+                });
             }
 
             // Product has been added to the cart. Add to activity log.
@@ -610,34 +637,15 @@ namespace Smartstore.Web.Controllers
             if (_shoppingCartSettings.DisplayCartAfterAddingProduct || forceRedirection)
             {
                 // Redirect to the shopping cart page.
-                return Json(new { productId, redirect = Url.RouteUrl("ShoppingCart") });
+                return Json(new { success = true, productId, redirect = Url.RouteUrl("ShoppingCart") });
             }
 
-            return Json(
-                new
-                {
-                    success = true,
-                    productId,
-                    message = T(
-                        "Products.ProductHasBeenAddedToTheCart",
-                        Url.RouteUrl("ShoppingCart")
-                    ).Value,
-                }
-            );
-
-            async Task<JsonResult> RedirectToProduct()
+            return Json(new
             {
-                return Json(
-                    new
-                    {
-                        productId,
-                        redirect = Url.RouteUrl(
-                            "Product",
-                            new { SeName = await product.GetActiveSlugAsync() }
-                        ),
-                    }
-                );
-            }
+                success = true,
+                productId,
+                message = T("Products.ProductHasBeenAddedToTheCart", Url.RouteUrl("ShoppingCart")).Value,
+            });
         }
 
         /// <summary>
@@ -1756,10 +1764,28 @@ public async Task<IActionResult> RemoveCartItem(int itemId)
         var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
         if (cartItem != null)
         {
-            // Use UpdateCartItemAsync to set quantity to 0 (removes item)
+            // Remove the item by setting quantity to 0
             await _shoppingCartService.UpdateCartItemAsync(customer, itemId, 0, null);
 
-            return Json(new { success = true, message = "Item removed successfully." });
+            // Get updated cart
+            cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart, storeId);
+
+            var cartModel = await cart.MapAsync();
+            var cartHtml = await InvokePartialViewAsync("CartItems", cartModel);
+            var totalsHtml = await InvokeComponentAsync(
+                typeof(OrderTotalsViewComponent),
+                ViewData,
+                new { isEditable = true }
+            );
+
+            return Json(new
+            {
+                success = true,
+                message = "Item removed successfully.",
+                cartHtml,
+                totalsHtml,
+                cartItemCount = cart.Items.Length
+            });
         }
 
         return Json(new { success = false, message = "Cart item not found." });
