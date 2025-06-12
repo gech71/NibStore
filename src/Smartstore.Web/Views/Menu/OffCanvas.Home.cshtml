@@ -56,6 +56,23 @@
             <div id="ocm-theme-selector" class="col">
                 @await Component.InvokeAsync("StoreThemeSelector")
             </div>
+            <script>
+                // Prevent off-canvas from closing instantly on theme change
+                $(document).on('change', '#ocm-theme-selector select', function (e) {
+                    e.stopPropagation();
+                    var $form = $(this).closest('form');
+                    if ($form.length) {
+                        $form.on('submit', function (ev) {
+                            ev.preventDefault();
+                            var data = $form.serialize();
+                            $.post($form.attr('action'), data, function () {
+                                location.reload();
+                            });
+                        });
+                        $form.submit();
+                    }
+                });
+            </script>
         </div>
     </div>
 </div>
