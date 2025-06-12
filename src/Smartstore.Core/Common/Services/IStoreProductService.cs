@@ -20,6 +20,7 @@ namespace Smartstore.Core.Common.Services
 
         Task<bool> AdjustStoreInventoryAsync(int productId, int? storeId, int quantityToReduce);
         Task<string> GetSelectedStoreByCartItemIdAsync(int cartItemId);
+       // Task<bool> DeductWarehouseInventoryAsync(int productId, int quantity);
     }
 }
 
