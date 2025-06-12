@@ -434,6 +434,9 @@ namespace Smartstore.Admin.Models
             [LocalizedDisplay("*TumblrLink", "*LeaveEmpty")]
             public string TumblrLink { get; set; }
 
+            [LocalizedDisplay("*TelegramLink", "*LeaveEmpty")]
+            public string TelegramLink { get; set; }
+
             [LocalizedDisplay("*ElloLink", "*LeaveEmpty")]
             public string ElloLink { get; set; }
 

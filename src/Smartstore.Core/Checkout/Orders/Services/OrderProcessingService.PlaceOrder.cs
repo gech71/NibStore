@@ -13,11 +13,13 @@ using Smartstore.Core.Localization;
 using Smartstore.Core.Logging;
 using Smartstore.Core.Stores;
 using Smartstore.Utilities;
+using Smartstore.Core.Common.Services;
 
 namespace Smartstore.Core.Checkout.Orders
 {
     public partial class OrderProcessingService : IOrderProcessingService
     {
+
         public virtual async Task<OrderPlacementResult> PlaceOrderAsync(
             ProcessPaymentRequest paymentRequest,
             Dictionary<string, string> extraData,
@@ -122,6 +124,7 @@ namespace Smartstore.Core.Checkout.Orders
 
                 // Email messages, order notes etc.
                 await FinalizeOrderPlacement(ctx);
+                
 
                 // Saves changes to database.
                 await CheckOrderStatusAsync(ctx.Order);
@@ -1398,10 +1401,71 @@ namespace Smartstore.Core.Checkout.Orders
                     true
                 );
                 await _shoppingCartService.DeleteCartAsync(ctx.Cart, false);
+                 // ✅ Decrement stock based on store
+               // Check if the order contains any store pickup items
+var hasStorePickup = ctx.Order?.OrderItems?.Any(item => item.StorePickupId.HasValue) == true;
+
+if (hasStorePickup)
+{
+    await DecrementStoreStockAsync(ctx);
+}
             }
 
             // INFO: DeleteCartAsync or CheckOrderStatusAsync perform commits.
         }
+
+private async Task DecrementStoreStockAsync(PlaceOrderContext ctx)
+{
+    if (ctx == null)
+        throw new ArgumentNullException(nameof(ctx), "PlaceOrderContext is null.");
+
+    if (ctx.Order == null)
+        throw new InvalidOperationException("Order is null inside PlaceOrderContext.");
+
+    if (ctx.Order.OrderItems == null || !ctx.Order.OrderItems.Any())
+        throw new InvalidOperationException("Order items are null or empty.");
+
+    foreach (var item in ctx.Order.OrderItems)
+    {
+        if (!item.StorePickupId.HasValue)
+        {
+            throw new InvalidOperationException($"StorePickupId is required for inventory adjustment. ProductId: {item.ProductId}, OrderItemId: {item.Id}");
+        }
+
+        try
+        {
+            var productId = item.ProductId;
+            var storeId = item.StorePickupId.Value;
+            var qty = item.Quantity;
+
+                    // Optionally log these values if you add a logger later.
+                    // _logger.Info($"Attempting to adjust inventory. ProductId: {productId}, StoreId: {storeId}, Quantity: {qty}");
+                
+            var success = await _storeProductService.AdjustStoreInventoryAsync(
+                productId: productId,
+                storeId: storeId,
+                quantityToReduce: qty
+            );
+            
+
+            if (!success)
+                    {
+                        throw new InvalidOperationException(
+                            $"Inventory adjustment failed. ProductId: {productId}, StoreId: {storeId}, Quantity: {qty}, OrderItemId: {item.Id}"
+                        );
+                    }
+        }
+        catch (Exception ex)
+        {
+            // Rethrow with full context
+            throw new Exception(
+                $"Exception during inventory adjustment for ProductId: {item.ProductId}, StoreId: {item.StorePickupId.Value}, OrderItemId: {item.Id}. Details: {ex.Message}",
+                ex
+            );
+        }
+    }
+}
+
 
         private async Task SendOrderMessages(PlaceOrderContext ctx)
         {

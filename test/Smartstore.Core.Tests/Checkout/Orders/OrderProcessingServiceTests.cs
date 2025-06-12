@@ -74,6 +74,7 @@ namespace Smartstore.Core.Tests.Checkout.Orders
 
             _currency = new Currency { Id = 1, RoundNumDecimals = 3 };
             _language = new Language { Id = 1 };
+            var storeProductServiceMock = new Mock<IStoreProductService>();
 
             var workContextMock = new Mock<IWorkContext>();
             _workContext = workContextMock.Object;
@@ -137,7 +138,8 @@ namespace Smartstore.Core.Tests.Checkout.Orders
                 _shoppingCartSettings,
                 _localizationSettings,
                 _taxSettings,
-                _paymentSettings);
+                _paymentSettings,
+                 storeProductServiceMock.Object);
         }
 
         [Test]

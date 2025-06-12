@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    <div class="footer-main-wrapper">
+    @* <div class="footer-main-wrapper">
         <div class="container footer-main">
             <div class="row sm-gutters">
 
@@ -118,39 +118,20 @@
                             </div>
                         </div>
 
-                        <div sm-if="Model.ShowThemeSelector" class="col-12 col-md col-lg-12">
-                            <div class="theme-selector nav-collapsible">
-                                <h4 class="footer-title nav-toggler collapsed" data-toggle="collapse" data-target="#footer-themes" aria-controls="footer-newsletter" aria-expanded="false">@Html.Raw(T("Footer.Themes"))</h4>
-                                <div id="footer-themes" class="content collapse nav-collapse">
-                                    <div class="mb-3 mb-md-0">
-                                        @{
-                                            @await Component.InvokeAsync("StoreThemeSelector")
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        
                     </div>
 
                     <zone name="footer_col_4_after"></zone>
                 </div>
             </div>
         </div>
-    </div>
+    </div> *@
 
     <zone name="footer_bottom"></zone>
 
     <div class="footer-bottom-wrapper">
         <div class="container footer-bottom">
-            <div class="hstack column-gap-3 row-gap-1 justify-content-between flex-wrap flex-md-nowrap">
-                <div sm-if="Model.ShowLegalInfo">
-                    @Html.Raw(Model.LegalInfo)
-                </div>
-
-                <div sm-if="Model.SmartStoreHint.HasValue()">
-                    @Html.Raw(Model.SmartStoreHint)
-                </div>
-
+            <div class="hstack column-gap-3 row-gap-1 justify-content-center flex-wrap flex-md-nowrap">
                 <div>
                     @Html.Raw(T("Content.CopyrightNotice", DateTime.Now.Year.ToString(), Model.StoreName))
                 </div>
@@ -158,3 +139,21 @@
         </div>
     </div>
 </footer>
+
+<style>
+    /* Minimize height and spacing for footer social icons */
+    .footer-social-wrapper {
+        padding-top: 1rem !important;
+        padding-bottom: 0.1rem !important;
+    }
+    .footer-social {
+        padding: 0 !important;
+    }
+    .footer-social .btn-social {
+        margin: 0 0.2rem !important;
+        height: 32px !important;
+        width: 32px !important;
+        line-height: 32px !important;
+        font-size: 1.2rem !important;
+    }
+</style>

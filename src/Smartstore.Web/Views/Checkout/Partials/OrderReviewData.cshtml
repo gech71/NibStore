@@ -35,7 +35,8 @@
                 </div>
                 <!-- Removed the Change button -->
             </div>
-            @{ await RenderAddress(Model.ShippingAddress); }
+             @*@{ await RenderAddress(Model.ShippingAddress); }*@
+             @await Component.InvokeAsync("CustomerContactInfo")
         </div>
     </div>
 

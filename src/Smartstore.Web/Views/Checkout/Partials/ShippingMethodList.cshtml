@@ -1,4 +1,4 @@
-﻿﻿﻿﻿@using Smartstore.Web.Models.Checkout
+﻿﻿@using Smartstore.Web.Models.Checkout
 @using Smartstore.Core.Checkout.Cart
 @using Smartstore.Core
 @using Smartstore.Core.Common.Services
@@ -62,9 +62,13 @@ else
                                value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)"
                                data-shippingmethodid="@(shippingMethod.ShippingMethodId)"
                                data-shipping-name="@shippingMethod.Name"
+                               data-shipping-fee="@shippingMethod.Fee"
                                @(shippingMethod.Selected ? "checked" : "") />
                         <label class="form-check-label" for="shippingoption_@(i)">
-                            <span class="opt-name">@Html.Raw(shippingMethod.Name.HtmlDecode())</span>
+                            @{
+                                var displayName = shippingMethod.Name == "By Ground" ? "Delivery" : shippingMethod.Name;
+                            }
+                            <span class="opt-name">@Html.Raw(displayName.HtmlDecode())</span>
                         </label>
                     </div>
 
@@ -144,7 +148,10 @@ else
                                        value="@Model.ByGroundAddress" 
                                        autocomplete="address-line1" />
                                 <button type="button" class="btn btn-primary current-location-btn">
-                                    Current Location
+                                    <span class="btn-label">
+                                        <i class="fa fa-location-dot me-1"></i>
+                                        <span class="text">Current Location</span>
+                                    </span>
                                 </button>
                                 <button type="button" class="btn btn-light map-toggle-btn" title="Show/Hide Map">
                                     <i class="fa fa-globe"></i>
@@ -229,6 +236,10 @@ else
         white-space: nowrap;
     }
 
+    .input-group .current-location-btn .text {
+        display: inline;
+    }
+
     .input-group .map-toggle-btn:hover {
         background-color: #e9ecef;
     }
@@ -250,17 +261,11 @@ else
     }
     
     @@media (max-width: 768px) {
-        .by-ground-extra {
-            flex-direction: column;
-            align-items: flex-start;
+        .input-group .current-location-btn .text {
+            display: none;
         }
-        
-        .map-address-input {
-            max-width: 100% !important;
-        }
-        
-        #leafletMap {
-            max-width: 100% !important;
+        .input-group .current-location-btn i {
+            margin-right: 0 !important;
         }
     }
 </style>
@@ -546,6 +551,8 @@ else
             if (addressInput) {
                 addressInput.value = address;
                 localStorage.setItem('byGroundAddress', address);
+                // Trigger input event for live update in order totals
+                $('#addressInput').trigger('input');
             }
             document.getElementById('mapCoordinates').value = `${lat},${lng}`;
             document.getElementById('latitudeField').value = lat;
@@ -625,4 +632,46 @@ function hideAddressError() {
 
 
     });
+</script>
+
+<script>
+$(document).ready(function () {
+    // Update the By Ground address in the order totals live
+    $('#addressInput').on('input', function () {
+        $('#liveByGroundAddress').text($(this).val());
+        // Clear lat/lng if user types manually (not from suggestion/map)
+        $('#latitudeField').val('');
+        $('#longitudeField').val('');
+    });
+
+    // Existing code for showing/hiding the address
+    function updateOrderTotalsUI() {
+        var $selectedRadio = $('input[name="shippingoption"]:checked');
+        if (!$selectedRadio.length) return;
+
+        var shippingName = $selectedRadio.data('shipping-name');
+        var originalShippingName = shippingName; // Save the original
+
+        // Alias for UI only
+        if (shippingName && shippingName.trim().toLowerCase() === "by ground") {
+            shippingName = "Delivery";
+        }
+        var $shippingLabel = $('.cart-summary-shipping .cart-summary-label span.font-weight-medium');
+        if (shippingName) {
+            $shippingLabel.text(shippingName).show();
+        } else {
+            $shippingLabel.hide();
+        }
+
+        // Use the original name for logic
+        if (originalShippingName && originalShippingName.trim().toLowerCase() === "by ground") {
+            $('.by-ground-address-display').show();
+        } else {
+            $('.by-ground-address-display').hide();
+        }
+    }
+
+    updateOrderTotalsUI();
+    $('input[name="shippingoption"]').on('change', updateOrderTotalsUI);
+});
 </script>

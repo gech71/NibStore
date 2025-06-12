@@ -37,7 +37,10 @@
         <header id="header" zone-name="header" replace-content="true">
             <div class="menubar-section d-none d-lg-block @(Display.GetThemeVariable<bool>("inverse-menubar") ? "menubar-inverse" : "menubar-light")">
                 <div class="container menubar-container">
-                    @await Component.InvokeAsync("TopBar")
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                        @await Component.InvokeAsync("TopBar")
+                        <span class="ms-2">@await Component.InvokeAsync("StoreThemeSelector")</span>
+                    </div>
                 </div>
             </div>
             <div class="shopbar-section @(Display.GetThemeVariable<bool>("inverse-shopbar") ? "shopbar-inverse" : "shopbar-light")">
