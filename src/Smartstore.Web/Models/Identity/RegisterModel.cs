@@ -102,7 +102,7 @@ namespace Smartstore.Web.Models.Identity
             MinimumLength = 7,
             ErrorMessage = "*Phone must be between 7 and 20 digits"
         )]
-        [RegularExpression(@"^\+?[0-9\s\-]+$", ErrorMessage = "*Invalid phone number format")]
+        [RegularExpression(@"^(?:\+251|0)?9\d{8}$", ErrorMessage = "*Invalid phone number format")]
         public string Phone { get; set; }
 
         public bool FaxEnabled { get; set; }

@@ -7,20 +7,23 @@
     var returnUrl = Context.Request.Query["returnUrl"].ToString();
 }
 
+
+
 <form asp-route="Register" asp-route-returnUrl="@returnUrl" id="register-form" method="post" class="form-horizontal"
     role="form">
     <div class="page registration-page">
-        <div class="page-title">
-            <h1 class="h3 text-center mb-4">@T("Account.Register")</h1>
+        <div class="page-title text-center">
+            <h1 class="fw-bold">@T("Account.Register")</h1>
         </div>
         <div class="page-body row">
             <div class="col-12 col-md-8 offset-md-2 col-lg-6 offset-lg-3 col-xl-6 offset-xl-3">
-                <div class="card shadow-sm rounded-lg overflow-hidden">
-                    <div class="p-3 p-xxl-4">
+                <div class="card shadow rounded-4 border-0 ">
+                    <div class="card-body px-6">
+                        <h3 class="text-center mb-4 text-primary">Create an account</h3>
                         <div asp-validation-summary="ModelOnly"></div>
 
                         <fieldset class="content-group">
-                            <legend><span>@T("Account.YourPersonalDetails")</span></legend>
+                            @* <legend><span>@T("Account.YourPersonalDetails")</span></legend> *@
 
                             <honeypot sm-enabled="true" />
 
@@ -80,23 +83,32 @@
                                 </div>
                             </div> *@
 
-                            <div sm-if="Model.UsernamesEnabled" class="form-group row">
-                                <label asp-for="Username" class="col-md-3 col-form-label required"></label>
-                                <div class="col-md-9">
-                                    @if (Model.CheckUsernameAvailabilityEnabled)
-                                    {
-                                        <div class="input-group">
-                                            <input asp-for="Username" class="remember" autocomplete="username" />
+                            @if (Model.UsernamesEnabled)
+                            {
+                                if (Model.CheckUsernameAvailabilityEnabled)
+                                {
+                                    <div class="form-floating mb-2 position-relative">
+                                        <input asp-for="Username" class="form-control rounded-pill shadow-sm px-4 remember"
+                                            autocomplete="username" placeholder="Username" />
+                                        <label asp-for="Username" class="ms-2">Username</label>
+
+                                        <div class="position-absolute" style="top: 100%; left: 0; width: 100%;">
                                             <partial name="_CheckUsernameAvailability" />
                                         </div>
-                                    }
-                                    else
-                                    {
-                                        <input asp-for="Username" class="remember" autocomplete="username" />
-                                    }
-                                    <span asp-validation-for="Username"></span>
-                                </div>
-                            </div>
+
+                                        <span asp-validation-for="Username" class="text-danger small d-block mt-1"></span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="form-floating">
+                                        <input asp-for="Username" class="form-control rounded-pill shadow-sm px-4 remember"
+                                            autocomplete="username" placeholder="Username" />
+                                        <label asp-for="Username" class="ms-2">Username</label>
+                                        <span asp-validation-for="Username" class="text-danger small d-block mt-1"></span>
+                                    </div>
+                                }
+                            }
 
                             <zone name="gdpr_consent" />
                         </fieldset>
@@ -231,15 +243,15 @@
 
                         <fieldset sm-if="Model.PhoneEnabled || Model.FaxEnabled" class="content-group">
                             @* <legend><span>@T("Account.YourContactInformation")</span></legend> *@
-                            <div sm-if="Model.PhoneEnabled" class="form-group row">
-                                <label asp-for="Phone" class="col-md-3 col-form-label"
-                                    attr-class='(Model.PhoneRequired, "required")'></label>
-                                <div class="col-md-9">
-                                    <input asp-for="Phone" sm-required="Model.PhoneRequired" class="remember"
-                                        autocomplete="tel" />
-                                    <span asp-validation-for="Phone"></span>
+                            @if (Model.PhoneEnabled)
+                            {
+                                <div class="form-floating">
+                                    <input asp-for="Phone" class="form-control rounded-pill shadow-sm px-4"
+                                        autocomplete="tel" placeholder="Phone number" />
+                                    <label asp-for="Phone" class="ms-2">Phone</label>
+                                    <span asp-validation-for="Phone" class="text-danger small d-block mt-1"></span>
                                 </div>
-                            </div>
+                            }
                             <div sm-if="Model.FaxEnabled" class="form-group row">
                                 <label asp-for="Fax" class="col-md-3 col-form-label"
                                     attr-class='(Model.FaxRequired, "required")'></label>
@@ -284,36 +296,46 @@
                             </div>
                         </div> *@
 
-                        <div class="form-group row">
-                            <div class="col">
-                                <button type="submit" class="btn btn-primary btn-lg" name="register-button"
-                                    id="register-button">
-                                    @T("Account.Register.Button")
-                                </button>
-                            </div>
+                        <div class="d-grid mb-3">
+                            <button type="submit"
+                                class="btn btn-primary btn-lg rounded-pill shadow-sm btn-prevent-multiclick"
+                                name="register-button" id="register-button">
+                                @T("Account.Register.Button")
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <span>I dont have an account?</span>
+                            <a class="btn btn-outline-warning btn-sm rounded-pill ms-2 px-3"
+                                href="@Url.RouteUrl("Login")">@T("Account.Login.LoginButton")</a>
                         </div>
                     </div>
                 </div>
-                <div class="text-center mt-3">
-                    I already have an account ? <a class="btn btn-link"
-                        href="@Url.RouteUrl("Login")">@T("Account.Login.LoginButton")</a>
-                </div>
             </div>
+            @* <div class="text-center mt-3">
+                I already have an account ? <a class="btn btn-link"
+                    href="@Url.RouteUrl("Login")">@T("Account.Login.LoginButton")</a>
+            </div> *@
         </div>
+    </div>
     </div>
 </form>
 
-<script sm-target-zone="scripts" data-origin="register">
-    $(function () {
-        restoreRememberedFormFields("registerVals");
+@section scripts {
+    <script sm-target-zone="scripts" data-origin="register">
+        $(function () {
+            restoreRememberedFormFields("registerVals");
 
-        _.delay(function () {
-            $(".country-selector").trigger("change");
-        }, 50);
-    });
+            _.delay(function () {
+                $(".country-selector").trigger("change");
+            }, 50);
+        });
 
-    const form = document.getElementById('register-form');
-    form.addEventListener('focusout', (event) => {
-        rememberFormFields("register-form", "registerVals");
-    });
-</script>
+        const form = document.getElementById('register-form');
+        form.addEventListener('focusout', (event) => {
+            rememberFormFields("register-form", "registerVals");
+        });
+    </script>
+
+
+}

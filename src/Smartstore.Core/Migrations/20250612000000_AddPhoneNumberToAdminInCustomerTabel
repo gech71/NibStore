@@ -1,0 +1,16 @@
+namespace Smartstore.Core.Migrations
+{
+    [MigrationVersion("2025-06-12 0:01:00", "Add Phone For Admin On Customer Table")]
+    public class AddPhoneNumberToAdminInCustomerTabel : Migration
+    {
+        public override void Up()
+        {
+            Execute.Sql(@"UPDATE ""Customer"" SET ""Phone"" = '0912345678' WHERE ""Id"" = 1;");
+        }
+
+        public override void Down()
+        {
+            Execute.Sql(@"UPDATE ""Customer"" SET ""Phone"" = NULL WHERE ""Id"" = 1;");
+        }
+    }
+}
