@@ -7004,6 +7004,8 @@
 	</LocaleResource>
 	<LocaleResource Name="Admin.Configuration.Settings.GeneralCommon.SocialSettings.TumblrLink">
 		<Value>Tumblr Link</Value>
+	<LocaleResource Name="Admin.Configuration.Settings.GeneralCommon.SocialSettings.TelegramLink">
+		<Value>Telegram Link</Value>
 	</LocaleResource>
 	<LocaleResource Name="Admin.Configuration.Settings.GeneralCommon.SocialSettings.TwitterLink">
 		<Value>X link</Value>

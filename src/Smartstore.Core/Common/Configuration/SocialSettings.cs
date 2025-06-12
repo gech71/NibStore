@@ -88,5 +88,10 @@ namespace Smartstore.Core.Common.Configuration
         /// Gets or sets the Behance link.
         /// </summary>
         public string BehanceLink { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Telegram link.
+        /// </summary>
+        public string TelegramLink { get; set; }
     }
 }
