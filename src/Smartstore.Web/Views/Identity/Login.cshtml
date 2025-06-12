@@ -16,69 +16,87 @@
 }
 
 <div class="page login-page">
-    <div class="row mb-4">
+    <div class="row mb-2">
         <div class="col-12 col-md-8 offset-md-2 col-lg-6 offset-lg-3 col-xl-6 offset-xl-3">
-            <div class="page-title">
-                <h1>@T("Account.Login.Welcome")</h1>
+            <div class="page-title text-center ">
+                <h1 class="fw-bold ">@T("Account.Login")</h1>
             </div>
-            <div class="card shadow-sm rounded-lg overflow-hidden">
-                <div class="row">
-                    <div class="col-12 login-box">
-                        <div class="p-3 p-xxl-4">
+            <div class="card shadow rounded-4 border-0 ">
+                <div class="card-body ">
+                    <h3 class="text-center mb-4 text-primary">@T("Account.Login.ReturningCustomer")</h3>
 
-                            <h3 class="text-center mb-4">@T("Account.Login.ReturningCustomer")</h3>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 ">
+                        @T("Account.Login.Unsuccessful")
+                    </div>
 
-                            <div asp-validation-summary="ModelOnly" class="text-danger">
-                                @T("Account.Login.Unsuccessful")
-                            </div>
+                    <form asp-route="Login" asp-route-returnurl="@returnUrl" method="post" autocomplete="off" class="px-6">
+                        @Html.AntiForgeryToken()
 
-                            <form asp-route="Login" asp-route-returnurl="@returnUrl" method="post" autocomplete="off">
-                                    @Html.AntiForgeryToken()
-
-                                    <div class="form-floating mb-3">
-                                        <input asp-for="Phone" class="form-control" autocomplete="tel" />
-                                        <label asp-for="Phone"></label>
-                                        <span asp-validation-for="Phone" class="text-danger"></span>
-                                    </div>
-
-                                    @if (Model.ShowPassword)
-                                    {
-                                        <div class="form-floating mb-3 position-relative">
-                                            <input asp-for="Password" class="form-control password"
-                                                autocomplete="current-password" />
-                                            <button type="button"
-                                                class="btn-toggle-pwd position-absolute top-50 end-0 translate-middle-y me-3">
-                                                <i class="far fa-fw fa-eye-slash"></i>
-                                            </button>
-                                            <label asp-for="Password"></label>
-                                            <span asp-validation-for="Password" class="text-danger"></span>
-                                        </div>
-
-                                        <div class="form-check mb-3">
-                                            <input asp-for="RememberMe" class="form-check-input" />
-                                            <label asp-for="RememberMe" class="form-check-label"></label>
-                                        </div>
-                                    }
-
-                                    <captcha sm-enabled="Model.DisplayCaptcha" class="form-group" />
-
-                                    <div class="form-group mt-3">
-                                        <button type="submit"
-                                            class="btn btn-primary btn-lg btn-block btn-login btn-prevent-multiclick">
-                                            @T("Account.Login.LoginButton")
-                                        </button>
-                                    </div>
-                                </form>
-
-                            <div class="text-center mt-3">
-                                I dont have an account?
-                                <a class="btn btn-warning btn-sm" href="@registerUrl">@T("Account.Register.Button")</a>
-                            </div>
-
+                        <!-- Phone Input -->
+                        <div class="form-floating mb-4 ">
+                            <input asp-for="Phone" class="form-control rounded-pill shadow-sm px-4" autocomplete="tel" placeholder="Phone number" />
+                            <label asp-for="Phone" class="ms-2">Phone</label>
+                            <span asp-validation-for="Phone" class="text-danger small d-block mt-1"></span>
                         </div>
+
+                        <!-- Password Input -->
+                        @if (Model.ShowPassword)
+                        {
+                            <div class="form-floating mb-4 position-relative">
+                                <input asp-for="Password" class="form-control rounded-pill shadow-sm px-4 pe-5 password" autocomplete="current-password" placeholder="Password" />
+                                <label asp-for="Password" class="ms-2">Password</label>
+                                <button type="button"
+                                        class="btn-toggle-pwd position-absolute "
+                                        style="top: 50%; transform: translateY(-50%); right: 2.5rem; z-index: 10; border: none; background: transparent;"
+                                        tabindex="-1">
+                                    <i class="far fa-eye-slash"></i>
+                                </button>
+                                <span asp-validation-for="Password" class="text-danger small d-block mt-1"></span>
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input asp-for="RememberMe" class="form-check-input" />
+                                <label asp-for="RememberMe" class="form-check-label"></label>
+                            </div>
+                        }
+
+                        @* <captcha sm-enabled="Model.DisplayCaptcha" class="form-group mb-3" /> *@
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm btn-prevent-multiclick">
+                                @T("Account.Login.LoginButton")
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <span>I dont have an account?</span>
+                        <a class="btn btn-outline-warning btn-sm rounded-pill ms-2 px-3" href="@registerUrl">@T("Account.Register.Button")</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.btn-toggle-pwd').forEach(button => {
+                button.addEventListener('click', function () {
+                    const input = this.closest('.position-relative').querySelector('input');
+                    const icon = this.querySelector('i');
+                    if (input.type === "password") {
+                        input.type = "text";
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    } else {
+                        input.type = "password";
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    }
+                });
+            });
+        });
+    </script>
+}

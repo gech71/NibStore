@@ -20,6 +20,8 @@ namespace Smartstore.Web.Models.Identity
 
         [LocalizedDisplay("*Phone", Prompt = "*PhoneNumber")]
         [DataType(DataType.PhoneNumber)]
+        [RegularExpression(@"^(?:\+251|0)?9\d{8}$", ErrorMessage = "*Invalid phone number format")]
+        [Required(ErrorMessage = "*Phone number is required.")]
         public string Phone { get; set; }
 
         // [LocalizedDisplay("*UsernameOrEmail", Prompt = "*UsernameOrEmail")]
@@ -64,9 +66,11 @@ namespace Smartstore.Web.Models.Identity
 
             RuleFor(x => x.Phone)
                 .NotEmpty()
-                .WithMessage("Phone number is required.");
+                .WithMessage("Phone number is required.")
+                .Matches(@"^(?:\+251|0)?9\d{8}$")
+                .WithMessage("Phone number must be in the format 0912345678, +251912345678, or 912345678.");
 
-            RuleFor(x => x.Password).NotEmpty().WithMessage("Password is required.");
+            // RuleFor(x => x.Password).NotEmpty().WithMessage("Password is required.");
         }
     }
 }

@@ -108,92 +108,86 @@ namespace Smartstore.Web.Controllers
 
         [HttpPost]
         [AllowAnonymous, NeverAuthorize]
-        [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnLoginPage))]
         [ValidateAntiForgeryToken, CheckStoreClosed(false)]
         [LocalizedRoute("/login", Name = "Login")]
-        public async Task<IActionResult> Login(LoginModel model, string returnUrl, string captchaError)
+        public async Task<IActionResult> Login(LoginModel model, string returnUrl)
         {
             ViewBag.ReturnUrl = returnUrl;
 
+            var phone = model.Phone?.Trim();
+
+            if (string.IsNullOrEmpty(phone))
+            {
+                ModelState.AddModelError(nameof(model.Phone), "Phone number is required.");
+                return View(model);
+            }
+
+            var customer = await _userManager.Users.FirstOrDefaultAsync(c => c.Phone == phone);
+
+            if (customer == null)
+            {
+                ModelState.AddModelError(string.Empty, "The phone number you entered is not registered.");
+                return View(model);
+            }
+
+            var roles = await _db.CustomerRoleMappings
+                .Where(m => m.CustomerId == customer.Id)
+                .Select(m => m.CustomerRole.SystemName)
+                .ToListAsync();
+
             if (string.IsNullOrEmpty(model.Password))
             {
-                var phone = model.Phone?.Trim();
-                var customer = await _userManager.Users.FirstOrDefaultAsync(c => c.Phone == phone);
-
-                if (customer != null)
+                if (roles.Contains("Administrators") || roles.Contains("Merchants"))
                 {
-                    var roles = await _db.CustomerRoleMappings
-                        .Where(m => m.CustomerId == customer.Id)
-                        .Select(m => m.CustomerRole.SystemName)
-                        .ToListAsync();
-
-                    if (roles.Contains("Administrators") || roles.Contains("Merchant"))
-                    {
-                        model.ShowPassword = true;
-                        // Don't try to sign in yet. Show password field on next render.
-                        return View(model);
-                    }
-                    else if (roles.Count == 1 && roles.Contains("Registered"))
-                    {
-                        await _signInManager.SignInAsync(customer, isPersistent: false);
-                        return RedirectToRoute("Homepage");
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
-                    }
+                    model.ShowPassword = true;
+                    return View(model);
+                }
+                else if (roles.Count == 1 && roles.Contains("Registered"))
+                {
+                    await _signInManager.SignInAsync(customer, isPersistent: false);
+                    return RedirectToRoute("Homepage");
                 }
                 else
                 {
-                    ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
+                    ModelState.AddModelError(string.Empty, "You do not have permission to access this area.");
+                    return View(model);
                 }
+            }
 
+            if (string.IsNullOrWhiteSpace(model.Password))
+            {
+                ModelState.AddModelError(nameof(model.Password), "Password is required.");
+                model.ShowPassword = true;
                 return View(model);
+            }
+
+            if (roles.Contains("Administrators") || roles.Contains("Merchants"))
+            {
+                var result = await _signInManager.PasswordSignInAsync(
+                    customer,
+                    model.Password,
+                    model.RememberMe,
+                    lockoutOnFailure: false);
+
+                if (result.Succeeded)
+                {
+                    await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
+                    await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
+                    Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
+
+                    return RedirectToAction("Index", "Home", new { area = "Admin" });
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Incorrect password. Please try again.");
+                    model.ShowPassword = true;
+                }
             }
             else
             {
-                var phone = model.Phone?.Trim();
-                var customer = await _userManager.Users.FirstOrDefaultAsync(c => c.Phone == phone); if (customer != null)
-                {
-                    var roles = await _db.CustomerRoleMappings
-                        .Where(m => m.CustomerId == customer.Id)
-                        .Select(m => m.CustomerRole.SystemName)
-                        .ToListAsync();
-
-                    if (roles.Contains("Administrators") || roles.Contains("Merchants"))
-                    {
-                        var result = await _signInManager.PasswordSignInAsync(
-                            customer,
-                            model.Password,
-                            model.RememberMe,
-                            lockoutOnFailure: false);
-
-                        if (result.Succeeded)
-                        {
-                            await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
-                            await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
-                            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
-
-                            return RedirectToAction("Index", "Home", new { area = "Admin" });
-                        }
-                        else
-                        {
-                            ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
-                            model.ShowPassword = true;
-                        }
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
-                    }
-                }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, T("Account.Login.WrongCredentials"));
-                }
+                ModelState.AddModelError(string.Empty, "You are not authorized to log in with this account.");
             }
 
-            model.DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnLoginPage;
             return View(model);
         }
 
@@ -257,7 +251,7 @@ namespace Smartstore.Web.Controllers
 
         [HttpPost]
         [AllowAnonymous, NeverAuthorize]
-        [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnRegistrationPage))]
+        // [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnRegistrationPage))]
         [ValidateAntiForgeryToken, ValidateHoneypot]
         [LocalizedRoute("/register", Name = "Register")]
         public async Task<IActionResult> Register(
@@ -287,10 +281,10 @@ namespace Smartstore.Web.Controllers
                 );
             }
 
-            if (_captchaSettings.ShowOnRegistrationPage && captchaError.HasValue())
-            {
-                ModelState.AddModelError(string.Empty, captchaError);
-            }
+            // if (_captchaSettings.ShowOnRegistrationPage && captchaError.HasValue())
+            // {
+            //     ModelState.AddModelError(string.Empty, captchaError);
+            // }
 
             var tempPassword = "Temp@" + Guid.NewGuid().ToString("N").Substring(0, 8) + "A";
 
@@ -305,6 +299,13 @@ namespace Smartstore.Web.Controllers
 
             if (ModelState.IsValid)
             {
+                var existingPhoneUser = await _userManager.Users
+                    .FirstOrDefaultAsync(u => u.Phone == model.Phone.Trim());
+
+                if (existingPhoneUser != null)
+                {
+                    ModelState.AddModelError(string.Empty, "Phone number already registered");
+                }
                 var succeeded = false;
                 var oldUserName = customer.Username;
                 var oldEmail = customer.Email;
@@ -354,14 +355,12 @@ namespace Smartstore.Web.Controllers
 
                 if (succeeded)
                 {
-                    // Update customer properties.
                     await MapRegisterModelToCustomerAsync(customer, model);
 
                     return await FinalizeCustomerRegistrationAsync(customer, returnUrl);
                 }
             }
 
-            // If we got this far something failed. Redisplay form.
             await PrepareRegisterModelAsync(model);
 
             return View(model);

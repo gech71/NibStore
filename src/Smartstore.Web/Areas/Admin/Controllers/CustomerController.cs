@@ -490,7 +490,7 @@ namespace Smartstore.Admin.Controllers
             }
             if (_customerSettings.PhoneEnabled)
             {
-                to.GenericAttributes.Phone = from.Phone;
+                to.Phone = from.Phone;
             }
             if (_customerSettings.FaxEnabled)
             {
@@ -645,7 +645,7 @@ namespace Smartstore.Admin.Controllers
                     CustomerNumber = x.CustomerNumber,
                     ZipPostalCode = x.GenericAttributes.ZipPostalCode,
                     Active = x.Active,
-                    Phone = x.GenericAttributes.Phone,
+                    Phone = x.Phone,
                     CustomerRoleNames = string.Join(
                         ", ",
                         x.CustomerRoleMappings.Select(x => x.CustomerRole).Select(x => x.Name)
