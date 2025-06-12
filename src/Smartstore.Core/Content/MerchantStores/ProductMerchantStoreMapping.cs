@@ -1,5 +1,5 @@
-using Smartstore.Core.Catalog.Products;
 using System.ComponentModel.DataAnnotations.Schema;
+using Smartstore.Core.Catalog.Products;
 
 namespace Smartstore.Core.Content.MerchantStores
 {
@@ -9,7 +9,8 @@ namespace Smartstore.Core.Content.MerchantStores
         public int ProductId { get; set; }
         public int MerchantStoreId { get; set; }
         public int Quantity { get; set; }
-        public int DisplayOrder { get; set; }        
+        public int DeliveryPriority { get; set; }
+        public int DisplayOrder { get; set; }
         public virtual Product Product { get; set; }
         public virtual MerchantStore MerchantStore { get; set; }
     }

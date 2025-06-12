@@ -171,7 +171,9 @@ namespace Smartstore.Admin.Controllers
 
         [HttpPost]
         [Permission(Permissions.Promotion.Discount.Update)]
-        public async Task<IActionResult> ApplyDiscountToSelected([FromBody] ApplyDiscountToSelectedModel model)
+        public async Task<IActionResult> ApplyDiscountToSelected(
+            [FromBody] ApplyDiscountToSelectedModel model
+        )
         {
             var success = false;
             var message = string.Empty;
@@ -180,51 +182,64 @@ namespace Smartstore.Admin.Controllers
             {
                 if (model == null || model.SelectedIds == null || !model.SelectedIds.Any())
                 {
-                    return Json(new { success = false, message = T("Admin.Common.NoItemsSelected").Value });
+                    return Json(
+                        new { success = false, message = T("Admin.Common.NoItemsSelected").Value }
+                    );
                 }
 
                 if (model.DiscountId <= 0)
                 {
-                    return Json(new { success = false, message = T("Admin.Common.PleaseSelectDiscount").Value });
+                    return Json(
+                        new
+                        {
+                            success = false,
+                            message = T("Admin.Common.PleaseSelectDiscount").Value,
+                        }
+                    );
                 }
 
                 var discount = await _db.Discounts.FindByIdAsync(model.DiscountId);
                 if (discount == null)
                 {
-                    return Json(new { success = false, message = T("Admin.Common.Discount.NotFound").Value });
+                    return Json(
+                        new { success = false, message = T("Admin.Common.Discount.NotFound").Value }
+                    );
                 }
 
-                var products = await _db.Products
-                    .Include(x => x.AppliedDiscounts)
+                var products = await _db
+                    .Products.Include(x => x.AppliedDiscounts)
                     .Where(x => model.SelectedIds.Contains(x.Id))
                     .ToListAsync();
 
                 var count = 0;
                 var now = DateTime.UtcNow;
-                
+
                 foreach (var product in products)
                 {
                     // Skip if product already has this discount
                     if (product.AppliedDiscounts.Any(x => x.Id == model.DiscountId))
                         continue;
-                        
+
                     // Add discount to product
                     product.AppliedDiscounts.Add(discount);
-                    
+
                     // Get discount type and value
                     var discountType = discount.DiscountType;
                     var discountAmount = discount.DiscountAmount;
                     var discountPercentage = discount.DiscountPercentage;
-                    
+
                     // If discount is active and valid, update the product price
-                    if (discount.StartDateUtc <= now && 
-                        (!discount.EndDateUtc.HasValue || discount.EndDateUtc >= now))
+                    if (
+                        discount.StartDateUtc <= now
+                        && (!discount.EndDateUtc.HasValue || discount.EndDateUtc >= now)
+                    )
                     {
                         // Apply discount to the product price
                         if (discountType == DiscountType.AssignedToSkus && discountPercentage > 0)
                         {
                             // For percentage discount
-                            product.SpecialPrice = product.Price * (100m - discountPercentage) / 100m;
+                            product.SpecialPrice =
+                                product.Price * (100m - discountPercentage) / 100m;
                             product.SpecialPriceStartDateTimeUtc = discount.StartDateUtc;
                             product.SpecialPriceEndDateTimeUtc = discount.EndDateUtc;
                         }
@@ -236,16 +251,15 @@ namespace Smartstore.Admin.Controllers
                             product.SpecialPriceEndDateTimeUtc = discount.EndDateUtc;
                         }
                     }
-                    
+
                     count++;
                 }
 
-
                 await _db.SaveChangesAsync();
-                
+
                 // Clear cache for these products
                 _db.DetachEntities(products);
-                
+
                 success = true;
                 message = T("Admin.Catalog.Products.Discounts.AppliedToProducts", count).Value;
             }
@@ -258,7 +272,6 @@ namespace Smartstore.Admin.Controllers
             return Json(new { success, message });
         }
 
-        
         [HttpPost]
         [Permission(Permissions.Catalog.Product.Delete)]
         public async Task<IActionResult> Delete(int id)
@@ -409,9 +422,10 @@ namespace Smartstore.Admin.Controllers
             var model = await MapperFactory.MapAsync<Product, ProductModel>(product);
             await PrepareProductModelAsync(model, product, false, false);
 
-            model.StockQuantity = await _db.ProductMerchantStoreMappings
-                .Where(m => m.ProductId == product.Id)
-                .SumAsync(m => (int?)m.Quantity) ?? 0;
+            model.StockQuantity =
+                await _db
+                    .ProductMerchantStoreMappings.Where(m => m.ProductId == product.Id)
+                    .SumAsync(m => (int?)m.Quantity) ?? 0;
 
             await AddLocalesAsync(
                 model.Locales,
@@ -493,9 +507,10 @@ namespace Smartstore.Admin.Controllers
             {
                 await MapModelToProductAsync(model, product, form);
 
-                product.StockQuantity = await _db.ProductMerchantStoreMappings
-            .Where(m => m.ProductId == product.Id)
-            .SumAsync(m => (int?)m.Quantity) ?? 0;
+                product.StockQuantity =
+                    await _db
+                        .ProductMerchantStoreMappings.Where(m => m.ProductId == product.Id)
+                        .SumAsync(m => (int?)m.Quantity) ?? 0;
 
                 await UpdateDataOfExistingProductAsync(product, model, true);
 
@@ -1259,9 +1274,10 @@ namespace Smartstore.Admin.Controllers
         [Permission(Permissions.Catalog.MerchantStore.Read)]
         public async Task<IActionResult> ProductMerchantStoreList(int productId)
         {
-
-            var mappings = await _merchantStoreService
-                .GetProductMerchantStoreMappingsByProductIdAsync(productId);
+            var mappings =
+                await _merchantStoreService.GetProductMerchantStoreMappingsByProductIdAsync(
+                    productId
+                );
 
             var allStores = await _merchantStoreService.GetAllMerchantStoresAsync();
             List<int> merchantStoreIds = new();
@@ -1277,16 +1293,19 @@ namespace Smartstore.Admin.Controllers
                     MerchantStoreId = x.MerchantStoreId,
                     MerchantStore = storeDict[x.MerchantStoreId],
                     Quantity = x.Quantity,
+                    DeliveryPriority = x.DeliveryPriority,
                     DisplayOrder = x.DisplayOrder,
                     EditUrl = Url.Action("Edit", "MerchantStore", new { id = x.MerchantStoreId }),
                 })
                 .ToList();
 
-            return Json(new GridModel<ProductModel.ProductMerchantStoreModel>
-            {
-                Rows = rows,
-                Total = rows.Count
-            });
+            return Json(
+                new GridModel<ProductModel.ProductMerchantStoreModel>
+                {
+                    Rows = rows,
+                    Total = rows.Count,
+                }
+            );
         }
 
         [HttpPost]
@@ -1311,6 +1330,7 @@ namespace Smartstore.Admin.Controllers
                 ProductId = productId,
                 MerchantStoreId = model.MerchantStoreId,
                 Quantity = model.Quantity,
+                DeliveryPriority = model.DeliveryPriority,
                 DisplayOrder = model.DisplayOrder,
             };
 
@@ -1355,6 +1375,7 @@ namespace Smartstore.Admin.Controllers
 
             mapping.MerchantStoreId = model.MerchantStoreId;
             mapping.Quantity = model.Quantity;
+            mapping.DeliveryPriority = model.DeliveryPriority;
             mapping.DisplayOrder = model.DisplayOrder;
 
             try
@@ -1892,13 +1913,13 @@ namespace Smartstore.Admin.Controllers
             var tags = await query.OrderBy(x => x.Name).ToPagedList(page - 1, pageSize).LoadAsync();
 
             var results = tags.Select(x => new ChoiceListItem
-            {
-                Id = x.Name,
-                Text = x.Name,
-                Selected = selectedNames?.Contains(x.Name) ?? false,
-                Title = !x.Published ? unpublishedStr : null,
-                CssClass = !x.Published ? "choice-item-unavailable" : null,
-            })
+                {
+                    Id = x.Name,
+                    Text = x.Name,
+                    Selected = selectedNames?.Contains(x.Name) ?? false,
+                    Title = !x.Published ? unpublishedStr : null,
+                    CssClass = !x.Published ? "choice-item-unavailable" : null,
+                })
                 .ToList();
 
             return new JsonResult(new { results, pagination = new { more = tags.HasNextPage } });
@@ -1935,12 +1956,12 @@ namespace Smartstore.Admin.Controllers
                 .LoadAsync();
 
             var rows = await tags.SelectAwait(async x => new ProductTagModel
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Published = x.Published,
-                ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
-            })
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Published = x.Published,
+                    ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
+                })
                 .AsyncToList();
 
             return Json(

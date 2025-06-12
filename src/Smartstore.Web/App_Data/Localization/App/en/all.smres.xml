@@ -2935,6 +2935,9 @@
 	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields.Quantity">
 		<Value>Quantity</Value>
 	</LocaleResource>
+	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.Fields.DeliveryPriority">
+		<Value>Delivery Priority</Value>
+	</LocaleResource>
 	<LocaleResource Name="Admin.Catalog.Products.MerchantStores.NoDuplicatesAllowed">
 		<Value>This merchantStore has already been assigned to the product.</Value>
 	</LocaleResource>
@@ -7004,6 +7007,7 @@
 	</LocaleResource>
 	<LocaleResource Name="Admin.Configuration.Settings.GeneralCommon.SocialSettings.TumblrLink">
 		<Value>Tumblr Link</Value>
+	</LocaleResource>
 	<LocaleResource Name="Admin.Configuration.Settings.GeneralCommon.SocialSettings.TelegramLink">
 		<Value>Telegram Link</Value>
 	</LocaleResource>

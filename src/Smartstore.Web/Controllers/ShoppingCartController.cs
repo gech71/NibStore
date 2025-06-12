@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Smartstore.ComponentModel;
+using Smartstore.Core;
 using Smartstore.Core.Catalog;
 using Smartstore.Core.Catalog.Attributes;
 using Smartstore.Core.Catalog.Discounts;
@@ -25,8 +26,6 @@ using Smartstore.Core.Seo.Routing;
 using Smartstore.Utilities;
 using Smartstore.Utilities.Html;
 using Smartstore.Web.Models.Cart;
-using Smartstore.Core;
-
 
 namespace Smartstore.Web.Controllers
 {
@@ -556,12 +555,14 @@ namespace Smartstore.Web.Controllers
             var product = await _db.Products.FindByIdAsync(productId);
             if (product == null)
             {
-                return Json(new
-                {
-                    success = false,
-                    productId,
-                    message = T("Products.NotFound", productId),
-                });
+                return Json(
+                    new
+                    {
+                        success = false,
+                        productId,
+                        message = T("Products.NotFound", productId),
+                    }
+                );
             }
 
             // Filter out cases where a product cannot be added to the cart.
@@ -615,16 +616,18 @@ namespace Smartstore.Web.Controllers
             if (!await _shoppingCartService.AddToCartAsync(addToCartContext))
             {
                 // Item could not be added to the cart.
-                return Json(new
-                {
-                    success = false,
-                    productId,
-                    message = addToCartContext.Warnings.ToArray(),
-                    redirect = Url.RouteUrl(
-                        "Product",
-                        new { SeName = await product.GetActiveSlugAsync() }
-                    )
-                });
+                return Json(
+                    new
+                    {
+                        success = false,
+                        productId,
+                        message = addToCartContext.Warnings.ToArray(),
+                        redirect = Url.RouteUrl(
+                            "Product",
+                            new { SeName = await product.GetActiveSlugAsync() }
+                        ),
+                    }
+                );
             }
 
             // Product has been added to the cart. Add to activity log.
@@ -637,15 +640,27 @@ namespace Smartstore.Web.Controllers
             if (_shoppingCartSettings.DisplayCartAfterAddingProduct || forceRedirection)
             {
                 // Redirect to the shopping cart page.
-                return Json(new { success = true, productId, redirect = Url.RouteUrl("ShoppingCart") });
+                return Json(
+                    new
+                    {
+                        success = true,
+                        productId,
+                        redirect = Url.RouteUrl("ShoppingCart"),
+                    }
+                );
             }
 
-            return Json(new
-            {
-                success = true,
-                productId,
-                message = T("Products.ProductHasBeenAddedToTheCart", Url.RouteUrl("ShoppingCart")).Value,
-            });
+            return Json(
+                new
+                {
+                    success = true,
+                    productId,
+                    message = T(
+                        "Products.ProductHasBeenAddedToTheCart",
+                        Url.RouteUrl("ShoppingCart")
+                    ).Value,
+                }
+            );
         }
 
         /// <summary>
@@ -1724,13 +1739,21 @@ namespace Smartstore.Web.Controllers
 
             return Json(new { success = true, message = T("ShoppingCart.ClearAll.Success") });
         }
+
         [HttpPost]
-        public async Task<IActionResult> UpdateCartItemStore(int itemId, string storeName, int storeId)
+        public async Task<IActionResult> UpdateCartItemStore(
+            int itemId,
+            string storeName,
+            int storeId
+        )
         {
             try
             {
                 var customer = _workContext.CurrentCustomer;
-                var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart);
+                var cart = await _shoppingCartService.GetCartAsync(
+                    customer,
+                    ShoppingCartType.ShoppingCart
+                );
                 var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
 
                 if (cartItem != null)
@@ -1750,53 +1773,58 @@ namespace Smartstore.Web.Controllers
             }
         }
 
-
-
-[HttpPost]
-public async Task<IActionResult> RemoveCartItem(int itemId)
-{
-    try
-    {
-        var customer = Services.WorkContext.CurrentCustomer;
-        var storeId = Services.StoreContext.CurrentStore.Id;
-        var cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart, storeId);
-
-        var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
-        if (cartItem != null)
+        [HttpPost]
+        public async Task<IActionResult> RemoveCartItem(int itemId)
         {
-            // Remove the item by setting quantity to 0
-            await _shoppingCartService.UpdateCartItemAsync(customer, itemId, 0, null);
-
-            // Get updated cart
-            cart = await _shoppingCartService.GetCartAsync(customer, ShoppingCartType.ShoppingCart, storeId);
-
-            var cartModel = await cart.MapAsync();
-            var cartHtml = await InvokePartialViewAsync("CartItems", cartModel);
-            var totalsHtml = await InvokeComponentAsync(
-                typeof(OrderTotalsViewComponent),
-                ViewData,
-                new { isEditable = true }
-            );
-
-            return Json(new
+            try
             {
-                success = true,
-                message = "Item removed successfully.",
-                cartHtml,
-                totalsHtml,
-                cartItemCount = cart.Items.Length
-            });
+                var customer = Services.WorkContext.CurrentCustomer;
+                var storeId = Services.StoreContext.CurrentStore.Id;
+                var cart = await _shoppingCartService.GetCartAsync(
+                    customer,
+                    ShoppingCartType.ShoppingCart,
+                    storeId
+                );
+
+                var cartItem = cart.Items.FirstOrDefault(x => x.Item.Id == itemId);
+                if (cartItem != null)
+                {
+                    // Remove the item by setting quantity to 0
+                    await _shoppingCartService.UpdateCartItemAsync(customer, itemId, 0, null);
+
+                    // Get updated cart
+                    cart = await _shoppingCartService.GetCartAsync(
+                        customer,
+                        ShoppingCartType.ShoppingCart,
+                        storeId
+                    );
+
+                    var cartModel = await cart.MapAsync();
+                    var cartHtml = await InvokePartialViewAsync("CartItems", cartModel);
+                    var totalsHtml = await InvokeComponentAsync(
+                        typeof(OrderTotalsViewComponent),
+                        ViewData,
+                        new { isEditable = true }
+                    );
+
+                    return Json(
+                        new
+                        {
+                            success = true,
+                            message = "Item removed successfully.",
+                            cartHtml,
+                            totalsHtml,
+                            cartItemCount = cart.Items.Length,
+                        }
+                    );
+                }
+
+                return Json(new { success = false, message = "Cart item not found." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
-
-        return Json(new { success = false, message = "Cart item not found." });
-    }
-    catch (Exception ex)
-    {
-        return Json(new { success = false, message = ex.Message });
-    }
-}
-
-
-
     }
 }

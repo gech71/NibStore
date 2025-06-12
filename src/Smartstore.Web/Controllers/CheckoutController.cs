@@ -4,14 +4,14 @@ using Smartstore.Core;
 using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Checkout.Orders;
 using Smartstore.Core.Checkout.Payment;
+using Smartstore.Core.Common.Services;
+using Smartstore.Core.Content.MerchantStores;
 using Smartstore.Core.Identity;
 using Smartstore.Core.Localization.Routing;
 using Smartstore.Core.Seo.Routing;
 using Smartstore.Core.Stores;
-using Smartstore.Core.Common.Services; 
 using Smartstore.Web.Models.Checkout;
 using Smartstore.Web.Models.Common;
-
 
 namespace Smartstore.Web.Controllers
 {
@@ -26,7 +26,8 @@ namespace Smartstore.Web.Controllers
         private readonly ICheckoutStateAccessor _checkoutStateAccessor;
         private readonly OrderSettings _orderSettings;
         private readonly ShoppingCartSettings _shoppingCartSettings;
-        private readonly IGenericAttributeService _genericAttributeService; // <-- added this
+        private readonly IGenericAttributeService _genericAttributeService;
+        private readonly IMerchantStoreService _merchantStoreService;
 
         public CheckoutController(
             SmartDbContext db,
@@ -38,7 +39,9 @@ namespace Smartstore.Web.Controllers
             ICheckoutStateAccessor checkoutStateAccessor,
             OrderSettings orderSettings,
             ShoppingCartSettings shoppingCartSettings,
-            IGenericAttributeService genericAttributeService)
+            IGenericAttributeService genericAttributeService,
+            IMerchantStoreService merchantStoreService
+        )
         {
             _db = db;
             _storeContext = storeContext;
@@ -50,6 +53,7 @@ namespace Smartstore.Web.Controllers
             _orderSettings = orderSettings;
             _shoppingCartSettings = shoppingCartSettings;
             _genericAttributeService = genericAttributeService;
+            _merchantStoreService = merchantStoreService;
         }
 
         [DisallowRobot]
@@ -78,7 +82,9 @@ namespace Smartstore.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> SelectBillingAddress(int addressId)
         {
-            var result = await _checkoutWorkflow.AdvanceAsync(await CreateCheckoutContext(addressId));
+            var result = await _checkoutWorkflow.AdvanceAsync(
+                await CreateCheckoutContext(addressId)
+            );
 
             return result.ActionResult ?? RedirectToAction(nameof(BillingAddress));
         }
@@ -117,7 +123,11 @@ namespace Smartstore.Web.Controllers
             return View(model);
         }
 
-        private async Task<CheckoutResult> AddAddress(CheckoutAddressModel model, CheckoutContext context, bool isShippingAddress)
+        private async Task<CheckoutResult> AddAddress(
+            CheckoutAddressModel model,
+            CheckoutContext context,
+            bool isShippingAddress
+        )
         {
             var cart = context.Cart;
             var customer = cart.Customer;
@@ -152,7 +162,8 @@ namespace Smartstore.Web.Controllers
                 else
                 {
                     customer.BillingAddress = address;
-                    customer.ShippingAddress = (model.ShippingAddressDiffers || !cart.IsShippingRequired) ? null : address;
+                    customer.ShippingAddress =
+                        (model.ShippingAddressDiffers || !cart.IsShippingRequired) ? null : address;
 
                     var state = _checkoutStateAccessor.CheckoutState;
                     state.CustomProperties["SkipShippingAddress"] = true;
@@ -171,7 +182,9 @@ namespace Smartstore.Web.Controllers
                 await _db.SaveChangesAsync();
 
                 var result = await _checkoutWorkflow.AdvanceAsync(context);
-                result.ActionResult ??= RedirectToAction(isShippingAddress ? nameof(ShippingMethod) : nameof(ShippingAddress));
+                result.ActionResult ??= RedirectToAction(
+                    isShippingAddress ? nameof(ShippingMethod) : nameof(ShippingAddress)
+                );
 
                 return result;
             }
@@ -196,7 +209,9 @@ namespace Smartstore.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> SelectShippingAddress(int addressId)
         {
-            var result = await _checkoutWorkflow.AdvanceAsync(await CreateCheckoutContext(addressId));
+            var result = await _checkoutWorkflow.AdvanceAsync(
+                await CreateCheckoutContext(addressId)
+            );
 
             return result.ActionResult ?? RedirectToAction(nameof(ShippingAddress));
         }
@@ -213,74 +228,90 @@ namespace Smartstore.Web.Controllers
                 return result.ActionResult;
             }
 
-            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutShippingMethodModel>(context);
+            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutShippingMethodModel>(
+                context
+            );
 
             result.Errors.Each(x => model.Warnings.Add(x.ErrorMessage));
 
             return View(result.ViewPath, model);
         }
 
-[HttpPost, ActionName(CheckoutActionNames.ShippingMethod)]
-[FormValueRequired("nextstep")]
-public async Task<IActionResult> SelectShippingMethod(string shippingOption)
-{
-           // Console.WriteLine($"value of option is {shippingOption} ");
-    var context = await CreateCheckoutContext(shippingOption);
-    var customer = context.Cart.Customer;
+        [HttpPost, ActionName(CheckoutActionNames.ShippingMethod)]
+        [FormValueRequired("nextstep")]
+        public async Task<IActionResult> SelectShippingMethod(string shippingOption)
+        {
+            var context = await CreateCheckoutContext(shippingOption);
+            var customer = context.Cart.Customer;
 
-    // --- Ground delivery check ---
-    bool isGroundDelivery = shippingOption.Contains("2___Shipping.FixedRate", StringComparison.OrdinalIgnoreCase);
+            bool isGroundDelivery = shippingOption.Contains(
+                "2___Shipping.FixedRate",
+                StringComparison.OrdinalIgnoreCase
+            );
 
             if (isGroundDelivery)
             {
-                //Console.WriteLine("bomm");
-                // --- NEW: Clear pickup information for all cart items ---
-        foreach (var organizedItem in context.Cart.Items)
-        {
-            // Access the underlying ShoppingCartItem
-            var item = organizedItem.Item;
-            item.PickupStoreId = null;
-            item.SelectedStore = string.Empty;
-        }
-        await _db.SaveChangesAsync(); // Single save after all updates
-                // Original ground delivery field processing (unchanged)
-                var byGroundAddress = Request.Form["ByGroundAddress"].ToString();
-                if (!string.IsNullOrWhiteSpace(byGroundAddress))
+                foreach (var organizedItem in context.Cart.Items)
                 {
-                    customer.GenericAttributes.Set("ByGroundAddress", byGroundAddress);
-                    await _db.SaveChangesAsync();
+                    var item = organizedItem.Item;
+                    item.PickupStoreId = null;
+                    item.SelectedStore = string.Empty;
                 }
 
-                var byGroundLatitude = Request.Form["ByGroundLatitude"].ToString();
-                if (!string.IsNullOrWhiteSpace(byGroundLatitude))
-                {
-                    customer.GenericAttributes.Set("ByGroundLatitude", byGroundLatitude);
-                    await _db.SaveChangesAsync();
-                }
+                await _db.SaveChangesAsync();
 
-                var byGroundLongitude = Request.Form["ByGroundLongitude"].ToString();
-                if (!string.IsNullOrWhiteSpace(byGroundLongitude))
+                customer.GenericAttributes.Set(
+                    "ByGroundAddress",
+                    Request.Form["ByGroundAddress"].ToString()
+                );
+                customer.GenericAttributes.Set(
+                    "ByGroundLatitude",
+                    Request.Form["ByGroundLatitude"].ToString()
+                );
+                customer.GenericAttributes.Set(
+                    "ByGroundLongitude",
+                    Request.Form["ByGroundLongitude"].ToString()
+                );
+                await _db.SaveChangesAsync();
+
+                foreach (var organizedItem in context.Cart.Items)
                 {
-                    customer.GenericAttributes.Set("ByGroundLongitude", byGroundLongitude);
-                    await _db.SaveChangesAsync();
+                    var item = organizedItem.Item;
+                    var result = await _merchantStoreService.DeductProductQuantityForDeliveryAsync(
+                        item.ProductId,
+                        item.Quantity
+                    );
+
+                    if (result == null)
+                    {
+                        NotifyError(
+                            $"Not enough stock for product {item.Product.Name} to fulfill delivery."
+                        );
+                        return RedirectToAction(nameof(ShippingMethod));
+                    }
+                    item.StoreId = result.First().MerchantStoreId;
+
+                    item.PickupStoreId = result.First().MerchantStoreId;
+                    var store = await _merchantStoreService.GetMerchantStoreByIdAsync(
+                        result.First().MerchantStoreId
+                    );
+                    item.SelectedStore = store?.Name ?? string.Empty;
                 }
             }
             else
             {
-                // --- Clear ground delivery fields when not ground delivery (FIXED) ---
                 customer.GenericAttributes.Set<string>("ByGroundAddress", null);
                 customer.GenericAttributes.Set<string>("ByGroundLatitude", null);
                 customer.GenericAttributes.Set<string>("ByGroundLongitude", null);
                 await _db.SaveChangesAsync();
-              //Console.WriteLine(" not found by ground");
-    }
+            }
 
-    // Original code continues unchanged
-    var result = await _checkoutWorkflow.AdvanceAsync(context);
-    result.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
+            var resultWorkflow = await _checkoutWorkflow.AdvanceAsync(context);
+            resultWorkflow.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
 
-    return result.ActionResult ?? RedirectToAction(nameof(ShippingMethod));
-}
+            return resultWorkflow.ActionResult ?? RedirectToAction(nameof(ShippingMethod));
+        }
+
         public async Task<IActionResult> PaymentMethod()
         {
             var context = await CreateCheckoutContext();
@@ -290,16 +321,23 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
                 return result.ActionResult;
             }
 
-            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutPaymentMethodModel>(context);
+            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutPaymentMethodModel>(
+                context
+            );
 
             return View(result.ViewPath, model);
         }
 
         [HttpPost, ActionName(CheckoutActionNames.PaymentMethod)]
         [FormValueRequired("nextstep")]
-        public async Task<IActionResult> SelectPaymentMethod(string paymentMethod, IFormCollection form)
+        public async Task<IActionResult> SelectPaymentMethod(
+            string paymentMethod,
+            IFormCollection form
+        )
         {
-            var result = await _checkoutWorkflow.AdvanceAsync(await CreateCheckoutContext(paymentMethod));
+            var result = await _checkoutWorkflow.AdvanceAsync(
+                await CreateCheckoutContext(paymentMethod)
+            );
 
             result.Errors.Each(x => ModelState.AddModelError(x.PropertyName, x.ErrorMessage));
 
@@ -314,12 +352,17 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
         [HttpPost]
         public async Task<IActionResult> PaymentInfoAjax(string paymentMethodSystemName)
         {
-            if (!_orderSettings.AnonymousCheckoutAllowed && !_workContext.CurrentCustomer.IsRegistered())
+            if (
+                !_orderSettings.AnonymousCheckoutAllowed
+                && !_workContext.CurrentCustomer.IsRegistered()
+            )
             {
                 return new EmptyResult();
             }
 
-            var paymentMethod = await _paymentService.LoadPaymentProviderBySystemNameAsync(paymentMethodSystemName);
+            var paymentMethod = await _paymentService.LoadPaymentProviderBySystemNameAsync(
+                paymentMethodSystemName
+            );
             if (paymentMethod == null)
             {
                 return new NotFoundResult();
@@ -333,7 +376,9 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
 
             try
             {
-                var widgetContent = await infoWidget.InvokeAsync(new WidgetContext(ControllerContext));
+                var widgetContent = await infoWidget.InvokeAsync(
+                    new WidgetContext(ControllerContext)
+                );
                 return Content(widgetContent.ToHtmlString().ToString());
             }
             catch (Exception ex)
@@ -355,12 +400,17 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
                 return result.ActionResult;
             }
 
-            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(context);
+            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(
+                context
+            );
 
             // Add these lines to ensure ByGround fields are populated
-            model.OrderReviewData.ByGroundAddress = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
-            model.OrderReviewData.ByGroundLatitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
-            model.OrderReviewData.ByGroundLongitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
+            model.OrderReviewData.ByGroundAddress =
+                context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+            model.OrderReviewData.ByGroundLatitude =
+                context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
+            model.OrderReviewData.ByGroundLongitude =
+                context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
 
             return View(result.ViewPath, model);
         }
@@ -373,12 +423,17 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
             if (result.Errors.Length > 0)
             {
                 var context = await CreateCheckoutContext();
-                var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(context);
+                var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(
+                    context
+                );
 
                 // Add these lines here as well
-                model.OrderReviewData.ByGroundAddress = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
-                model.OrderReviewData.ByGroundLatitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
-                model.OrderReviewData.ByGroundLongitude = context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
+                model.OrderReviewData.ByGroundAddress =
+                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+                model.OrderReviewData.ByGroundLatitude =
+                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
+                model.OrderReviewData.ByGroundLongitude =
+                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
 
                 result.Errors.Each(x => model.Warnings.Add(x.ErrorMessage));
 
@@ -393,13 +448,16 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
             var store = _storeContext.CurrentStore;
             var customer = _workContext.CurrentCustomer;
 
-            if (!_orderSettings.AnonymousCheckoutAllowed && !_workContext.CurrentCustomer.IsRegistered())
+            if (
+                !_orderSettings.AnonymousCheckoutAllowed
+                && !_workContext.CurrentCustomer.IsRegistered()
+            )
             {
                 return ChallengeOrForbid();
             }
 
-            var order = await _db.Orders
-                .AsNoTracking()
+            var order = await _db
+                .Orders.AsNoTracking()
                 .Include(x => x.Customer)
                 .ApplyStandardFilter(customer.Id, store.Id)
                 .FirstOrDefaultAsync();
@@ -411,25 +469,30 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
 
             if (_orderSettings.DisableOrderCompletedPage)
             {
-                return RedirectToAction(nameof(OrderController.Details), "Order", new { id = order.Id });
+                return RedirectToAction(
+                    nameof(OrderController.Details),
+                    "Order",
+                    new { id = order.Id }
+                );
             }
 
-            return View(new CheckoutCompletedModel
-            {
-                OrderId = order.Id,
-                OrderNumber = order.GetOrderNumber(),
-                Order = order
-            });
+            return View(
+                new CheckoutCompletedModel
+                {
+                    OrderId = order.Id,
+                    OrderNumber = order.GetOrderNumber(),
+                    Order = order,
+                }
+            );
         }
 
         private async Task<CheckoutContext> CreateCheckoutContext(object model = null)
         {
-            var cart = await _shoppingCartService.GetCartAsync(storeId: _storeContext.CurrentStore.Id);
-            
-            return new(cart, HttpContext, Url)
-            {
-                Model = model
-            };
+            var cart = await _shoppingCartService.GetCartAsync(
+                storeId: _storeContext.CurrentStore.Id
+            );
+
+            return new(cart, HttpContext, Url) { Model = model };
         }
 
         private async Task EnsureDummyShipAddressAsync(Customer customer)
@@ -437,9 +500,7 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
             if (customer.ShippingAddress != null)
                 return;
 
-            var country = await _db.Countries
-                                   .Where(c => c.TwoLetterIsoCode == "ET")
-                                   .FirstAsync();
+            var country = await _db.Countries.Where(c => c.TwoLetterIsoCode == "ET").FirstAsync();
 
             var dummy = new Address
             {
@@ -451,7 +512,7 @@ public async Task<IActionResult> SelectShippingMethod(string shippingOption)
                 PhoneNumber = "-",
                 FirstName = customer.GetFullName() ?? "N/A",
                 LastName = "-",
-                Email = "guest.user@example.org"
+                Email = "guest.user@example.org",
             };
             customer.Addresses.Add(dummy);
             customer.ShippingAddress = dummy;

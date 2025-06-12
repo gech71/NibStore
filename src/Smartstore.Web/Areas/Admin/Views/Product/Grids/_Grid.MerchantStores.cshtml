@@ -53,9 +53,19 @@
                 <span>{{ item.row.Quantity }}</span>
             </display-template>
             <edit-template>
-                <input type="number" class="form-control" v-model="item.row.Quantity" min="0" />
+                <input type="number" class="form-control no-spinner" v-model="item.row.Quantity" min="0" />
             </edit-template>
         </column>
+        <column for="DeliveryPriority" title="@T("Admin.Catalog.Products.MerchantStores.Fields.DeliveryPriority")"
+            halign="center">
+            <display-template>
+                <span>{{ item.row.DeliveryPriority }}</span>
+            </display-template>
+            <edit-template>
+                <input type="number" class="form-control no-spinner" v-model="item.row.DeliveryPriority" min="0" />
+            </edit-template>
+        </column>
+
         <column for="DisplayOrder" halign="center" />
     </columns>
     <row-commands>
@@ -63,3 +73,16 @@
         <a datarow-action="DataRowAction.Delete">@T("Common.Delete")</a>
     </row-commands>
 </datagrid>
+
+<style>
+    /* Hide arrows in Chrome, Safari, Edge, Opera */
+    input.no-spinner::-webkit-outer-spin-button,
+    input.no-spinner::-webkit-inner-spin-button {
+        -webkit-appearance: none !important;
+        margin: 0 !important;
+    }
+
+    input.no-spinner {
+        -moz-appearance: textfield !important;
+    }
+</style>

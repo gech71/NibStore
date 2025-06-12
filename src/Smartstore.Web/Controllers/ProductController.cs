@@ -74,7 +74,8 @@ namespace Smartstore.Web.Controllers
             Lazy<IProductAttributeMaterializer> productAttributeMaterializer,
             Lazy<IStockSubscriptionService> stockSubscriptionService,
             Lazy<IProviderManager> providerManager,
-            Lazy<ModuleManager> moduleManager)
+            Lazy<ModuleManager> moduleManager
+        )
         {
             _db = db;
             _webHelper = webHelper;
@@ -107,8 +108,8 @@ namespace Smartstore.Web.Controllers
         public async Task<IActionResult> ProductDetails(int productId, ProductVariantQuery query)
         {
             // Sync on purpose because of large column.
-            var product = await _db.Products
-                .AsSplitQuery()
+            var product = await _db
+                .Products.AsSplitQuery()
                 .IncludeMedia()
                 .IncludeManufacturers()
                 .FindByIdAsync(productId);
@@ -118,7 +119,10 @@ namespace Smartstore.Web.Controllers
 
             // Is published? Check whether the current user has a "Manage catalog" permission.
             // It allows him to preview a product before publishing.
-            if (!product.Published && !await Services.Permissions.AuthorizeAsync(Permissions.Catalog.Product.Read))
+            if (
+                !product.Published
+                && !await Services.Permissions.AuthorizeAsync(Permissions.Catalog.Product.Read)
+            )
                 return NotFound();
 
             // ACL (access control list).
@@ -133,7 +137,10 @@ namespace Smartstore.Web.Controllers
             if (product.Visibility == ProductVisibility.Hidden)
             {
                 // Find parent grouped product.
-                var parentGroupedProduct = await _db.Products.FindByIdAsync(product.ParentGroupedProductId, false);
+                var parentGroupedProduct = await _db.Products.FindByIdAsync(
+                    product.ParentGroupedProductId,
+                    false
+                );
                 if (parentGroupedProduct == null)
                     return NotFound();
 
@@ -141,10 +148,7 @@ namespace Smartstore.Web.Controllers
                 if (seName.IsEmpty())
                     return NotFound();
 
-                var routeValues = new RouteValueDictionary
-                {
-                    { "SeName", seName }
-                };
+                var routeValues = new RouteValueDictionary { { "SeName", seName } };
 
                 // Add query string parameters.
                 Request.Query.Each(x => routeValues.Add(x.Key, Request.Query[x.Value].ToString()));
@@ -160,7 +164,11 @@ namespace Smartstore.Web.Controllers
             _recentlyViewedProductsService.AddProductToRecentlyViewedList(product.Id);
 
             // Activity log
-            Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreViewProduct, T("ActivityLog.PublicStore.ViewProduct"), product.Name);
+            Services.ActivityLogger.LogActivity(
+                KnownActivityLogTypes.PublicStoreViewProduct,
+                T("ActivityLog.PublicStore.ViewProduct"),
+                product.Name
+            );
 
             // Breadcrumb
             if (_catalogSettings.CategoryBreadcrumbEnabled)
@@ -178,13 +186,15 @@ namespace Smartstore.Web.Controllers
                     }
                 }
 
-                _breadcrumb.Track(new MenuItem
-                {
-                    Text = model.Name,
-                    Rtl = model.Name.CurrentLanguage.Rtl,
-                    EntityId = product.Id,
-                    Url = Url.RouteUrl("Product", new { model.SeName })
-                });
+                _breadcrumb.Track(
+                    new MenuItem
+                    {
+                        Text = model.Name,
+                        Rtl = model.Name.CurrentLanguage.Rtl,
+                        EntityId = product.Id,
+                        Url = Url.RouteUrl("Product", new { model.SeName }),
+                    }
+                );
             }
 
             await PrepareAvailablePaymentMethodsAsync();
@@ -193,7 +203,7 @@ namespace Smartstore.Web.Controllers
         }
 
         /// <summary>
-        /// Prepares icons of payment methods for display on product detail pages 
+        /// Prepares icons of payment methods for display on product detail pages
         /// configured in <see cref="PaymentSettings.ProductDetailPaymentMethodSystemNames"/>.
         /// </summary>
         private async Task PrepareAvailablePaymentMethodsAsync()
@@ -204,46 +214,60 @@ namespace Smartstore.Web.Controllers
             }
 
             // Store obtained data in memory cache
-            var cacheKey = PaymentService.ProductDetailPaymentIcons.FormatInvariant(Services.StoreContext.CurrentStore.Id);
-            ViewBag.AvailablePaymentMethods = await Services.Cache.GetAsync(cacheKey, () =>
-            {
-                // INFO: No Dictonary<string, string> here because key are not unique in the case a provider has multiple icons.
-                var paymentMethods = new List<(string FriendlyName, string Url)>();
-
-                // Get all providers.
-                var providers = _providerManager.Value.GetAllProviders<IPaymentMethod>();
-
-                foreach (var systemName in _paymentSettings.ProductDetailPaymentMethodSystemNames)
+            var cacheKey = PaymentService.ProductDetailPaymentIcons.FormatInvariant(
+                Services.StoreContext.CurrentStore.Id
+            );
+            ViewBag.AvailablePaymentMethods = await Services.Cache.GetAsync(
+                cacheKey,
+                () =>
                 {
-                    var provider = providers.Where(x => x.Metadata.SystemName == systemName).FirstOrDefault();
+                    // INFO: No Dictonary<string, string> here because key are not unique in the case a provider has multiple icons.
+                    var paymentMethods = new List<(string FriendlyName, string Url)>();
 
-                    // Check if provider is enabled.
-                    if (provider == null || !provider.IsPaymentProviderEnabled(_paymentSettings))
+                    // Get all providers.
+                    var providers = _providerManager.Value.GetAllProviders<IPaymentMethod>();
+
+                    foreach (
+                        var systemName in _paymentSettings.ProductDetailPaymentMethodSystemNames
+                    )
                     {
-                        continue;
-                    }
+                        var provider = providers
+                            .Where(x => x.Metadata.SystemName == systemName)
+                            .FirstOrDefault();
 
-                    var friendlyName = _moduleManager.Value.GetLocalizedFriendlyName(provider.Metadata);
-                    var brandImage = _moduleManager.Value.GetBrandImage(provider.Metadata);
-
-                    if (brandImage != null)
-                    {
-                        if (!brandImage.NumberedImageUrls.IsNullOrEmpty())
+                        // Check if provider is enabled.
+                        if (
+                            provider == null
+                            || !provider.IsPaymentProviderEnabled(_paymentSettings)
+                        )
                         {
-                            foreach (var url in brandImage.NumberedImageUrls)
+                            continue;
+                        }
+
+                        var friendlyName = _moduleManager.Value.GetLocalizedFriendlyName(
+                            provider.Metadata
+                        );
+                        var brandImage = _moduleManager.Value.GetBrandImage(provider.Metadata);
+
+                        if (brandImage != null)
+                        {
+                            if (!brandImage.NumberedImageUrls.IsNullOrEmpty())
                             {
-                                paymentMethods.Add((friendlyName, url));
+                                foreach (var url in brandImage.NumberedImageUrls)
+                                {
+                                    paymentMethods.Add((friendlyName, url));
+                                }
+                            }
+                            else if (brandImage.DefaultImageUrl != null)
+                            {
+                                paymentMethods.Add((friendlyName, brandImage.DefaultImageUrl));
                             }
                         }
-                        else if (brandImage.DefaultImageUrl != null)
-                        {
-                            paymentMethods.Add((friendlyName, brandImage.DefaultImageUrl));
-                        }
                     }
-                }
 
-                return paymentMethods;
-            });
+                    return paymentMethods;
+                }
+            );
         }
 
         /// <summary>
@@ -269,19 +293,28 @@ namespace Smartstore.Web.Controllers
                 ProductSeName = await product.GetActiveSlugAsync(),
                 IsCurrentCustomerRegistered = customer.IsRegistered(),
                 MaximumBackInStockSubscriptions = _catalogSettings.MaximumBackInStockSubscriptions,
-                CurrentNumberOfBackInStockSubscriptions = await _db.BackInStockSubscriptions
-                    .ApplyStandardFilter(customerId: customer.Id, storeId: store.Id)
-                    .CountAsync()
+                CurrentNumberOfBackInStockSubscriptions = await _db
+                    .BackInStockSubscriptions.ApplyStandardFilter(
+                        customerId: customer.Id,
+                        storeId: store.Id
+                    )
+                    .CountAsync(),
             };
 
-            if (product.ManageInventoryMethod == ManageInventoryMethod.ManageStock &&
-                product.BackorderMode == BackorderMode.NoBackorders &&
-                product.AllowBackInStockSubscriptions &&
-                product.StockQuantity <= 0)
+            if (
+                product.ManageInventoryMethod == ManageInventoryMethod.ManageStock
+                && product.BackorderMode == BackorderMode.NoBackorders
+                && product.AllowBackInStockSubscriptions
+                && product.StockQuantity <= 0
+            )
             {
                 // Out of stock.
                 model.SubscriptionAllowed = true;
-                model.AlreadySubscribed = await _stockSubscriptionService.Value.IsSubscribedAsync(product, customer, store.Id);
+                model.AlreadySubscribed = await _stockSubscriptionService.Value.IsSubscribedAsync(
+                    product,
+                    customer,
+                    store.Id
+                );
             }
 
             return View("BackInStockSubscribePopup", model);
@@ -301,7 +334,10 @@ namespace Smartstore.Web.Controllers
                 return Content(T("Products.NotFound", id));
             }
 
-            var (_, message) = await _stockSubscriptionService.Value.SubscribeAsync(product, unsubscribe: true);
+            var (_, message) = await _stockSubscriptionService.Value.SubscribeAsync(
+                product,
+                unsubscribe: true
+            );
 
             return Content(message);
         }
@@ -315,8 +351,8 @@ namespace Smartstore.Web.Controllers
         public async Task<IActionResult> AssociatedProducts(int id, int page, string q)
         {
             var content = string.Empty;
-            var product = await _db.Products
-                .AsNoTracking()
+            var product = await _db
+                .Products.AsNoTracking()
                 .SelectSummary()
                 .FirstOrDefaultAsync(x => x.Id == id);
 
@@ -341,7 +377,8 @@ namespace Smartstore.Web.Controllers
             int productId,
             int? parentProductId,
             int bundleItemId,
-            ProductVariantQuery query)
+            ProductVariantQuery query
+        )
         {
             // TODO: (core) UpdateProductDetails action needs some decent refactoring.
             var form = HttpContext.Request.Form;
@@ -352,8 +389,8 @@ namespace Smartstore.Web.Controllers
             var isAssociated = itemType.EqualsNoCase("associateditem");
 
             var product = await _db.Products.FindByIdAsync(productId);
-            var bundleItem = await _db.ProductBundleItem
-                .Include(x => x.Product)
+            var bundleItem = await _db
+                .ProductBundleItem.Include(x => x.Product)
                 .Include(x => x.BundleProduct)
                 .Include(x => x.AttributeFilters)
                 .FindByIdAsync(bundleItemId, false);
@@ -365,12 +402,28 @@ namespace Smartstore.Web.Controllers
                 _ = int.TryParse(form[quantityKey], out quantity);
             }
 
-            var ctx = await _helper.CreateModelContext(product, query, bundleItem, isAssociated, parentProductId);
-            var hasAssociatedHeader = isAssociated && (ctx.GroupedProductConfiguration?.Collapsible ?? _catalogSettings.CollapsibleAssociatedProducts);
+            var ctx = await _helper.CreateModelContext(
+                product,
+                query,
+                bundleItem,
+                isAssociated,
+                parentProductId
+            );
+            var hasAssociatedHeader =
+                isAssociated
+                && (
+                    ctx.GroupedProductConfiguration?.Collapsible
+                    ?? _catalogSettings.CollapsibleAssociatedProducts
+                );
 
             // Get merged model data.
             var model = new ProductDetailsModel();
-            await _helper.PrepareProductDetailModelAsync(model, ctx, quantity, callCustomMapper: true);
+            await _helper.PrepareProductDetailModelAsync(
+                model,
+                ctx,
+                quantity,
+                callCustomMapper: true
+            );
 
             if (bundleItem != null)
             {
@@ -378,22 +431,47 @@ namespace Smartstore.Web.Controllers
                 {
                     // Update bundle item thumbnail.
                     var file = await GetSelectedAttributeImage();
-                    dynamicThumbUrl = file != null ? _mediaService.GetUrl(file, _mediaSettings.BundledProductPictureSize, null, false) : null;
+                    dynamicThumbUrl =
+                        file != null
+                            ? _mediaService.GetUrl(
+                                file,
+                                _mediaSettings.BundledProductPictureSize,
+                                null,
+                                false
+                            )
+                            : null;
                 }
             }
             else if (isAssociated)
             {
                 // Update associated product thumbnail.
                 var file = await GetSelectedAttributeImage();
-                dynamicThumbUrl = file != null ? _mediaService.GetUrl(file, _mediaSettings.AssociatedProductPictureSize, null, false) : null;
+                dynamicThumbUrl =
+                    file != null
+                        ? _mediaService.GetUrl(
+                            file,
+                            _mediaSettings.AssociatedProductPictureSize,
+                            null,
+                            false
+                        )
+                        : null;
 
-                var headerFields = ctx.GroupedProductConfiguration.HeaderFields ?? _catalogSettings.CollapsibleAssociatedProductsHeaders ?? [];
-                if (hasAssociatedHeader && headerFields.Any(x => x.EqualsNoCase(AssociatedProductHeader.Image)))
+                var headerFields =
+                    ctx.GroupedProductConfiguration.HeaderFields
+                    ?? _catalogSettings.CollapsibleAssociatedProductsHeaders
+                    ?? [];
+                if (
+                    hasAssociatedHeader
+                    && headerFields.Any(x => x.EqualsNoCase(AssociatedProductHeader.Image))
+                )
                 {
                     // Render associated product thumbnail in collapsible header.
-                    var files = file != null
-                        ? [_mediaService.ConvertMediaFile(file)]
-                        : (await LoadFiles()).Select(x => _mediaService.ConvertMediaFile(x.MediaFile)).ToList();
+                    var files =
+                        file != null
+                            ? [_mediaService.ConvertMediaFile(file)]
+                            : (await LoadFiles())
+                                .Select(x => _mediaService.ConvertMediaFile(x.MediaFile))
+                                .ToList();
 
                     model.MediaGalleryModel = _helper.PrepareProductDetailsMediaGalleryModel(
                         files,
@@ -401,7 +479,8 @@ namespace Smartstore.Web.Controllers
                         null,
                         true,
                         bundleItem,
-                        model.SelectedCombination);
+                        model.SelectedCombination
+                    );
                 }
             }
             else if (product.ProductType != ProductType.BundledProduct)
@@ -422,7 +501,10 @@ namespace Smartstore.Web.Controllers
                 }
                 else
                 {
-                    var allCombinationPictureIds = await _productAttributeService.GetAttributeCombinationFileIdsAsync(product.Id);
+                    var allCombinationPictureIds =
+                        await _productAttributeService.GetAttributeCombinationFileIdsAsync(
+                            product.Id
+                        );
                     var mediaFiles = files
                         .Where(x => x.MediaFile != null)
                         .Select(x => _mediaService.ConvertMediaFile(x.MediaFile))
@@ -434,7 +516,8 @@ namespace Smartstore.Web.Controllers
                         allCombinationPictureIds,
                         false,
                         bundleItem,
-                        model.SelectedCombination);
+                        model.SelectedCombination
+                    );
 
                     galleryStartIndex = mediaModel.GalleryStartIndex;
                     galleryHtml = await InvokePartialViewAsync("Product.Media", mediaModel);
@@ -449,7 +532,10 @@ namespace Smartstore.Web.Controllers
                 {
                     BundleItemPrice = await InvokePartialViewAsync("Product.Offer.Price", model),
                     BundleItemStock = await InvokePartialViewAsync("Product.StockInfo", model),
-                    BundleItemVariants = await InvokePartialViewAsync("Product.Variants", model.ProductVariantAttributes)
+                    BundleItemVariants = await InvokePartialViewAsync(
+                        "Product.Variants",
+                        model.ProductVariantAttributes
+                    ),
                 };
             }
             else
@@ -459,29 +545,47 @@ namespace Smartstore.Web.Controllers
                     Attrs = await InvokePartialViewAsync("Product.Attrs", model),
                     Price = await InvokePartialViewAsync("Product.Offer.Price", model),
                     Stock = await InvokePartialViewAsync("Product.StockInfo", model),
-                    Variants = await InvokePartialViewAsync("Product.Variants", model.ProductVariantAttributes),
-                    OfferActions = await InvokePartialViewAsync("Product.Offer.Actions", CreateViewDataFor("OfferActions")),
-                    TierPrices = await InvokePartialViewAsync("Product.TierPrices", model.Price.TierPrices),
-                    BundlePrice = product.ProductType == ProductType.BundledProduct ? await InvokePartialViewAsync("Product.Bundle.Price", model) : null,
-                    AssociatedHeader = hasAssociatedHeader ? await InvokePartialViewAsync("Product.AssociatedProduct.Header", CreateViewDataFor("AssociatedHeader")) : null
+                    Variants = await InvokePartialViewAsync(
+                        "Product.Variants",
+                        model.ProductVariantAttributes
+                    ),
+                    OfferActions = await InvokePartialViewAsync(
+                        "Product.Offer.Actions",
+                        CreateViewDataFor("OfferActions")
+                    ),
+                    TierPrices = await InvokePartialViewAsync(
+                        "Product.TierPrices",
+                        model.Price.TierPrices
+                    ),
+                    BundlePrice = product.ProductType == ProductType.BundledProduct
+                        ? await InvokePartialViewAsync("Product.Bundle.Price", model)
+                        : null,
+                    AssociatedHeader = hasAssociatedHeader
+                        ? await InvokePartialViewAsync(
+                            "Product.AssociatedProduct.Header",
+                            CreateViewDataFor("AssociatedHeader")
+                        )
+                        : null,
                 };
             }
 
-            return new JsonResult(new
-            {
-                Partials = partials,
-                model.ProductUrl,
-                DynamicThumblUrl = dynamicThumbUrl,
-                GalleryStartIndex = galleryStartIndex,
-                GalleryHtml = galleryHtml
-            });
+            return new JsonResult(
+                new
+                {
+                    Partials = partials,
+                    model.ProductUrl,
+                    DynamicThumblUrl = dynamicThumbUrl,
+                    GalleryStartIndex = galleryStartIndex,
+                    GalleryHtml = galleryHtml,
+                }
+            );
 
             #region Utilities
 
             async Task<List<ProductMediaFile>> LoadFiles()
             {
-                var files = await _db.ProductMediaFiles
-                    .AsNoTracking()
+                var files = await _db
+                    .ProductMediaFiles.AsNoTracking()
                     .Include(x => x.MediaFile)
                     .ApplyProductFilter(product.Id)
                     .ToListAsync();
@@ -527,11 +631,14 @@ namespace Smartstore.Web.Controllers
         public async Task<IActionResult> Reviews(int id)
         {
             // INFO: Entitity is being loaded tracked because else navigation properties can't be loaded in PrepareProductReviewsModelAsync.
-            var product = await _db.Products
-                .IncludeReviews()
-                .FindByIdAsync(id);
+            var product = await _db.Products.IncludeReviews().FindByIdAsync(id);
 
-            if (product == null || product.IsSystemProduct || !product.Published || !product.AllowCustomerReviews)
+            if (
+                product == null
+                || product.IsSystemProduct
+                || !product.Published
+                || !product.AllowCustomerReviews
+            )
             {
                 return NotFound();
             }
@@ -539,7 +646,7 @@ namespace Smartstore.Web.Controllers
             var model = new ProductReviewsModel
             {
                 Rating = _catalogSettings.DefaultProductRatingValue,
-                IsReviewsDetailPage = true
+                IsReviewsDetailPage = true,
             };
 
             await _helper.PrepareProductReviewsModelAsync(model, product);
@@ -547,13 +654,23 @@ namespace Smartstore.Web.Controllers
             model.SuccessfullyAdded = (TempData["SuccessfullyAdded"] as bool?) ?? false;
             if (model.SuccessfullyAdded)
             {
-                model.Result = T(_catalogSettings.ProductReviewsMustBeApproved ? "Reviews.SeeAfterApproving" : "Reviews.SuccessfullyAdded");
+                model.Result = T(
+                    _catalogSettings.ProductReviewsMustBeApproved
+                        ? "Reviews.SeeAfterApproving"
+                        : "Reviews.SuccessfullyAdded"
+                );
             }
 
             // Only registered users can leave reviews.
-            if (Services.WorkContext.CurrentCustomer.IsGuest() && !_catalogSettings.AllowAnonymousUsersToReviewProduct)
+            if (
+                Services.WorkContext.CurrentCustomer.IsGuest()
+                && !_catalogSettings.AllowAnonymousUsersToReviewProduct
+            )
             {
-                ModelState.AddModelError(string.Empty, T("Reviews.OnlyRegisteredUsersCanWriteReviews"));
+                ModelState.AddModelError(
+                    string.Empty,
+                    T("Reviews.OnlyRegisteredUsersCanWriteReviews")
+                );
             }
 
             return View(model);
@@ -562,14 +679,21 @@ namespace Smartstore.Web.Controllers
         [HttpPost, ActionName("Reviews")]
         [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnProductReviewPage))]
         [GdprConsent]
-        public async Task<IActionResult> ReviewsAdd(int id, ProductReviewsModel model, string captchaError)
+        public async Task<IActionResult> ReviewsAdd(
+            int id,
+            ProductReviewsModel model,
+            string captchaError
+        )
         {
             // INFO: Entitity is being loaded tracked because else navigation properties can't be loaded in PrepareProductReviewsModelAsync.
-            var product = await _db.Products
-                .IncludeReviews()
-                .FindByIdAsync(id);
+            var product = await _db.Products.IncludeReviews().FindByIdAsync(id);
 
-            if (product == null || product.IsSystemProduct || !product.Published || !product.AllowCustomerReviews)
+            if (
+                product == null
+                || product.IsSystemProduct
+                || !product.Published
+                || !product.AllowCustomerReviews
+            )
             {
                 return NotFound();
             }
@@ -583,7 +707,10 @@ namespace Smartstore.Web.Controllers
 
             if (customer.IsGuest() && !_catalogSettings.AllowAnonymousUsersToReviewProduct)
             {
-                ModelState.AddModelError(string.Empty, T("Reviews.OnlyRegisteredUsersCanWriteReviews"));
+                ModelState.AddModelError(
+                    string.Empty,
+                    T("Reviews.OnlyRegisteredUsersCanWriteReviews")
+                );
             }
 
             if (ModelState.IsValid)
@@ -601,12 +728,15 @@ namespace Smartstore.Web.Controllers
                     CustomerId = customer.Id,
                     IpAddress = _webHelper.GetClientIpAddress().ToString(),
                     Title = model.Title?.RemoveHtml(),
-                    ReviewText = HtmlUtility.SanitizeHtml(model.ReviewText, HtmlSanitizerOptions.UserCommentSuitable),
+                    ReviewText = HtmlUtility.SanitizeHtml(
+                        model.ReviewText,
+                        HtmlSanitizerOptions.UserCommentSuitable
+                    ),
                     Rating = rating,
                     HelpfulYesTotal = 0,
                     HelpfulNoTotal = 0,
                     IsApproved = isApproved,
-                    Product = product
+                    Product = product,
                 };
 
                 product.ProductReviews.Add(productReview);
@@ -614,10 +744,17 @@ namespace Smartstore.Web.Controllers
 
                 if (_catalogSettings.NotifyStoreOwnerAboutNewProductReviews)
                 {
-                    await _messageFactory.Value.SendProductReviewNotificationMessageAsync(productReview, _localizationSettings.DefaultAdminLanguageId);
+                    await _messageFactory.Value.SendProductReviewNotificationMessageAsync(
+                        productReview,
+                        _localizationSettings.DefaultAdminLanguageId
+                    );
                 }
 
-                Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreAddProductReview, T("ActivityLog.PublicStore.AddProductReview"), product.Name);
+                Services.ActivityLogger.LogActivity(
+                    KnownActivityLogTypes.PublicStoreAddProductReview,
+                    T("ActivityLog.PublicStore.AddProductReview"),
+                    product.Name
+                );
 
                 if (isApproved)
                 {
@@ -647,34 +784,40 @@ namespace Smartstore.Web.Controllers
             var customer = Services.WorkContext.CurrentCustomer;
             if (customer.IsGuest() && !_catalogSettings.AllowAnonymousUsersToReviewProduct)
             {
-                return Json(new
-                {
-                    Success = false,
-                    Result = T("Reviews.Helpfulness.OnlyRegistered").Value,
-                    TotalYes = productReview.HelpfulYesTotal,
-                    TotalNo = productReview.HelpfulNoTotal
-                });
+                return Json(
+                    new
+                    {
+                        Success = false,
+                        Result = T("Reviews.Helpfulness.OnlyRegistered").Value,
+                        TotalYes = productReview.HelpfulYesTotal,
+                        TotalNo = productReview.HelpfulNoTotal,
+                    }
+                );
             }
 
             // Customers aren't allowed to vote for their own reviews.
             if (productReview.CustomerId == customer.Id)
             {
-                return Json(new
-                {
-                    Success = false,
-                    Result = T("Reviews.Helpfulness.YourOwnReview").Value,
-                    TotalYes = productReview.HelpfulYesTotal,
-                    TotalNo = productReview.HelpfulNoTotal
-                });
+                return Json(
+                    new
+                    {
+                        Success = false,
+                        Result = T("Reviews.Helpfulness.YourOwnReview").Value,
+                        TotalYes = productReview.HelpfulYesTotal,
+                        TotalNo = productReview.HelpfulNoTotal,
+                    }
+                );
             }
 
-            var entriesQuery = _db.CustomerContent
-                .AsQueryable()
+            var entriesQuery = _db
+                .CustomerContent.AsQueryable()
                 .OfType<ProductReviewHelpfulness>()
                 .Where(x => x.ProductReviewId == productReview.Id);
 
             // Delete previous helpfulness.
-            var oldEntry = await entriesQuery.Where(x => x.CustomerId == customer.Id).FirstOrDefaultAsync();
+            var oldEntry = await entriesQuery
+                .Where(x => x.CustomerId == customer.Id)
+                .FirstOrDefaultAsync();
 
             if (oldEntry != null)
             {
@@ -688,7 +831,7 @@ namespace Smartstore.Web.Controllers
                 CustomerId = customer.Id,
                 IpAddress = _webHelper.GetClientIpAddress().ToString(),
                 WasHelpful = washelpful,
-                IsApproved = true // Always approved
+                IsApproved = true, // Always approved
             };
 
             _db.CustomerContent.Add(newEntry);
@@ -704,13 +847,15 @@ namespace Smartstore.Web.Controllers
 
             await _db.SaveChangesAsync();
 
-            return Json(new
-            {
-                Success = true,
-                Result = T("Reviews.Helpfulness.SuccessfullyVoted").Value,
-                TotalYes = productReview.HelpfulYesTotal,
-                TotalNo = productReview.HelpfulNoTotal
-            });
+            return Json(
+                new
+                {
+                    Success = true,
+                    Result = T("Reviews.Helpfulness.SuccessfullyVoted").Value,
+                    TotalYes = productReview.HelpfulYesTotal,
+                    TotalNo = productReview.HelpfulNoTotal,
+                }
+            );
         }
 
         #endregion
@@ -746,12 +891,19 @@ namespace Smartstore.Web.Controllers
             // Get rawAttributes from product variant query
             if (query != null)
             {
-                var attributes = await _db.ProductVariantAttributes
-                    .Include(x => x.ProductAttribute)
+                var attributes = await _db
+                    .ProductVariantAttributes.Include(x => x.ProductAttribute)
                     .ApplyProductFilter(new[] { id })
                     .ToListAsync();
 
-                var (selection, _) = await _productAttributeMaterializer.Value.CreateAttributeSelectionAsync(query, attributes, id, 0, false);
+                var (selection, _) =
+                    await _productAttributeMaterializer.Value.CreateAttributeSelectionAsync(
+                        query,
+                        attributes,
+                        id,
+                        0,
+                        false
+                    );
                 TempData["AskQuestionAttributeSelection-" + id] = selection.AsJson();
             }
 
@@ -761,7 +913,10 @@ namespace Smartstore.Web.Controllers
         [HttpPost, ActionName("AskQuestion")]
         [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnAskQuestionPage))]
         [ValidateHoneypot, GdprConsent]
-        public async Task<IActionResult> AskQuestionSend(ProductAskQuestionModel model, string captchaError)
+        public async Task<IActionResult> AskQuestionSend(
+            ProductAskQuestionModel model,
+            string captchaError
+        )
         {
             if (!_catalogSettings.AskQuestionEnabled)
             {
@@ -790,7 +945,8 @@ namespace Smartstore.Web.Controllers
                     HtmlUtility.ConvertPlainTextToHtml(model.Question.HtmlEncode()),
                     HtmlUtility.ConvertPlainTextToHtml(model.SelectedAttributes.HtmlEncode()),
                     model.ProductUrl,
-                    model.IsQuoteRequest);
+                    model.IsQuoteRequest
+                );
 
                 if (msg?.Email?.Id != null)
                 {
@@ -800,7 +956,10 @@ namespace Smartstore.Web.Controllers
 
                     return model.ProductUrl.HasValue()
                         ? Redirect(model.ProductUrl)
-                        : RedirectToRoute("Product", new { SeName = await product.GetActiveSlugAsync() });
+                        : RedirectToRoute(
+                            "Product",
+                            new { SeName = await product.GetActiveSlugAsync() }
+                        );
                 }
                 else
                 {
@@ -817,7 +976,8 @@ namespace Smartstore.Web.Controllers
         private async Task<ProductAskQuestionModel> PrepareAskQuestionModelAsync(Product product)
         {
             var customer = Services.WorkContext.CurrentCustomer;
-            var rawAttributes = TempData.Peek("AskQuestionAttributeSelection-" + product.Id) as string;
+            var rawAttributes =
+                TempData.Peek("AskQuestionAttributeSelection-" + product.Id) as string;
             var selection = new ProductVariantAttributeSelection(rawAttributes);
             var slug = await product.GetActiveSlugAsync();
 
@@ -830,21 +990,32 @@ namespace Smartstore.Web.Controllers
                 SenderName = customer.GetFullName(),
                 SenderNameRequired = _privacySettings.FullNameOnProductRequestRequired,
                 SenderPhone = customer.GenericAttributes.Phone,
-                DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnAskQuestionPage,
+                DisplayCaptcha =
+                    _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnAskQuestionPage,
                 SelectedAttributes = string.Empty,
-                ProductUrl = await _productUrlHelper.Value.GetAbsoluteProductUrlAsync(product.Id, slug, selection),
-                IsQuoteRequest = product.CallForPrice
+                ProductUrl = await _productUrlHelper.Value.GetAbsoluteProductUrlAsync(
+                    product.Id,
+                    slug,
+                    selection
+                ),
+                IsQuoteRequest = product.CallForPrice,
             };
 
-            model.Question = T("Products.AskQuestion.Question." + (model.IsQuoteRequest ? "QuoteRequest" : "GeneralInquiry"), model.ProductName);
+            model.Question = T(
+                "Products.AskQuestion.Question."
+                    + (model.IsQuoteRequest ? "QuoteRequest" : "GeneralInquiry"),
+                model.ProductName
+            );
 
             if (selection.HasAttributes)
             {
-                model.SelectedAttributes = await _productAttributeFormatter.Value.FormatAttributesAsync(
-                    selection,
-                    product,
-                    ProductAttributeFormatOptions.PlainText,
-                    customer);
+                model.SelectedAttributes =
+                    await _productAttributeFormatter.Value.FormatAttributesAsync(
+                        selection,
+                        product,
+                        ProductAttributeFormatOptions.PlainText,
+                        customer
+                    );
             }
 
             return model;
@@ -859,7 +1030,12 @@ namespace Smartstore.Web.Controllers
         {
             var product = await _db.Products.FindByIdAsync(id, false);
 
-            if (product == null || product.IsSystemProduct || !product.Published || !_catalogSettings.EmailAFriendEnabled)
+            if (
+                product == null
+                || product.IsSystemProduct
+                || !product.Published
+                || !_catalogSettings.EmailAFriendEnabled
+            )
                 return NotFound();
 
             var model = await PrepareEmailAFriendModelAsync(product);
@@ -868,12 +1044,23 @@ namespace Smartstore.Web.Controllers
         }
 
         [HttpPost, ActionName("EmailAFriend")]
-        [ValidateCaptcha(CaptchaSettingName = nameof(CaptchaSettings.ShowOnEmailProductToFriendPage))]
+        [ValidateCaptcha(
+            CaptchaSettingName = nameof(CaptchaSettings.ShowOnEmailProductToFriendPage)
+        )]
         [GdprConsent]
-        public async Task<IActionResult> EmailAFriendSend(ProductEmailAFriendModel model, int id, string captchaError)
+        public async Task<IActionResult> EmailAFriendSend(
+            ProductEmailAFriendModel model,
+            int id,
+            string captchaError
+        )
         {
             var product = await _db.Products.FindByIdAsync(id, false);
-            if (product == null || product.IsSystemProduct || !product.Published || !_catalogSettings.EmailAFriendEnabled)
+            if (
+                product == null
+                || product.IsSystemProduct
+                || !product.Published
+                || !_catalogSettings.EmailAFriendEnabled
+            )
                 return NotFound();
 
             if (_captchaSettings.ShowOnEmailProductToFriendPage && captchaError.HasValue())
@@ -886,7 +1073,10 @@ namespace Smartstore.Web.Controllers
             // Check whether the current customer is guest and is allowed to email a friend.
             if (customer.IsGuest() && !_catalogSettings.AllowAnonymousUsersToEmailAFriend)
             {
-                ModelState.AddModelError(string.Empty, T("Products.EmailAFriend.OnlyRegisteredUsers"));
+                ModelState.AddModelError(
+                    string.Empty,
+                    T("Products.EmailAFriend.OnlyRegisteredUsers")
+                );
             }
 
             if (ModelState.IsValid)
@@ -897,11 +1087,15 @@ namespace Smartstore.Web.Controllers
                     product,
                     model.YourEmailAddress,
                     model.FriendEmail,
-                    HtmlUtility.ConvertPlainTextToHtml(model.PersonalMessage.HtmlEncode()));
+                    HtmlUtility.ConvertPlainTextToHtml(model.PersonalMessage.HtmlEncode())
+                );
 
                 NotifySuccess(T("Products.EmailAFriend.SuccessfullySent"));
 
-                return RedirectToRoute("Product", new { SeName = await product.GetActiveSlugAsync() });
+                return RedirectToRoute(
+                    "Product",
+                    new { SeName = await product.GetActiveSlugAsync() }
+                );
             }
 
             // If we got this far something failed. Redisplay form.
@@ -918,8 +1112,11 @@ namespace Smartstore.Web.Controllers
                 ProductName = product.GetLocalized(x => x.Name),
                 ProductSeName = await product.GetActiveSlugAsync(),
                 YourEmailAddress = Services.WorkContext.CurrentCustomer.Email,
-                AllowChangedCustomerEmail = _catalogSettings.AllowDifferingEmailAddressForEmailAFriend,
-                DisplayCaptcha = _captchaSettings.CanDisplayCaptcha && _captchaSettings.ShowOnEmailProductToFriendPage
+                AllowChangedCustomerEmail =
+                    _catalogSettings.AllowDifferingEmailAddressForEmailAFriend,
+                DisplayCaptcha =
+                    _captchaSettings.CanDisplayCaptcha
+                    && _captchaSettings.ShowOnEmailProductToFriendPage,
             };
 
             return model;
@@ -928,4 +1125,3 @@ namespace Smartstore.Web.Controllers
         #endregion
     }
 }
-
