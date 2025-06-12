@@ -1,4 +1,4 @@
-﻿﻿﻿﻿@using Smartstore.Web.Models.Checkout
+﻿﻿@using Smartstore.Web.Models.Checkout
 @using Smartstore.Core.Checkout.Cart
 @using Smartstore.Core
 @using Smartstore.Core.Common.Services
@@ -62,9 +62,13 @@ else
                                value="@(shippingMethod.ShippingMethodId)___@(shippingMethod.ShippingRateComputationMethodSystemName)"
                                data-shippingmethodid="@(shippingMethod.ShippingMethodId)"
                                data-shipping-name="@shippingMethod.Name"
+                               data-shipping-fee="@shippingMethod.Fee"
                                @(shippingMethod.Selected ? "checked" : "") />
                         <label class="form-check-label" for="shippingoption_@(i)">
-                            <span class="opt-name">@Html.Raw(shippingMethod.Name.HtmlDecode())</span>
+                            @{
+                                var displayName = shippingMethod.Name == "By Ground" ? "Delivery" : shippingMethod.Name;
+                            }
+                            <span class="opt-name">@Html.Raw(displayName.HtmlDecode())</span>
                         </label>
                     </div>
 
@@ -76,56 +80,60 @@ else
                     }
                 </div>
 
-                @if (isStorePickup)
-                {
-                    <div id="storePickupProducts" class="mt-3">
-                        <label class="form-label font-weight-bold">Your Cart Items:</label>
-                        <div class="list-group">
-                            @foreach (var item in _cartItems)
-                            {
-                                <div class="list-group-item d-flex justify-content-between align-items-center product-item" style="position: relative;">
-                                    <div>
-                                        <div class="product-name">@item.Product.Name</div>
-                                        <div class="product-quantity text-muted small">Qty: @item.Quantity</div>
-                                    </div>
-                                  @{
-                                        var availableStores = await storeProductService.GetStoresForProductAsync(item.ProductId, item.Quantity);
-                                    }
-
-                                    @if (availableStores.Any())
-                                    {
-                                        <select class="form-control store-select form-control-sm store-select-dropdown" 
-        data-item-id="@item.Id" 
-        name="StoreFor_@item.Id" 
-        style="display:none; min-width: 150px;">
-    <option value="">-- Select Store --</option>
-    @foreach (var store in availableStores)
-    {
-        <option 
-            value="@store.Name" 
-            data-store-id="@store.Id" 
-            selected="@(item.StoreId == store.Id ? "selected" : null)">
-            @store.Name
-        </option>
-    }
-</select>
-
-                                    }
-                                    else
-                                    {
-                                        <div class="text-danger small mt-1">
-                                            No stores have sufficient stock for this item
-                                        </div>
-                                    }
-
-
-
-
-                                </div>
-                            }
-                        </div>
+               @if (isStorePickup)
+{
+    <div id="storePickupProducts" class="mt-3">
+        <label class="form-label font-weight-bold">Your Cart Items:</label>
+        <div class="list-group">
+            @foreach (var item in _cartItems)
+            {
+                <div class="list-group-item d-flex justify-content-between align-items-center product-item" style="position: relative;">
+                    <div>
+                        <div class="product-name">@item.Product.Name</div>
+                        <div class="product-quantity text-muted small">Qty: @item.Quantity</div>
                     </div>
-                }
+                    @{
+                        var availableStores = await storeProductService.GetStoresForProductAsync(item.ProductId, item.Quantity);
+                    }
+
+                    @if (availableStores.Any())
+                    {
+                        <div>
+                            <select class="form-control store-select form-control-sm store-select-dropdown"
+                                    data-item-id="@item.Id"
+                                    name="StoreFor_@item.Id"
+                                    style="min-width: 150px;">
+                                <option value="">-- Select Store --</option>
+                                @foreach (var store in availableStores)
+                                {
+                                    <option value="@store.Name"
+                                            data-store-id="@store.Id"
+                                            selected="@(item.StoreId == store.Id ? "selected" : null)">
+                                        @store.Name
+                                    </option>
+                                }
+                            </select>
+                            <span class="store-feedback small d-block mt-1" style="display:none;"></span>
+                        </div>
+                    }
+                    else
+                    {
+                       <div class="no-store-no-stock" data-item-id="@item.Id">
+                              <span>No stores have sufficient stock for this item</span>
+                               <button class="remove-item-x">x</button>
+                           </div>
+
+                    }
+                </div>
+            }
+            <!-- Existing validation error -->
+            <div class="store-pickup-validation-error text-danger small d-none mt-2">
+                Please select a store for every item in your cart.
+            </div>
+        </div>
+    </div>
+}
+
 
                 @if (isByGround)
                 {
@@ -273,11 +281,17 @@ else
     
     document.addEventListener('DOMContentLoaded', () => {
 
-     $(document).on('change', '.store-select', function () {
-    var storeName = $(this).val(); // store name from value
-    var itemId = $(this).data('item-id'); // get item ID
-    var storeId = $(this).find('option:selected').data('store-id'); // store ID from selected option
-    console.log(storeId);
+   
+
+    $(document).on('change', '.store-select', function () {
+    var $select = $(this);
+    var storeName = $select.val();
+    var itemId = $select.data('item-id');
+    var storeId = $select.find('option:selected').data('store-id');
+    var $feedback = $select.siblings('.store-feedback');
+
+    $feedback.text('').removeClass('text-success text-danger');
+
     if (storeName && storeId) {
         $.ajax({
             url: '/ShoppingCart/UpdateCartItemStore',
@@ -289,13 +303,13 @@ else
             },
             success: function (response) {
                 if (response.success) {
-                    alert('Store updated successfully');
+                    $feedback.text('Store updated successfully').addClass('text-success').show();
                 } else {
-                    alert(response.message || 'Failed to update store');
+                    $feedback.text(response.message || 'Failed to update store').addClass('text-danger').show();
                 }
             },
             error: function () {
-                alert('Server error occurred.');
+                $feedback.text('Server error occurred.').addClass('text-danger').show();
             }
         });
     }
@@ -417,15 +431,15 @@ else
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            L.Control.geocoder({
-                defaultMarkGeocode: false
-            })
-            .on('markgeocode', function(e) {
-                const center = e.geocode.center;
-                map.setView(center, 13);
-                marker.setLatLng(center);
-                updateAddressAndCoordinates(e.geocode.name, center.lat, center.lng);
-            }).addTo(map);
+            //L.Control.geocoder({
+            //    defaultMarkGeocode: false
+            //})
+            //.on('markgeocode', function(e) {
+            //    const center = e.geocode.center;
+            //    map.setView(center, 13);
+            //    marker.setLatLng(center);
+            //    updateAddressAndCoordinates(e.geocode.name, center.lat, center.lng);
+            //}).addTo(map);
 
             marker = L.marker([lat, lng], { draggable: true }).addTo(map);
             marker.on('dragend', async () => {
@@ -536,6 +550,8 @@ else
             if (addressInput) {
                 addressInput.value = address;
                 localStorage.setItem('byGroundAddress', address);
+                // Trigger input event for live update in order totals
+                $('#addressInput').trigger('input');
             }
             document.getElementById('mapCoordinates').value = `${lat},${lng}`;
             document.getElementById('latitudeField').value = lat;
@@ -610,5 +626,51 @@ function hideAddressError() {
         errorDiv.style.display = 'none';
     }
 }
+
+
+
+
     });
+</script>
+
+<script>
+$(document).ready(function () {
+    // Update the By Ground address in the order totals live
+    $('#addressInput').on('input', function () {
+        $('#liveByGroundAddress').text($(this).val());
+        // Clear lat/lng if user types manually (not from suggestion/map)
+        $('#latitudeField').val('');
+        $('#longitudeField').val('');
+    });
+
+    // Existing code for showing/hiding the address
+    function updateOrderTotalsUI() {
+        var $selectedRadio = $('input[name="shippingoption"]:checked');
+        if (!$selectedRadio.length) return;
+
+        var shippingName = $selectedRadio.data('shipping-name');
+        var originalShippingName = shippingName; // Save the original
+
+        // Alias for UI only
+        if (shippingName && shippingName.trim().toLowerCase() === "by ground") {
+            shippingName = "Delivery";
+        }
+        var $shippingLabel = $('.cart-summary-shipping .cart-summary-label span.font-weight-medium');
+        if (shippingName) {
+            $shippingLabel.text(shippingName).show();
+        } else {
+            $shippingLabel.hide();
+        }
+
+        // Use the original name for logic
+        if (originalShippingName && originalShippingName.trim().toLowerCase() === "by ground") {
+            $('.by-ground-address-display').show();
+        } else {
+            $('.by-ground-address-display').hide();
+        }
+    }
+
+    updateOrderTotalsUI();
+    $('input[name="shippingoption"]').on('change', updateOrderTotalsUI);
+});
 </script>

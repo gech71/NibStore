@@ -121,9 +121,13 @@
 @if (isLinesMode && !price.DisableBuyButton && list.BuyEnabled)
 {
     <div class="mt-3">
-        <div class="d-flex gap-2">
-            @{ RenderBuyButton(true); }
-            @{ RenderBuyNowButton(true); }
+        <div class="d-flex gap-2 align-items-stretch">
+            <div class="flex-fill">
+                @{ RenderBuyButton(true); }
+            </div>
+            <div class="flex-fill">
+                @{ RenderBuyNowButton(true); }
+            </div>
         </div>
     </div>
 }
