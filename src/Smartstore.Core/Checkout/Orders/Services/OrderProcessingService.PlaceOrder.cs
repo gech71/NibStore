@@ -1404,9 +1404,10 @@ namespace Smartstore.Core.Checkout.Orders
                  // ✅ Decrement stock based on store
                // Check if the order contains any store pickup items
 var hasStorePickup = ctx.Order?.OrderItems?.Any(item => item.StorePickupId.HasValue) == true;
-
-if (hasStorePickup)
+                bool isStorePickupOrder = ctx.Order.ShippingMethod.Contains("Pickup");
+if (hasStorePickup && isStorePickupOrder)
 {
+                    //Console.WriteLine("in store pickup is selected");
     await DecrementStoreStockAsync(ctx);
 }
             }

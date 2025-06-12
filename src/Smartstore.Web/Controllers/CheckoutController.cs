@@ -220,43 +220,67 @@ namespace Smartstore.Web.Controllers
             return View(result.ViewPath, model);
         }
 
-        [HttpPost, ActionName(CheckoutActionNames.ShippingMethod)]
-        [FormValueRequired("nextstep")]
-        public async Task<IActionResult> SelectShippingMethod(string shippingOption)
+[HttpPost, ActionName(CheckoutActionNames.ShippingMethod)]
+[FormValueRequired("nextstep")]
+public async Task<IActionResult> SelectShippingMethod(string shippingOption)
+{
+           // Console.WriteLine($"value of option is {shippingOption} ");
+    var context = await CreateCheckoutContext(shippingOption);
+    var customer = context.Cart.Customer;
+
+    // --- Ground delivery check ---
+    bool isGroundDelivery = shippingOption.Contains("2___Shipping.FixedRate", StringComparison.OrdinalIgnoreCase);
+
+            if (isGroundDelivery)
+            {
+                //Console.WriteLine("bomm");
+                // --- NEW: Clear pickup information for all cart items ---
+        foreach (var organizedItem in context.Cart.Items)
         {
-            var context = await CreateCheckoutContext(shippingOption);
-            var customer = context.Cart.Customer;
-
-            var byGroundAddress = Request.Form["ByGroundAddress"].ToString();
-            if (!string.IsNullOrWhiteSpace(byGroundAddress))
-            {
-                // Store in GenericAttributes on the customer
-                customer.GenericAttributes.Set("ByGroundAddress", byGroundAddress);
-                await _db.SaveChangesAsync();
-            
-            }
-            var byGroundLatitude = Request.Form["ByGroundLatitude"].ToString();
-            if (!string.IsNullOrWhiteSpace(byGroundLatitude))
-            {
-                // Store in GenericAttributes on the customer
-                customer.GenericAttributes.Set("ByGroundLatitude", byGroundLatitude);
-                await _db.SaveChangesAsync();
-            }
-            var byGroundLongitude = Request.Form["ByGroundLongitude"].ToString();
-            if (!string.IsNullOrWhiteSpace(byGroundLongitude))
-            {
-                // Store in GenericAttributes on the customer
-                customer.GenericAttributes.Set("ByGroundLongitude", byGroundLongitude);
-                await _db.SaveChangesAsync();
-            }
-
-            var result = await _checkoutWorkflow.AdvanceAsync(context);
-
-            result.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
-
-            return result.ActionResult ?? RedirectToAction(nameof(ShippingMethod));
+            // Access the underlying ShoppingCartItem
+            var item = organizedItem.Item;
+            item.PickupStoreId = null;
+            item.SelectedStore = string.Empty;
         }
+        await _db.SaveChangesAsync(); // Single save after all updates
+                // Original ground delivery field processing (unchanged)
+                var byGroundAddress = Request.Form["ByGroundAddress"].ToString();
+                if (!string.IsNullOrWhiteSpace(byGroundAddress))
+                {
+                    customer.GenericAttributes.Set("ByGroundAddress", byGroundAddress);
+                    await _db.SaveChangesAsync();
+                }
 
+                var byGroundLatitude = Request.Form["ByGroundLatitude"].ToString();
+                if (!string.IsNullOrWhiteSpace(byGroundLatitude))
+                {
+                    customer.GenericAttributes.Set("ByGroundLatitude", byGroundLatitude);
+                    await _db.SaveChangesAsync();
+                }
+
+                var byGroundLongitude = Request.Form["ByGroundLongitude"].ToString();
+                if (!string.IsNullOrWhiteSpace(byGroundLongitude))
+                {
+                    customer.GenericAttributes.Set("ByGroundLongitude", byGroundLongitude);
+                    await _db.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                // --- Clear ground delivery fields when not ground delivery (FIXED) ---
+                customer.GenericAttributes.Set<string>("ByGroundAddress", null);
+                customer.GenericAttributes.Set<string>("ByGroundLatitude", null);
+                customer.GenericAttributes.Set<string>("ByGroundLongitude", null);
+                await _db.SaveChangesAsync();
+              //Console.WriteLine(" not found by ground");
+    }
+
+    // Original code continues unchanged
+    var result = await _checkoutWorkflow.AdvanceAsync(context);
+    result.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
+
+    return result.ActionResult ?? RedirectToAction(nameof(ShippingMethod));
+}
         public async Task<IActionResult> PaymentMethod()
         {
             var context = await CreateCheckoutContext();
