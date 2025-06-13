@@ -137,7 +137,7 @@ namespace Smartstore.Web.Controllers
 
             if (string.IsNullOrEmpty(model.Password))
             {
-                if (roles.Contains("Administrators") || roles.Contains("Merchants"))
+                if (roles.Contains("Administrators") || roles.Contains("Merchant"))
                 {
                     model.ShowPassword = true;
                     return View(model);
@@ -161,7 +161,7 @@ namespace Smartstore.Web.Controllers
                 return View(model);
             }
 
-            if (roles.Contains("Administrators") || roles.Contains("Merchants"))
+            if (roles.Contains("Administrators") || roles.Contains("Merchant"))
             {
                 var result = await _signInManager.PasswordSignInAsync(
                     customer,

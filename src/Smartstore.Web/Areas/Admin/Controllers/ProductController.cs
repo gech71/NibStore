@@ -1913,13 +1913,13 @@ namespace Smartstore.Admin.Controllers
             var tags = await query.OrderBy(x => x.Name).ToPagedList(page - 1, pageSize).LoadAsync();
 
             var results = tags.Select(x => new ChoiceListItem
-                {
-                    Id = x.Name,
-                    Text = x.Name,
-                    Selected = selectedNames?.Contains(x.Name) ?? false,
-                    Title = !x.Published ? unpublishedStr : null,
-                    CssClass = !x.Published ? "choice-item-unavailable" : null,
-                })
+            {
+                Id = x.Name,
+                Text = x.Name,
+                Selected = selectedNames?.Contains(x.Name) ?? false,
+                Title = !x.Published ? unpublishedStr : null,
+                CssClass = !x.Published ? "choice-item-unavailable" : null,
+            })
                 .ToList();
 
             return new JsonResult(new { results, pagination = new { more = tags.HasNextPage } });
@@ -1956,12 +1956,12 @@ namespace Smartstore.Admin.Controllers
                 .LoadAsync();
 
             var rows = await tags.SelectAwait(async x => new ProductTagModel
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Published = x.Published,
-                    ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
-                })
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Published = x.Published,
+                ProductCount = await _productTagService.CountProductsByTagIdAsync(x.Id),
+            })
                 .AsyncToList();
 
             return Json(
