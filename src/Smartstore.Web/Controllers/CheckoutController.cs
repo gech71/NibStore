@@ -254,29 +254,25 @@ namespace Smartstore.Web.Controllers
                 foreach (var organizedItem in context.Cart.Items)
                 {
                     var item = organizedItem.Item;
+
+                    // Avoid removing the item completely from the cart
+                    // Just ignore the pickup fields for delivery
                     item.PickupStoreId = null;
-                    item.SelectedStore = string.Empty;
+                    item.SelectedStore = null; // Use null instead of empty string
                 }
 
                 await _db.SaveChangesAsync();
 
-                customer.GenericAttributes.Set(
-                    "ByGroundAddress",
-                    Request.Form["ByGroundAddress"].ToString()
-                );
-                customer.GenericAttributes.Set(
-                    "ByGroundLatitude",
-                    Request.Form["ByGroundLatitude"].ToString()
-                );
-                customer.GenericAttributes.Set(
-                    "ByGroundLongitude",
-                    Request.Form["ByGroundLongitude"].ToString()
-                );
+                // Set delivery-specific attributes
+                customer.GenericAttributes.Set("ByGroundAddress", Request.Form["ByGroundAddress"].ToString());
+                customer.GenericAttributes.Set("ByGroundLatitude", Request.Form["ByGroundLatitude"].ToString());
+                customer.GenericAttributes.Set("ByGroundLongitude", Request.Form["ByGroundLongitude"].ToString());
                 await _db.SaveChangesAsync();
 
                 foreach (var organizedItem in context.Cart.Items)
                 {
                     var item = organizedItem.Item;
+
                     var result = await _merchantStoreService.DeductProductQuantityForDeliveryAsync(
                         item.ProductId,
                         item.Quantity
@@ -284,22 +280,14 @@ namespace Smartstore.Web.Controllers
 
                     if (result == null)
                     {
-                        NotifyError(
-                            $"Not enough stock for product {item.Product.Name} to fulfill delivery."
-                        );
+                        NotifyError($"Not enough stock for product {item.Product.Name} to fulfill delivery.");
                         return RedirectToAction(nameof(ShippingMethod));
                     }
-                    item.StoreId = result.First().MerchantStoreId;
-
-                    item.PickupStoreId = result.First().MerchantStoreId;
-                    var store = await _merchantStoreService.GetMerchantStoreByIdAsync(
-                        result.First().MerchantStoreId
-                    );
-                    item.SelectedStore = store?.Name ?? string.Empty;
                 }
             }
             else
             {
+                // Clear ground delivery attributes when store pickup is selected
                 customer.GenericAttributes.Set<string>("ByGroundAddress", null);
                 customer.GenericAttributes.Set<string>("ByGroundLatitude", null);
                 customer.GenericAttributes.Set<string>("ByGroundLongitude", null);
@@ -310,6 +298,7 @@ namespace Smartstore.Web.Controllers
             resultWorkflow.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
 
             return resultWorkflow.ActionResult ?? RedirectToAction(nameof(ShippingMethod));
+
         }
 
         public async Task<IActionResult> PaymentMethod()
