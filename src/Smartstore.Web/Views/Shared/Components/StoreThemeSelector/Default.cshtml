@@ -15,7 +15,7 @@
 <form id="store-theme-selector" sm-ajax method="post" asp-action="ChangeTheme" asp-controller="Common" sm-oncomplete="onStoreThemeChangedRequestCompleted">
     <input type="hidden" name="themeName" id="themeNameInput" value="@currentTheme?.Name" />
 
-    <div class="theme-toggle" id="themeToggle">
+    <div class="theme-toggle" id="themeToggle" data-toggle="tooltip" data-placement="top" title="Switch to @(isYellow ? (brownTheme?.Title ?? "Brown") : (yellowTheme?.Title ?? "Yellow")) mode">
         <div class="toggle-slider @(isYellow ? "toggle-brown" : "toggle-yellow")">
             <div class="toggle-knob"></div>
         </div>
@@ -76,10 +76,15 @@
 
 <script>
     $(function () {
+        // Initialize Bootstrap tooltip
+        $('#themeToggle').tooltip();
         $('#themeToggle').on('click', function () {
             const isCurrentlyYellow = $(this).find('.toggle-slider').hasClass('toggle-yellow');
-
             const newTheme = isCurrentlyYellow ? '@brownTheme?.Name' : '@yellowTheme?.Name';
+            const newMode = isCurrentlyYellow ? '@brownTheme?.Title' : '@yellowTheme?.Title';
+
+            // Update tooltip text to reflect the next mode
+            $(this).attr('data-original-title', 'Switch to ' + newMode + ' mode').tooltip('show');
 
             // Toggle slider background class
             const slider = $(this).find('.toggle-slider');
