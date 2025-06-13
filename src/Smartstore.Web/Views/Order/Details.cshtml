@@ -66,13 +66,14 @@
                         }
 
                          @* ✅ Show Selected Store Name *@
-    @if (!string.IsNullOrEmpty(item.SelectedStoreName))
-    {
-        <div class="pickup-store-info">
-            <span class="fw-semibold">Store:</span>
-            <span>@item.SelectedStoreName</span>
-        </div>
-    }
+     @* Only show store info if shipping method is "Store Pickup" *@
+                        @if (Model.ShippingMethod != "By Ground" && !string.IsNullOrEmpty(item.SelectedStoreName))
+                        {
+                            <div class="pickup-store-info">
+                                <span class="fw-semibold">Store:</span>
+                                <span>@item.SelectedStoreName</span>
+                            </div>
+                        }
 
     @* ✅ Optional: Show Pickup Store ID (if needed for internal/debugging) 
     @if (item.PickupStoreId > 0)
@@ -241,7 +242,7 @@
                         </div> *@
                         <div sm-if="Model.IsShippable && Model.ShippingAddress != null" class="col mb-4 mb-lg-0 shippinginfo">
                             <h5>@T("Order.ShippingAddress")</h5>
-                            <div>
+                            @* <div>
                                 <div>
                                     <strong>@Model.ShippingAddress.FirstName @Model.ShippingAddress.LastName</strong>
                                 </div>
@@ -252,7 +253,8 @@
                                         <span>@Model.ShippingAddress.PhoneNumber</span>
                                     </div>
                                 }
-                            </div>
+                            </div> *@
+                            @await Component.InvokeAsync("CustomerContactInfo")
                         </div>
                     </div>
                 </div>

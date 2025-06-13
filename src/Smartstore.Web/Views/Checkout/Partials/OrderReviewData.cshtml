@@ -3,7 +3,7 @@
 
 @model CheckoutConfirmModel.OrderReviewDataModel
 
-@{
+@* @{
     async Task RenderAddress(AddressModel address)
     {
         if (address == null)
@@ -22,7 +22,7 @@
             <span>@address.PhoneNumber</span>
         </div>
     }
-}
+} *@
 
 <div class="card card-body mb-3 order-review-data-box">
     <div sm-if="Model.IsShippable" class="row">
