@@ -1,8 +1,8 @@
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using Smartstore.Core.Checkout.Cart;
 using Smartstore.Core.Common;
 using Smartstore.Core.Localization;
-using Smartstore.Core.Checkout.Cart;
 
 namespace Smartstore.Core.Content.MerchantStores
 {

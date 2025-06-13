@@ -354,12 +354,11 @@ namespace Smartstore.Admin.Models.Catalog
             [UIHint("ProductMerchantStore")]
             public int MerchantStoreId { get; set; }
             public string MerchantStore { get; set; }
-
             public int Quantity { get; set; }
+            public int DeliveryPriority { get; set; }
 
             [LocalizedDisplay("Common.DisplayOrder")]
             public int DisplayOrder { get; set; }
-
         }
 
         [LocalizedDisplay("Admin.Catalog.Products.")]

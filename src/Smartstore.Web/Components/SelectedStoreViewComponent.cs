@@ -1,4 +1,5 @@
 using Smartstore.Core.Checkout.Cart;
+
 public class SelectedStoreViewComponent : SmartViewComponent
 {
     private readonly SmartDbContext _db;
@@ -11,9 +12,9 @@ public class SelectedStoreViewComponent : SmartViewComponent
     public async Task<IViewComponentResult> InvokeAsync(int cartItemId)
     {
         var selectedStore = await _db.Set<ShoppingCartItem>()
-                                     .Where(c => c.Id == cartItemId)
-                                     .Select(c => c.SelectedStore)
-                                     .FirstOrDefaultAsync();
+            .Where(c => c.Id == cartItemId)
+            .Select(c => c.SelectedStore)
+            .FirstOrDefaultAsync();
 
         var storeName = selectedStore ?? "No selected store";
 

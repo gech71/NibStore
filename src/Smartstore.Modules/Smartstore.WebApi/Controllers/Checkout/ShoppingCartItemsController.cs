@@ -36,7 +36,8 @@ namespace Smartstore.Web.Api.Controllers
             Lazy<ICurrencyService> currencyService,
             Lazy<IPermissionService> permissionService,
             Lazy<IProductAttributeMaterializer> productAttributeMaterializer,
-            Lazy<ICheckoutAttributeMaterializer> checkoutAttributeMaterializer)
+            Lazy<ICheckoutAttributeMaterializer> checkoutAttributeMaterializer
+        )
         {
             _storeContext = storeContext;
             _workContext = workContext;
@@ -132,7 +133,8 @@ namespace Smartstore.Web.Api.Controllers
             [FromODataBody, Required] int quantity = 1,
             [FromODataBody] ShoppingCartType shoppingCartType = ShoppingCartType.ShoppingCart,
             [FromODataBody] int storeId = 0,
-            [FromODataBody] AddToCartExtraData extraData = null)
+            [FromODataBody] AddToCartExtraData extraData = null
+        )
         {
             try
             {
@@ -142,8 +144,8 @@ namespace Smartstore.Web.Api.Controllers
                     return Forbidden(message);
                 }
 
-                var customer = await Db.Customers
-                    .AsSplitQuery()
+                var customer = await Db
+                    .Customers.AsSplitQuery()
                     .IncludeCustomerRoles()
                     .Include(x => x.ShoppingCartItems)
                     .FindByIdAsync(customerId);
@@ -152,8 +154,8 @@ namespace Smartstore.Web.Api.Controllers
                     return NotFound(customerId, nameof(Customer));
                 }
 
-                var product = await Db.Products
-                    .Include(x => x.ProductVariantAttributes)
+                var product = await Db
+                    .Products.Include(x => x.ProductVariantAttributes)
                     .ThenInclude(x => x.ProductAttribute)
                     .FindByIdAsync(productId);
                 if (product == null)
@@ -168,8 +170,9 @@ namespace Smartstore.Web.Api.Controllers
                     StoreId = storeId > 0 ? storeId : _storeContext.Value.CurrentStore.Id,
                     CartType = shoppingCartType,
                     Quantity = quantity,
-                    AutomaticallyAddRequiredProducts = product.RequireOtherProducts && product.AutomaticallyAddRequiredProducts,
-                    AutomaticallyAddBundleProducts = true
+                    AutomaticallyAddRequiredProducts =
+                        product.RequireOtherProducts && product.AutomaticallyAddRequiredProducts,
+                    AutomaticallyAddBundleProducts = true,
                 };
 
                 if (extraData != null)
@@ -183,7 +186,10 @@ namespace Smartstore.Web.Api.Controllers
 
                 if (!await _shoppingCartService.Value.AddToCartAsync(context))
                 {
-                    return ErrorResult(null, string.Join(" ", context.Warnings.Select(x => x.EnsureEndsWith('.'))));
+                    return ErrorResult(
+                        null,
+                        string.Join(" ", context.Warnings.Select(x => x.EnsureEndsWith('.')))
+                    );
                 }
 
                 if (extraData != null)
@@ -191,7 +197,11 @@ namespace Smartstore.Web.Api.Controllers
                     await SaveCheckoutAttributes(extraData, customer, context);
                 }
 
-                return Ok(customer.ShoppingCartItems.Where(x => x.ShoppingCartType == shoppingCartType).AsQueryable());
+                return Ok(
+                    customer
+                        .ShoppingCartItems.Where(x => x.ShoppingCartType == shoppingCartType)
+                        .AsQueryable()
+                );
             }
             catch (Exception ex)
             {
@@ -199,7 +209,11 @@ namespace Smartstore.Web.Api.Controllers
             }
         }
 
-        private async Task<IActionResult> ApplyExtraData(AddToCartExtraData extraData, Product product, AddToCartContext context)
+        private async Task<IActionResult> ApplyExtraData(
+            AddToCartExtraData extraData,
+            Product product,
+            AddToCartContext context
+        )
         {
             var selection = new ProductVariantAttributeSelection(null);
 
@@ -209,23 +223,30 @@ namespace Smartstore.Web.Api.Controllers
                 var query = new ProductVariantQuery();
                 extraData.Attributes.Each(query.AddVariant);
 
-                (selection, _) = await _productAttributeMaterializer.Value.CreateAttributeSelectionAsync(
-                    query,
-                    product.ProductVariantAttributes,
-                    product.Id,
-                    context.BundleItemId,
-                    false);
+                (selection, _) =
+                    await _productAttributeMaterializer.Value.CreateAttributeSelectionAsync(
+                        query,
+                        product.ProductVariantAttributes,
+                        product.Id,
+                        context.BundleItemId,
+                        false
+                    );
             }
             else if (!extraData.SearchAttributes.IsNullOrEmpty())
             {
-                var existingMappings = product.ProductVariantAttributes
-                    .ToDictionarySafe(x => x.ProductAttribute.Name, x => x, StringComparer.OrdinalIgnoreCase);
+                var existingMappings = product.ProductVariantAttributes.ToDictionarySafe(
+                    x => x.ProductAttribute.Name,
+                    x => x,
+                    StringComparer.OrdinalIgnoreCase
+                );
 
                 foreach (var attribute in extraData.SearchAttributes)
                 {
                     if (existingMappings.TryGetValue(attribute.Name, out var pva))
                     {
-                        var pvav = pva.ProductVariantAttributeValues.FirstOrDefault(x => x.Name.EqualsNoCase(attribute.Value));
+                        var pvav = pva.ProductVariantAttributeValues.FirstOrDefault(x =>
+                            x.Name.EqualsNoCase(attribute.Value)
+                        );
                         if (pvav != null)
                         {
                             selection.AddAttributeValue(pva.Id, pvav.Id);
@@ -248,26 +269,37 @@ namespace Smartstore.Web.Api.Controllers
             {
                 if (enteredPrice.CurrencyCode.HasValue())
                 {
-                    var currency = await Db.Currencies
-                        .AsNoTracking()
+                    var currency = await Db
+                        .Currencies.AsNoTracking()
                         .FirstOrDefaultAsync(x => x.CurrencyCode == enteredPrice.CurrencyCode);
                     if (currency == null)
                     {
-                        return NotFound($"Cannot find currency with code {enteredPrice.CurrencyCode}.");
+                        return NotFound(
+                            $"Cannot find currency with code {enteredPrice.CurrencyCode}."
+                        );
                     }
 
-                    context.CustomerEnteredPrice = _currencyService.Value.ConvertToPrimaryCurrency(new Money(enteredPrice.Price, currency));
+                    context.CustomerEnteredPrice = _currencyService.Value.ConvertToPrimaryCurrency(
+                        new Money(enteredPrice.Price, currency)
+                    );
                 }
                 else
                 {
-                    context.CustomerEnteredPrice = new(enteredPrice.Price, _currencyService.Value.PrimaryCurrency);
+                    context.CustomerEnteredPrice = new(
+                        enteredPrice.Price,
+                        _currencyService.Value.PrimaryCurrency
+                    );
                 }
             }
 
             return null;
         }
 
-        private async Task SaveCheckoutAttributes(AddToCartExtraData extraData, Customer customer, AddToCartContext context)
+        private async Task SaveCheckoutAttributes(
+            AddToCartExtraData extraData,
+            Customer customer,
+            AddToCartContext context
+        )
         {
             // Checkout attributes.
             if (!extraData.CheckoutAttributes.IsNullOrEmpty())
@@ -275,25 +307,36 @@ namespace Smartstore.Web.Api.Controllers
                 var query = new ProductVariantQuery();
                 extraData.CheckoutAttributes.Each(query.AddCheckoutAttribute);
 
-                var cart = await _shoppingCartService.Value.GetCartAsync(customer, context.CartType, context.StoreId.Value);
-                cart.Customer.GenericAttributes.CheckoutAttributes = await _checkoutAttributeMaterializer.Value.CreateCheckoutAttributeSelectionAsync(query, cart);
+                var cart = await _shoppingCartService.Value.GetCartAsync(
+                    customer,
+                    context.CartType,
+                    context.StoreId.Value
+                );
+                cart.Customer.GenericAttributes.CheckoutAttributes =
+                    await _checkoutAttributeMaterializer.Value.CreateCheckoutAttributeSelectionAsync(
+                        query,
+                        cart
+                    );
                 await Db.SaveChangesAsync();
             }
             else if (!extraData.SearchCheckoutAttributes.IsNullOrEmpty())
             {
                 var selection = new CheckoutAttributeSelection(null);
-                var existingCheckoutAttributes = (await Db.CheckoutAttributes
-                    .Include(x => x.CheckoutAttributeValues)
-                    .AsNoTracking()
-                    .ApplyStandardFilter(false, context.StoreId.Value)
-                    .ToListAsync())
-                    .ToDictionarySafe(x => x.Name, x => x);
+                var existingCheckoutAttributes = (
+                    await Db
+                        .CheckoutAttributes.Include(x => x.CheckoutAttributeValues)
+                        .AsNoTracking()
+                        .ApplyStandardFilter(false, context.StoreId.Value)
+                        .ToListAsync()
+                ).ToDictionarySafe(x => x.Name, x => x);
 
                 foreach (var attribute in extraData.SearchCheckoutAttributes)
                 {
                     if (existingCheckoutAttributes.TryGetValue(attribute.Name, out var ca))
                     {
-                        var cav = ca.CheckoutAttributeValues.FirstOrDefault(x => x.Name.EqualsNoCase(attribute.Value));
+                        var cav = ca.CheckoutAttributeValues.FirstOrDefault(x =>
+                            x.Name.EqualsNoCase(attribute.Value)
+                        );
                         if (cav != null)
                         {
                             selection.AddAttributeValue(ca.Id, cav.Id);
@@ -315,9 +358,11 @@ namespace Smartstore.Web.Api.Controllers
         [Permission(Permissions.Cart.Read)]
         [Consumes(Json), Produces(Json)]
         [ProducesResponseType(typeof(ShoppingCartItem), Status200OK)]
-        public async Task<IActionResult> UpdateItem(int key,
+        public async Task<IActionResult> UpdateItem(
+            int key,
             [FromODataBody] int? quantity = null,
-            [FromODataBody] bool? enabled = null)
+            [FromODataBody] bool? enabled = null
+        )
         {
             try
             {
@@ -339,7 +384,12 @@ namespace Smartstore.Web.Api.Controllers
                     return Forbidden(message);
                 }
 
-                var warnings = await _shoppingCartService.Value.UpdateCartItemAsync(entity.Customer, key, quantity, enabled);
+                var warnings = await _shoppingCartService.Value.UpdateCartItemAsync(
+                    entity.Customer,
+                    key,
+                    quantity,
+                    enabled
+                );
                 if (warnings.Count > 0)
                 {
                     return ErrorResult(null, string.Join(". ", warnings));
@@ -366,15 +416,15 @@ namespace Smartstore.Web.Api.Controllers
         [HttpPost("ShoppingCartItems({key})/DeleteItem")]
         [Consumes(Json), Produces(Json)]
         [ProducesResponseType(Status204NoContent)]
-        public async Task<IActionResult> DeleteItem(int key,
+        public async Task<IActionResult> DeleteItem(
+            int key,
             [FromODataBody] bool resetCheckoutData = false,
-            [FromODataBody] bool removeInvalidCheckoutAttributes = false)
+            [FromODataBody] bool removeInvalidCheckoutAttributes = false
+        )
         {
             try
             {
-                var entity = await Entities
-                    .Include(x => x.Customer)
-                    .FindByIdAsync(key);
+                var entity = await Entities.Include(x => x.Customer).FindByIdAsync(key);
                 if (entity == null)
                 {
                     return NotFound(key);
@@ -386,7 +436,11 @@ namespace Smartstore.Web.Api.Controllers
                     return Forbidden(message);
                 }
 
-                await _shoppingCartService.Value.DeleteCartItemAsync(entity, resetCheckoutData, removeInvalidCheckoutAttributes);
+                await _shoppingCartService.Value.DeleteCartItemAsync(
+                    entity,
+                    resetCheckoutData,
+                    removeInvalidCheckoutAttributes
+                );
 
                 return NoContent();
             }
@@ -408,8 +462,10 @@ namespace Smartstore.Web.Api.Controllers
         [ProducesResponseType(typeof(int), Status200OK)]
         public async Task<IActionResult> DeleteCart(
             [FromODataBody, Required] int customerId,
-            [FromODataBody, Required] ShoppingCartType shoppingCartType = ShoppingCartType.ShoppingCart,
-            [FromODataBody] int storeId = 0)
+            [FromODataBody, Required]
+                ShoppingCartType shoppingCartType = ShoppingCartType.ShoppingCart,
+            [FromODataBody] int storeId = 0
+        )
         {
             try
             {
@@ -419,8 +475,8 @@ namespace Smartstore.Web.Api.Controllers
                     return Forbidden(message);
                 }
 
-                var customer = await Db.Customers
-                    .AsSplitQuery()
+                var customer = await Db
+                    .Customers.AsSplitQuery()
                     .Include(x => x.ShoppingCartItems)
                     .ThenInclude(x => x.Product)
                     .ThenInclude(x => x.ProductVariantAttributes)
@@ -430,7 +486,11 @@ namespace Smartstore.Web.Api.Controllers
                     return NotFound(customerId, nameof(Customer));
                 }
 
-                var cart = await _shoppingCartService.Value.GetCartAsync(customer, shoppingCartType, storeId);
+                var cart = await _shoppingCartService.Value.GetCartAsync(
+                    customer,
+                    shoppingCartType,
+                    storeId
+                );
                 var count = await _shoppingCartService.Value.DeleteCartAsync(cart);
 
                 return Ok(count);
@@ -443,8 +503,16 @@ namespace Smartstore.Web.Api.Controllers
 
         private async Task<string> CheckAccess(ShoppingCartType cartType)
         {
-            var permission = cartType == ShoppingCartType.Wishlist ? Permissions.Cart.AccessWishlist : Permissions.Cart.AccessShoppingCart;
-            if (!await _permissionService.Value.AuthorizeAsync(permission, _workContext.Value.CurrentCustomer))
+            var permission =
+                cartType == ShoppingCartType.Wishlist
+                    ? Permissions.Cart.AccessWishlist
+                    : Permissions.Cart.AccessShoppingCart;
+            if (
+                !await _permissionService.Value.AuthorizeAsync(
+                    permission,
+                    _workContext.Value.CurrentCustomer
+                )
+            )
             {
                 return await _permissionService.Value.GetUnauthorizedMessageAsync(permission);
             }
