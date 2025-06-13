@@ -161,4 +161,14 @@
         padding: 0 !important;
         border-radius: 50% !important;
     }
+    /* Ensure Telegram icon hover matches others with large circle bg */
+    .footer-social .btn-social.btn-brand-telegram:hover,
+    .footer-social .btn-social.btn-brand-telegram:focus {
+        background-color: #229ED9 !important; /* Telegram brand color or match other social bg */
+        color: #fff !important;
+        box-shadow: 0 2px 8px rgba(34,158,217,0.15); /* optional, for consistency */
+        /* Remove opacity so bg is solid */
+        opacity: 1 !important;
+        transition: background-color 0.15s, color 0.15s;
+    }
 </style>
