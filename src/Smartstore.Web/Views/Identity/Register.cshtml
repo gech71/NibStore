@@ -88,7 +88,7 @@
                                 if (Model.CheckUsernameAvailabilityEnabled)
                                 {
                                     <div class="form-floating mb-2 position-relative">
-                                        <input asp-for="Username" class="form-control rounded-pill shadow-sm px-4 remember"
+                                        <input asp-for="Username" class="form-control rounded-4 shadow-sm px-4 remember"
                                             autocomplete="username" placeholder="Username" />
                                         <label asp-for="Username" class="ms-2">Username</label>
 
@@ -102,7 +102,7 @@
                                 else
                                 {
                                     <div class="form-floating">
-                                        <input asp-for="Username" class="form-control rounded-pill shadow-sm px-4 remember"
+                                        <input asp-for="Username" class="form-control rounded-4 shadow-sm px-4 remember"
                                             autocomplete="username" placeholder="Username" />
                                         <label asp-for="Username" class="ms-2">Username</label>
                                         <span asp-validation-for="Username" class="text-danger small d-block mt-1"></span>
@@ -246,8 +246,8 @@
                             @if (Model.PhoneEnabled)
                             {
                                 <div class="form-floating">
-                                    <input asp-for="Phone" class="form-control rounded-pill shadow-sm px-4"
-                                        autocomplete="tel" placeholder="Phone number" />
+                                    <input asp-for="Phone" class="form-control rounded-4 shadow-sm px-4" autocomplete="tel"
+                                        placeholder="Phone number" />
                                     <label asp-for="Phone" class="ms-2">Phone</label>
                                     <span asp-validation-for="Phone" class="text-danger small d-block mt-1"></span>
                                 </div>
@@ -298,7 +298,7 @@
 
                         <div class="d-grid mb-3">
                             <button type="submit"
-                                class="btn btn-primary btn-lg rounded-pill shadow-sm btn-prevent-multiclick"
+                                class="btn btn-primary btn-lg rounded-4 shadow-sm btn-prevent-multiclick"
                                 name="register-button" id="register-button">
                                 @T("Account.Register.Button")
                             </button>
@@ -306,7 +306,7 @@
 
                         <div class="text-center mt-3">
                             <span>I dont have an account?</span>
-                            <a class="btn btn-outline-warning btn-sm rounded-pill ms-2 px-3"
+                            <a class="btn btn-outline-warning btn-sm rounded-4 ms-2 px-3"
                                 href="@Url.RouteUrl("Login")">@T("Account.Login.LoginButton")</a>
                         </div>
                     </div>

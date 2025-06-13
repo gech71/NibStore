@@ -34,7 +34,7 @@
 
                         <!-- Phone Input -->
                         <div class="form-floating mb-4 ">
-                            <input asp-for="Phone" class="form-control rounded-pill shadow-sm px-4" autocomplete="tel" placeholder="Phone number" />
+                            <input asp-for="Phone" class="form-control rounded-4 shadow-sm px-4" autocomplete="tel" placeholder="Phone number" />
                             <label asp-for="Phone" class="ms-2">Phone</label>
                             <span asp-validation-for="Phone" class="text-danger small d-block mt-1"></span>
                         </div>
@@ -42,7 +42,7 @@
                         @if (Model.ShowPassword)
                         {
                             <div class="form-floating mb-4 position-relative">
-                                <input asp-for="Password" class="form-control rounded-pill shadow-sm px-4 pe-5 password" autocomplete="current-password" placeholder="Password" />
+                                <input asp-for="Password" class="form-control rounded-4 shadow-sm px-4 pe-5 password" autocomplete="current-password" placeholder="Password" />
                                 <label asp-for="Password" class="ms-2">Password</label>
                                 <button type="button"
                                         class="btn-toggle-pwd position-absolute "
@@ -62,7 +62,7 @@
                         @* <captcha sm-enabled="Model.DisplayCaptcha" class="form-group mb-3" /> *@
 
                         <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm btn-prevent-multiclick">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-4 shadow-sm btn-prevent-multiclick">
                                 @T("Account.Login.LoginButton")
                             </button>
                         </div>
@@ -70,7 +70,7 @@
 
                     <div class="text-center mt-3">
                         <span>I dont have an account?</span>
-                        <a class="btn btn-outline-warning btn-sm rounded-pill ms-2 px-3" href="@registerUrl">@T("Account.Register.Button")</a>
+                        <a class="btn btn-outline-warning btn-sm rounded-4 ms-2 px-3" href="@registerUrl">@T("Account.Register.Button")</a>
                     </div>
                 </div>
             </div>
