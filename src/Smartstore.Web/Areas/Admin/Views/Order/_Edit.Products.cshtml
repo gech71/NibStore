@@ -39,6 +39,12 @@
                     <th style="width: 25%;">
                         @T("Admin.Orders.Products.ProductName")
                     </th>
+
+                      <!-- New Store Column -->
+                    <th style="width: 15%;">
+                        Store
+                    </th>
+
                     <th sm-if="Model.HasDownloadableProducts" style="width: 10%;">
                         @T("Admin.Orders.Products.Download")
                     </th>
@@ -144,6 +150,15 @@
                                 </div>
                             </div>
                         </td>
+
+                             <!-- New Store Name Cell -->
+                        <td class="align-top">
+                            <div class="text-truncate" title="@item.StoreName">
+                                @item.StoreName
+                            </div>
+                        </td>
+
+
                         <td sm-if="Model.HasDownloadableProducts" class="align-top text-center">
                             <div sm-if="item.IsDownload">
                                 <div>
