@@ -13,32 +13,42 @@ using Smartstore.Web.Models.DataGrid;
 using Smartstore.Admin.Models.Catalog;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Smartstore.Core.Catalog.Pricing;
-
+using Smartstore.Core.Catalog.Search;
+using Smartstore.Collections;
+using Smartstore.Core.Catalog.Products;
+using Smartstore.Core.Common;
+using Smartstore.Core.Data;
+using Smartstore.Core.Messaging;
+using Smartstore.Data;
 
 namespace Smartstore.Admin.Controllers
 {
     public class DiscountController : AdminController
     {
         private readonly SmartDbContext _db;
-        private readonly IRuleService _ruleService;
+        private readonly IWorkContext _workContext;
         private readonly ICurrencyService _currencyService;
         private readonly ILocalizedEntityService _localizedEntityService;
         private readonly IDiscountService _discountService;
-
-
+        private readonly ProductController _productController;
+        private readonly IRuleService _ruleService;
 
         public DiscountController(
             SmartDbContext db,
-            IRuleService ruleService,
+            IWorkContext workContext,
             ICurrencyService currencyService,
             ILocalizedEntityService localizedEntityService,
-            IDiscountService discountService)
+            IDiscountService discountService,
+            ProductController productController,
+            IRuleService ruleService)
         {
             _db = db;
-            _ruleService = ruleService;
+            _workContext = workContext;
             _currencyService = currencyService;
             _localizedEntityService = localizedEntityService;
             _discountService = discountService;
+            _productController = productController;
+            _ruleService = ruleService;
         }
 
         /// <summary>
@@ -363,114 +373,50 @@ namespace Smartstore.Admin.Controllers
 
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
-    [HttpGet]
-public async Task<IActionResult> ApplyDiscount(int discountId, ProductListModel model)
+
+       [HttpGet]
+[Permission(Permissions.Promotion.Discount.Read)]
+public async Task<IActionResult> ApplyDiscount()
 {
-    var discount = await _db.Discounts.FindByIdAsync(discountId);
-    if (discount == null)
-        return NotFound();
+    var model = new ProductListModel();
+    await _productController.PrepareProductListModelAsync(model);
 
-    // Reuse your existing method for preparing the product list
-    await PrepareProductListModelAsync(model);
-
-    var viewModel = new ApplyDiscountViewModel
-    {
-        Discount = await MapperFactory.MapAsync<Discount, DiscountModel>(discount),
-        ProductList = model
-    };
-
-    return View("ApplyDiscount", viewModel);
+    return View("ApplyDiscount", model);
 }
-public async Task PrepareProductListModelAsync(ProductListModel model)
-        {
-            var products = await _db.Products
-                .AsNoTracking()
-                .OrderBy(x => x.Name)
-                .Select(x => new ProductModel
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    Sku = x.Sku,
-                    Price = x.Price,
-                    Published = x.Published,
-                    PictureThumbnailUrl = "" // Adjust property name if needed
-                }).ToListAsync();
 
-            model.Products = new GridModel<ProductModel>
-            {
-                Rows = products,
-                Total = products.Count
-            };
+[HttpPost]
+[Permission(Permissions.Promotion.Discount.Read)]
+public async Task<IActionResult> ProductList(GridCommand command, ProductListModel model)
+{
+    return await _productController.ProductList(command, model);
+}
 
-            // Optionally, fetch available discounts for dropdowns
-            model.AvailableDiscounts = await _db.Discounts
-                .AsNoTracking()
-                .OrderBy(x => x.Name)
-                .Select(x => new SelectListItem
-                {
-                    Value = x.Id.ToString(),
-                    Text = x.Name
-                }).ToListAsync();
-        }
 [HttpPost]
 [Permission(Permissions.Promotion.Discount.Update)]
 public async Task<IActionResult> ApplyDiscountToProducts(int[] productIds, int discountId)
 {
+    if (productIds == null || productIds.Length == 0)
+        return Json(new { success = false, message = "No products selected." });
+
     var discount = await _db.Discounts.FindByIdAsync(discountId);
-    if (discount == null || productIds == null || productIds.Length == 0)
-    {
-        return BadRequest("Invalid discount or product selection.");
-    }
+    if (discount == null)
+        return Json(new { success = false, message = "Discount not found." });
 
     var products = await _db.Products
+        .Include(p => p.AppliedDiscounts)
         .Where(p => productIds.Contains(p.Id))
         .ToListAsync();
 
     foreach (var product in products)
     {
         if (!product.AppliedDiscounts.Any(d => d.Id == discount.Id))
-        {
             product.AppliedDiscounts.Add(discount);
-        }
     }
 
     await _db.SaveChangesAsync();
-
-    NotifySuccess("Discount successfully applied to selected products.");
-    return RedirectToAction(nameof(ApplyDiscount));
+    return Json(new { success = true });
 }
 
-    [HttpGet]
-    [Permission(Permissions.Promotion.Discount.Read)]
-    public async Task<IActionResult> GetProductsWithDiscounts(GridCommand command)
-    {
-            var query = from product in _db.Products.AsNoTracking()
-                join discountProduct in _db.Discounts.AsNoTracking().SelectMany(d => d.AppliedToProducts, (d, p) => new { d, p })
-                    on product.Id equals discountProduct.p.Id into dpj
-                from discountProduct in dpj.DefaultIfEmpty()
-                select new ProductWithDiscountModel
-                {
-                    ProductId = product.Id,
-                    ProductName = product.Name,
-                    DiscountName = discountProduct != null ? discountProduct.d.Name : T("Admin.Promotions.Discounts.None").ToString(),
-                    StartDate = discountProduct != null ? discountProduct.d.StartDateUtc : null,
-                    EndDate = discountProduct != null ? discountProduct.d.EndDateUtc : null,
-                    DiscountPercentage = discountProduct != null && discountProduct.d.UsePercentage == true ? discountProduct.d.DiscountPercentage : null,
-                    DiscountAmount = discountProduct != null && discountProduct.d.UsePercentage == false ? discountProduct.d.DiscountAmount : null
-                };
-
-    var pagedRows = await query
-        .OrderBy(x => x.ProductName)
-        .ApplyGridCommand(command)
-        .ToPagedList(command)
-        .LoadAsync();
-
-    return Json(new GridModel<ProductWithDiscountModel>
-    {
-        Rows = pagedRows.ToList(),
-        Total = pagedRows.TotalCount
-    });
-}
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {
             foreach (var localized in model.Locales)
