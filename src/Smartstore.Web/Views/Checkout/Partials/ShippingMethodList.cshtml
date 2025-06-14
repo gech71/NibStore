@@ -147,11 +147,8 @@ else
                                        id="addressInput"
                                        value="@Model.ByGroundAddress" 
                                        autocomplete="address-line1" />
-                                <button type="button" class="btn btn-primary current-location-btn">
-                                    <span class="btn-label">
-                                        <i class="fa fa-location-dot me-1"></i>
-                                        <span class="text">Current Location</span>
-                                    </span>
+                                <button type="button" class="btn btn-primary current-location-btn" title="Use Current Location">
+                                    <i class="fa fa-location-dot"></i>
                                 </button>
                                 <button type="button" class="btn btn-light map-toggle-btn" title="Show/Hide Map">
                                     <i class="fa fa-globe"></i>
@@ -578,12 +575,14 @@ else
 
         function setLoading(state, element) {
             if (!element) return;
-            
+
             if (element.classList.contains('current-location-btn')) {
                 element.disabled = state;
-                element.innerHTML = state 
-                    ? '<span class="spinner-border spinner-border-sm" role="status"></span> Locating...'
-                    : '<i class="fa fa-location-arrow"></i> Current Location';
+                if (state) {
+                    element.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Locating...';
+                } else {
+                    element.innerHTML = '<i class="fa fa-location-dot"></i>';
+                }
             } else if (element === addressInput) {
                 // Could add a loading indicator for the address input if needed
             }
