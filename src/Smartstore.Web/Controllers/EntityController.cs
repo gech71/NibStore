@@ -35,7 +35,8 @@ namespace Smartstore.Web.Controllers
             CustomerSettings customerSettings,
             IMediaService mediaService,
             ICategoryService categoryService,
-            Lazy<ILocalizedEntityService> locEntityService)
+            Lazy<ILocalizedEntityService> locEntityService
+        )
         {
             _db = db;
             _catalogSearchService = catalogSearchService;
@@ -52,32 +53,51 @@ namespace Smartstore.Web.Controllers
         {
             if (model.EntityType.EqualsNoCase("product"))
             {
-                ViewBag.AvailableCategories = (await _categoryService.GetCategoryTreeAsync(includeHidden: true))
+                ViewBag.AvailableCategories = (
+                    await _categoryService.GetCategoryTreeAsync(includeHidden: true)
+                )
                     .FlattenNodes(false)
-                    .Select(x => new SelectListItem { Text = x.GetCategoryNameIndented(), Value = x.Id.ToString() })
+                    .Select(x => new SelectListItem
+                    {
+                        Text = x.GetCategoryNameIndented(),
+                        Value = x.Id.ToString(),
+                    })
                     .ToList();
 
-                var manufacturers = await _db.Manufacturers
-                    .ApplyStandardFilter(includeHidden: true)
+                var manufacturers = await _db
+                    .Manufacturers.ApplyStandardFilter(includeHidden: true)
                     .ToListAsync();
 
                 ViewBag.AvailableManufacturers = manufacturers
                     .Select(x => new SelectListItem { Text = x.Name, Value = x.Id.ToString() })
                     .ToList();
 
-                ViewBag.AvailableStores = Services.StoreContext.GetAllStores().ToSelectListItems(Array.Empty<int>());
+                ViewBag.AvailableStores = Services
+                    .StoreContext.GetAllStores()
+                    .ToSelectListItems(Array.Empty<int>());
             }
             else if (model.EntityType.EqualsNoCase("customer"))
             {
                 ViewBag.AvailableCustomerSearchTypes = new List<SelectListItem>
                 {
-                    new() { Text = "Name", Value = "Name", Selected = true },
-                    new() { Text = "Email", Value = "Email" }
+                    new()
+                    {
+                        Text = "Name",
+                        Value = "Name",
+                        Selected = true,
+                    },
+                    new() { Text = "Email", Value = "Email" },
                 };
 
                 if (_customerSettings.CustomerNumberMethod != CustomerNumberMethod.Disabled)
                 {
-                    ViewBag.AvailableCustomerSearchTypes.Add(new SelectListItem { Text = T("Account.Fields.CustomerNumber"), Value = "CustomerNumber" });
+                    ViewBag.AvailableCustomerSearchTypes.Add(
+                        new SelectListItem
+                        {
+                            Text = T("Account.Fields.CustomerNumber"),
+                            Value = "CustomerNumber",
+                        }
+                    );
                 }
             }
 
@@ -91,22 +111,60 @@ namespace Smartstore.Web.Controllers
             try
             {
                 var form = Request.Form;
-                var disableIf = model.DisableIf.SplitSafe(',').Select(x => x.ToLower().Trim()).ToList();
+                var disableIf = model
+                    .DisableIf.SplitSafe(',')
+                    .Select(x => x.ToLower().Trim())
+                    .ToList();
                 var disableIds = model.DisableIds.SplitSafe(',').Select(x => x.ToInt()).ToList();
                 var selected = model.Selected.SplitSafe(',');
                 var returnSku = model.ReturnField.EqualsNoCase("sku");
 
-                using var scope = new DbContextScope(Services.DbContext, autoDetectChanges: false, forceNoTracking: true);
+                using var scope = new DbContextScope(
+                    Services.DbContext,
+                    autoDetectChanges: false,
+                    forceNoTracking: true
+                );
                 if (model.EntityType.EqualsNoCase("product"))
                 {
                     model.SearchTerm = model.SearchTerm.TrimSafe();
 
-                    var hasPermission = await Services.Permissions.AuthorizeAsync(Permissions.Catalog.Product.Read);
+                    var hasPermission = await Services.Permissions.AuthorizeAsync(
+                        Permissions.Catalog.Product.Read
+                    );
                     var disableIfNotSimpleProduct = disableIf.Contains("notsimpleproduct");
                     var disableIfGroupedProduct = disableIf.Contains("groupedproduct");
-                    var labelTextGrouped = T("Admin.Catalog.Products.ProductType.GroupedProduct.Label").Value;
-                    var labelTextBundled = T("Admin.Catalog.Products.ProductType.BundledProduct.Label").Value;
+                    var labelTextGrouped = T(
+                        "Admin.Catalog.Products.ProductType.GroupedProduct.Label"
+                    ).Value;
+                    var labelTextBundled = T(
+                        "Admin.Catalog.Products.ProductType.BundledProduct.Label"
+                    ).Value;
                     var sku = T("Products.Sku");
+
+                    var currentUser = Services.WorkContext.CurrentCustomer;
+                    var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                        m.CustomerId == currentUser.Id && m.CustomerRole.SystemName == "Merchant"
+                    );
+
+                    List<int> merchantProductIds = null;
+
+                    if (isMerchant)
+                    {
+                        merchantProductIds = await _db
+                            .GenericAttributes.Where(a =>
+                                a.KeyGroup == "Product"
+                                && a.Key == "CreatedByUserId"
+                                && a.Value == currentUser.Id.ToString()
+                            )
+                            .Select(a => a.EntityId)
+                            .ToListAsync();
+
+                        if (!merchantProductIds.Any())
+                        {
+                            model.SearchResult = new List<EntityPickerModel.SearchResultModel>();
+                            return PartialView("Entity/_EntityPickerList", model);
+                        }
+                    }
 
                     var fields = new List<string> { "name" };
                     if (_searchSettings.SearchFields.Contains("sku"))
@@ -118,12 +176,14 @@ namespace Smartstore.Web.Controllers
                         fields.Add("shortdescription");
                     }
 
-                    var searchQuery = new CatalogSearchQuery(fields.ToArray(), model.SearchTerm)
-                        .HasStoreId(model.StoreId);
+                    var searchQuery = new CatalogSearchQuery(
+                        fields.ToArray(),
+                        model.SearchTerm
+                    ).HasStoreId(model.StoreId);
 
                     if (!hasPermission)
                     {
-                        searchQuery = searchQuery.VisibleOnly(Services.WorkContext.CurrentCustomer);
+                        searchQuery = searchQuery.VisibleOnly(currentUser);
                     }
 
                     if (model.ProductTypeId > 0)
@@ -138,10 +198,16 @@ namespace Smartstore.Web.Controllers
 
                     if (model.CategoryId != 0)
                     {
-                        var node = await _categoryService.GetCategoryTreeAsync(model.CategoryId, true);
+                        var node = await _categoryService.GetCategoryTreeAsync(
+                            model.CategoryId,
+                            true
+                        );
                         if (node != null)
                         {
-                            searchQuery = searchQuery.WithCategoryTreePath(node.GetTreePath(), null);
+                            searchQuery = searchQuery.WithCategoryTreePath(
+                                node.GetTreePath(),
+                                null
+                            );
                         }
                     }
 
@@ -156,6 +222,7 @@ namespace Smartstore.Web.Controllers
 
                         var searchResult = await _catalogSearchService.SearchAsync(searchQuery);
                         products = (await searchResult.GetHitsAsync())
+                            .Where(x => !isMerchant || merchantProductIds.Contains(x.Id))
                             .Select(x => new EntityPickerProduct
                             {
                                 Id = x.Id,
@@ -163,13 +230,18 @@ namespace Smartstore.Web.Controllers
                                 Name = x.Name,
                                 Published = x.Published,
                                 ProductTypeId = x.ProductTypeId,
-                                MainPictureId = x.MainPictureId
+                                MainPictureId = x.MainPictureId,
                             })
                             .ToList();
                     }
                     else
                     {
                         var query = _catalogSearchService.PrepareQuery(searchQuery).AsNoTracking();
+
+                        if (isMerchant)
+                        {
+                            query = query.Where(x => merchantProductIds.Contains(x.Id));
+                        }
 
                         products = await query
                             .Select(x => new EntityPickerProduct
@@ -179,7 +251,7 @@ namespace Smartstore.Web.Controllers
                                 Name = x.Name,
                                 Published = x.Published,
                                 ProductTypeId = x.ProductTypeId,
-                                MainPictureId = x.MainPictureId
+                                MainPictureId = x.MainPictureId,
                             })
                             .OrderBy(x => x.Name)
                             .Skip(skip)
@@ -193,7 +265,9 @@ namespace Smartstore.Web.Controllers
                         .Distinct()
                         .ToArray();
 
-                    var files = (await _mediaService.GetFilesByIdsAsync(fileIds)).ToDictionarySafe(x => x.Id);
+                    var files = (await _mediaService.GetFilesByIdsAsync(fileIds)).ToDictionarySafe(
+                        x => x.Id
+                    );
 
                     model.SearchResult = products
                         .Select(x =>
@@ -205,7 +279,7 @@ namespace Smartstore.Web.Controllers
                                 Summary = x.Sku,
                                 SummaryTitle = $"{sku}: {x.Sku.NaIfEmpty()}",
                                 Published = hasPermission ? x.Published : null,
-                                ReturnValue = returnSku ? x.Sku : x.Id.ToString()
+                                ReturnValue = returnSku ? x.Sku : x.Id.ToString(),
                             };
 
                             item.Selected = selected.Contains(item.ReturnValue);
@@ -236,7 +310,12 @@ namespace Smartstore.Web.Controllers
                             }
 
                             files.TryGetValue(x.MainPictureId ?? 0, out var file);
-                            item.ImageUrl = _mediaService.GetUrl(file, _mediaSettings.ProductThumbPictureSizeOnProductDetailsPage, null, !_catalogSettings.HideProductDefaultPictures);
+                            item.ImageUrl = _mediaService.GetUrl(
+                                file,
+                                _mediaSettings.ProductThumbPictureSizeOnProductDetailsPage,
+                                null,
+                                !_catalogSettings.HideProductDefaultPictures
+                            );
 
                             return item;
                         })
@@ -244,14 +323,17 @@ namespace Smartstore.Web.Controllers
                 }
                 else if (model.EntityType.EqualsNoCase("category"))
                 {
-                    var categoryQuery = _db.Categories
-                        .AsNoTracking()
+                    var categoryQuery = _db
+                        .Categories.AsNoTracking()
                         .ApplyStandardFilter(includeHidden: true)
                         .AsQueryable();
 
                     if (model.SearchTerm.HasValue())
                     {
-                        categoryQuery = categoryQuery.Where(c => c.Name.Contains(model.SearchTerm) || c.FullName.Contains(model.SearchTerm));
+                        categoryQuery = categoryQuery.Where(c =>
+                            c.Name.Contains(model.SearchTerm)
+                            || c.FullName.Contains(model.SearchTerm)
+                        );
                     }
 
                     var categories = await categoryQuery.ToListAsync();
@@ -262,12 +344,18 @@ namespace Smartstore.Web.Controllers
                         .Distinct()
                         .ToArray();
 
-                    var files = (await _mediaService.GetFilesByIdsAsync(fileIds)).ToDictionarySafe(x => x.Id);
+                    var files = (await _mediaService.GetFilesByIdsAsync(fileIds)).ToDictionarySafe(
+                        x => x.Id
+                    );
 
                     model.SearchResult = await categories
                         .SelectAwait(async x =>
                         {
-                            var path = await _categoryService.GetCategoryPathAsync(x, Services.WorkContext.WorkingLanguage.Id, "({0})");
+                            var path = await _categoryService.GetCategoryPathAsync(
+                                x,
+                                Services.WorkContext.WorkingLanguage.Id,
+                                "({0})"
+                            );
                             var item = new EntityPickerModel.SearchResultModel
                             {
                                 Id = x.Id,
@@ -277,7 +365,7 @@ namespace Smartstore.Web.Controllers
                                 Published = x.Published,
                                 ReturnValue = x.Id.ToString(),
                                 Selected = selected.Contains(x.Id.ToString()),
-                                Disable = disableIds.Contains(x.Id)
+                                Disable = disableIds.Contains(x.Id),
                             };
 
                             if (x.Alias.HasValue())
@@ -287,21 +375,29 @@ namespace Smartstore.Web.Controllers
                             }
 
                             files.TryGetValue(x.MediaFileId ?? 0, out var file);
-                            item.ImageUrl = _mediaService.GetUrl(file, _mediaSettings.ProductThumbPictureSizeOnProductDetailsPage, null, !_catalogSettings.HideProductDefaultPictures);
+                            item.ImageUrl = _mediaService.GetUrl(
+                                file,
+                                _mediaSettings.ProductThumbPictureSizeOnProductDetailsPage,
+                                null,
+                                !_catalogSettings.HideProductDefaultPictures
+                            );
 
                             return item;
-                        }).AsyncToList();
+                        })
+                        .AsyncToList();
                 }
                 else if (model.EntityType.EqualsNoCase("manufacturer"))
                 {
-                    var manufacturerQuery = _db.Manufacturers
-                        .AsNoTracking()
+                    var manufacturerQuery = _db
+                        .Manufacturers.AsNoTracking()
                         .ApplyStandardFilter(includeHidden: true)
                         .AsQueryable();
 
                     if (model.SearchTerm.HasValue())
                     {
-                        manufacturerQuery = manufacturerQuery.Where(c => c.Name.Contains(model.SearchTerm));
+                        manufacturerQuery = manufacturerQuery.Where(c =>
+                            c.Name.Contains(model.SearchTerm)
+                        );
                     }
 
                     var manufacturers = await manufacturerQuery
@@ -314,7 +410,9 @@ namespace Smartstore.Web.Controllers
                         .Distinct()
                         .ToArray();
 
-                    var files = (await _mediaService.GetFilesByIdsAsync(fileIds)).ToDictionarySafe(x => x.Id);
+                    var files = (await _mediaService.GetFilesByIdsAsync(fileIds)).ToDictionarySafe(
+                        x => x.Id
+                    );
 
                     model.SearchResult = manufacturers
                         .Select(x =>
@@ -326,11 +424,16 @@ namespace Smartstore.Web.Controllers
                                 Published = x.Published,
                                 ReturnValue = x.Id.ToString(),
                                 Selected = selected.Contains(x.Id.ToString()),
-                                Disable = disableIds.Contains(x.Id)
+                                Disable = disableIds.Contains(x.Id),
                             };
 
                             files.TryGetValue(x.MediaFileId ?? 0, out var file);
-                            item.ImageUrl = _mediaService.GetUrl(file, _mediaSettings.ProductThumbPictureSizeOnProductDetailsPage, null, !_catalogSettings.HideProductDefaultPictures);
+                            item.ImageUrl = _mediaService.GetUrl(
+                                file,
+                                _mediaSettings.ProductThumbPictureSizeOnProductDetailsPage,
+                                null,
+                                !_catalogSettings.HideProductDefaultPictures
+                            );
 
                             return item;
                         })
@@ -338,15 +441,15 @@ namespace Smartstore.Web.Controllers
                 }
                 else if (model.EntityType.EqualsNoCase("customer"))
                 {
-                    var registeredRole = await _db.CustomerRoles
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(x => x.SystemName == SystemCustomerRoleNames.Registered);
+                    var registeredRole = await _db
+                        .CustomerRoles.AsNoTracking()
+                        .FirstOrDefaultAsync(x =>
+                            x.SystemName == SystemCustomerRoleNames.Registered
+                        );
 
                     var registeredRoleId = registeredRole.Id;
 
-                    var customerQuery = _db.Customers
-                        .AsNoTracking()
-                        .AsQueryable();
+                    var customerQuery = _db.Customers.AsNoTracking().AsQueryable();
 
                     if (model.SearchTerm.HasValue())
                     {
@@ -356,11 +459,16 @@ namespace Smartstore.Web.Controllers
                         }
                         else if (model.CustomerSearchType.EqualsNoCase("Email"))
                         {
-                            customerQuery = customerQuery.ApplyIdentFilter(email: model.SearchTerm, userName: model.SearchTerm);
+                            customerQuery = customerQuery.ApplyIdentFilter(
+                                email: model.SearchTerm,
+                                userName: model.SearchTerm
+                            );
                         }
                         else if (model.CustomerSearchType.EqualsNoCase("CustomerNumber"))
                         {
-                            customerQuery = customerQuery.ApplyIdentFilter(customerNumber: model.SearchTerm);
+                            customerQuery = customerQuery.ApplyIdentFilter(
+                                customerNumber: model.SearchTerm
+                            );
                         }
                     }
 
@@ -383,7 +491,7 @@ namespace Smartstore.Web.Controllers
                                 SummaryTitle = fullName,
                                 Published = true,
                                 Selected = selected.Contains(x.Id.ToString()),
-                                Disable = disableIds.Contains(x.Id)
+                                Disable = disableIds.Contains(x.Id),
                             };
 
                             return item;
@@ -403,7 +511,12 @@ namespace Smartstore.Web.Controllers
         [AuthorizeAdmin]
         [Permission(Permissions.System.AccessBackend)]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Patch(string entityName, int entityId, string propertyName, [FromBody] object value)
+        public async Task<IActionResult> Patch(
+            string entityName,
+            int entityId,
+            string propertyName,
+            [FromBody] object value
+        )
         {
             var success = false;
 
@@ -423,21 +536,40 @@ namespace Smartstore.Web.Controllers
                 NotifyError(ex.ToAllMessages());
             }
 
-            return Json(new { success, entityName, entityId, propertyName });
+            return Json(
+                new
+                {
+                    success,
+                    entityName,
+                    entityId,
+                    propertyName,
+                }
+            );
         }
 
         [HttpPost]
         [AuthorizeAdmin]
         [Permission(Permissions.System.AccessBackend)]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PatchLocalized(int languageId, string entityName, int entityId, string propertyName, [FromBody] object value)
+        public async Task<IActionResult> PatchLocalized(
+            int languageId,
+            string entityName,
+            int entityId,
+            string propertyName,
+            [FromBody] object value
+        )
         {
             var success = false;
 
             try
             {
-                var localizedProperty = await _db.LocalizedProperties
-                    .ApplyStandardFilter(languageId, entityId, entityName, propertyName)
+                var localizedProperty = await _db
+                    .LocalizedProperties.ApplyStandardFilter(
+                        languageId,
+                        entityId,
+                        entityName,
+                        propertyName
+                    )
                     .FirstOrDefaultAsync();
 
                 _locEntityService.Value.ApplyLocalizedValue(
@@ -446,7 +578,8 @@ namespace Smartstore.Web.Controllers
                     entityName,
                     propertyName,
                     value,
-                    languageId);
+                    languageId
+                );
 
                 await _db.SaveChangesAsync();
                 success = true;
@@ -456,7 +589,16 @@ namespace Smartstore.Web.Controllers
                 NotifyError(ex.ToAllMessages());
             }
 
-            return Json(new { success, languageId, entityName, entityId, propertyName });
+            return Json(
+                new
+                {
+                    success,
+                    languageId,
+                    entityName,
+                    entityId,
+                    propertyName,
+                }
+            );
         }
     }
 }

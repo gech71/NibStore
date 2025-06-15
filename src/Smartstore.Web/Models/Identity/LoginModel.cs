@@ -40,7 +40,10 @@ namespace Smartstore.Web.Models.Identity
         {
             if (ShowPassword && string.IsNullOrWhiteSpace(Password))
             {
-                yield return new ValidationResult("Password is required.", new[] { nameof(Password) });
+                yield return new ValidationResult(
+                    "Password is required.",
+                    new[] { nameof(Password) }
+                );
             }
         }
     }
@@ -68,9 +71,14 @@ namespace Smartstore.Web.Models.Identity
                 .NotEmpty()
                 .WithMessage("Phone number is required.")
                 .Matches(@"^(?:\+251|0)?9\d{8}$")
-                .WithMessage("Phone number must be in the format 0912345678, +251912345678, or 912345678.");
+                .WithMessage(
+                    "Phone number must be in the format 0912345678, +251912345678, or 912345678."
+                );
 
-            // RuleFor(x => x.Password).NotEmpty().WithMessage("Password is required.");
+            RuleFor(x => x.Password)
+                .NotEmpty()
+                .When(x => x.ShowPassword)
+                .WithMessage("Password is required.");
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿@using Smartstore.Web.Models.Common;
+﻿@* @using Smartstore.Web.Models.Common;
 @using Smartstore.Core.Identity;
 
 @model CookieManagerModel
@@ -194,18 +194,18 @@
     </modal-body>
 </modal>
 
-@*INFO: No sm-target-zone here, because this component is loaded via AJAX*@
-<script>
-	$(function () {
+@* INFO: No sm-target-zone here, because this component is loaded via AJAX *@
+@* <script>
+    $(function () {
         Smartstore.Cmp.showConsentDialog();
 
         $(".submit-consent").on("click", function () {
             var acceptAll = $(this).attr("id") == "accept-all";
             var elem = $("#@Html.IdFor(x => x.AcceptAll)");
-			elem.val(acceptAll ? "True" : "False");
+            elem.val(acceptAll ? "True" : "False");
 
             if (acceptAll) {
-				// Set all options of CookieManager view to true.
+                // Set all options of CookieManager view to true.
                 Smartstore.Cmp.updateCheckboxUIState($("#@Html.IdFor(x => x.AnalyticsConsent)"));
                 Smartstore.Cmp.updateCheckboxUIState($("#@Html.IdFor(x => x.ThirdPartyConsent)"));
                 Smartstore.Cmp.updateCheckboxUIState($("#@Html.IdFor(x => x.AdUserDataConsent)"));
@@ -215,4 +215,4 @@
             Smartstore.Cmp.Form.submit();
         });
     });
-</script>
+</script> *@

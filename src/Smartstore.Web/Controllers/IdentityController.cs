@@ -126,12 +126,15 @@ namespace Smartstore.Web.Controllers
 
             if (customer == null)
             {
-                ModelState.AddModelError(string.Empty, "The phone number you entered is not registered.");
+                ModelState.AddModelError(
+                    string.Empty,
+                    "The phone number you entered is not registered."
+                );
                 return View(model);
             }
 
-            var roles = await _db.CustomerRoleMappings
-                .Where(m => m.CustomerId == customer.Id)
+            var roles = await _db
+                .CustomerRoleMappings.Where(m => m.CustomerId == customer.Id)
                 .Select(m => m.CustomerRole.SystemName)
                 .ToListAsync();
 
@@ -149,17 +152,20 @@ namespace Smartstore.Web.Controllers
                 }
                 else
                 {
-                    ModelState.AddModelError(string.Empty, "You do not have permission to access this area.");
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "You do not have permission to access this area."
+                    );
                     return View(model);
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(model.Password))
-            {
-                ModelState.AddModelError(nameof(model.Password), "Password is required.");
-                model.ShowPassword = true;
-                return View(model);
-            }
+            // if (string.IsNullOrWhiteSpace(model.Password))
+            // {
+            //     ModelState.AddModelError(nameof(model.Password), "Password is required.");
+            //     model.ShowPassword = true;
+            //     return View(model);
+            // }
 
             if (roles.Contains("Administrators") || roles.Contains("Merchant"))
             {
@@ -167,13 +173,23 @@ namespace Smartstore.Web.Controllers
                     customer,
                     model.Password,
                     model.RememberMe,
-                    lockoutOnFailure: false);
+                    lockoutOnFailure: false
+                );
 
                 if (result.Succeeded)
                 {
-                    await Services.EventPublisher.PublishAsync(new CustomerSignedInEvent { Customer = customer });
-                    await _shoppingCartService.MigrateCartAsync(Services.WorkContext.CurrentCustomer, customer);
-                    Services.ActivityLogger.LogActivity(KnownActivityLogTypes.PublicStoreLogin, T("ActivityLog.PublicStore.Login"), customer);
+                    await Services.EventPublisher.PublishAsync(
+                        new CustomerSignedInEvent { Customer = customer }
+                    );
+                    await _shoppingCartService.MigrateCartAsync(
+                        Services.WorkContext.CurrentCustomer,
+                        customer
+                    );
+                    Services.ActivityLogger.LogActivity(
+                        KnownActivityLogTypes.PublicStoreLogin,
+                        T("ActivityLog.PublicStore.Login"),
+                        customer
+                    );
 
                     return RedirectToAction("Index", "Home", new { area = "Admin" });
                 }
@@ -185,7 +201,10 @@ namespace Smartstore.Web.Controllers
             }
             else
             {
-                ModelState.AddModelError(string.Empty, "You are not authorized to log in with this account.");
+                ModelState.AddModelError(
+                    string.Empty,
+                    "You are not authorized to log in with this account."
+                );
             }
 
             return View(model);
@@ -297,15 +316,17 @@ namespace Smartstore.Web.Controllers
 
             ViewData["ReturnUrl"] = returnUrl;
 
+            var existingPhoneUser = await _userManager.Users.FirstOrDefaultAsync(u =>
+                u.Phone == model.Phone.Trim()
+            );
+
+            if (existingPhoneUser != null)
+            {
+                ModelState.AddModelError(string.Empty, "Phone already registered");
+            }
+
             if (ModelState.IsValid)
             {
-                var existingPhoneUser = await _userManager.Users
-                    .FirstOrDefaultAsync(u => u.Phone == model.Phone.Trim());
-
-                if (existingPhoneUser != null)
-                {
-                    ModelState.AddModelError(string.Empty, "Phone number already registered");
-                }
                 var succeeded = false;
                 var oldUserName = customer.Username;
                 var oldEmail = customer.Email;
@@ -872,56 +893,56 @@ namespace Smartstore.Web.Controllers
             switch (_customerSettings.UserRegistrationType)
             {
                 case UserRegistrationType.EmailValidation:
-                    {
-                        // Send an email with generated token.
-                        var code = await _userManager.GenerateEmailConfirmationTokenAsync(customer);
+                {
+                    // Send an email with generated token.
+                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(customer);
 
-                        customer.GenericAttributes.AccountActivationToken = code;
-                        await _db.SaveChangesAsync();
-                        await _messageFactory.SendCustomerEmailValidationMessageAsync(
-                            customer,
-                            Services.WorkContext.WorkingLanguage.Id
-                        );
+                    customer.GenericAttributes.AccountActivationToken = code;
+                    await _db.SaveChangesAsync();
+                    await _messageFactory.SendCustomerEmailValidationMessageAsync(
+                        customer,
+                        Services.WorkContext.WorkingLanguage.Id
+                    );
 
-                        return RedirectToRoute(
-                            "RegisterResult",
-                            new { resultId = (int)UserRegistrationType.EmailValidation }
-                        );
-                    }
+                    return RedirectToRoute(
+                        "RegisterResult",
+                        new { resultId = (int)UserRegistrationType.EmailValidation }
+                    );
+                }
                 case UserRegistrationType.AdminApproval:
-                    {
-                        return RedirectToRoute(
-                            "RegisterResult",
-                            new { resultId = (int)UserRegistrationType.AdminApproval }
-                        );
-                    }
+                {
+                    return RedirectToRoute(
+                        "RegisterResult",
+                        new { resultId = (int)UserRegistrationType.AdminApproval }
+                    );
+                }
                 case UserRegistrationType.Standard:
+                {
+                    // Send customer welcome message.
+                    await _messageFactory.SendCustomerWelcomeMessageAsync(
+                        customer,
+                        Services.WorkContext.WorkingLanguage.Id
+                    );
+                    await _signInManager.SignInAsync(customer, isPersistent: false);
+
+                    var redirectUrl = Url.RouteUrl(
+                        "RegisterResult",
+                        new { resultId = (int)UserRegistrationType.Standard }
+                    );
+                    if (returnUrl.HasValue())
                     {
-                        // Send customer welcome message.
-                        await _messageFactory.SendCustomerWelcomeMessageAsync(
-                            customer,
-                            Services.WorkContext.WorkingLanguage.Id
+                        redirectUrl = _webHelper.ModifyQueryString(
+                            redirectUrl,
+                            "returnUrl=" + returnUrl.UrlEncode()
                         );
-                        await _signInManager.SignInAsync(customer, isPersistent: false);
-
-                        var redirectUrl = Url.RouteUrl(
-                            "RegisterResult",
-                            new { resultId = (int)UserRegistrationType.Standard }
-                        );
-                        if (returnUrl.HasValue())
-                        {
-                            redirectUrl = _webHelper.ModifyQueryString(
-                                redirectUrl,
-                                "returnUrl=" + returnUrl.UrlEncode()
-                            );
-                        }
-
-                        return Redirect(redirectUrl);
                     }
+
+                    return Redirect(redirectUrl);
+                }
                 default:
-                    {
-                        return RedirectToRoute("Homepage");
-                    }
+                {
+                    return RedirectToRoute("Homepage");
+                }
             }
         }
 

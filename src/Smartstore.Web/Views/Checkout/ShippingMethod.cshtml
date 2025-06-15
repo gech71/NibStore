@@ -54,7 +54,13 @@
 </style>
 
 <script sm-target-zone="scripts" data-origin="shipping-method">
+    
 $(function () {
+
+    $('input[name="ByGroundAddress"]').val('');
+    $('input[name="ByGroundLatitude"]').val('');
+    $('input[name="ByGroundLongitude"]').val('');
+    
     const storePickupMethodId = @pickupMethodId;
 
     function isStorePickupSelected() {

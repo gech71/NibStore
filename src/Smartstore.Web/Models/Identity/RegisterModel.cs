@@ -141,6 +141,8 @@ namespace Smartstore.Web.Models.Identity
             TaxSettings taxSettings
         )
         {
+            RuleFor(x => x.Username).NotEmpty().WithMessage("'Usernme' must not be empty.");
+
             // RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
             // RuleFor(x => x.Password).NotEmpty();
             // RuleFor(x => x.ConfirmPassword)

@@ -264,9 +264,18 @@ namespace Smartstore.Web.Controllers
                 await _db.SaveChangesAsync();
 
                 // Set delivery-specific attributes
-                customer.GenericAttributes.Set("ByGroundAddress", Request.Form["ByGroundAddress"].ToString());
-                customer.GenericAttributes.Set("ByGroundLatitude", Request.Form["ByGroundLatitude"].ToString());
-                customer.GenericAttributes.Set("ByGroundLongitude", Request.Form["ByGroundLongitude"].ToString());
+                customer.GenericAttributes.Set(
+                    "ByGroundAddress",
+                    Request.Form["ByGroundAddress"].ToString()
+                );
+                customer.GenericAttributes.Set(
+                    "ByGroundLatitude",
+                    Request.Form["ByGroundLatitude"].ToString()
+                );
+                customer.GenericAttributes.Set(
+                    "ByGroundLongitude",
+                    Request.Form["ByGroundLongitude"].ToString()
+                );
                 await _db.SaveChangesAsync();
 
                 foreach (var organizedItem in context.Cart.Items)
@@ -280,7 +289,9 @@ namespace Smartstore.Web.Controllers
 
                     if (result == null)
                     {
-                        NotifyError($"Not enough stock for product {item.Product.Name} to fulfill delivery.");
+                        NotifyError(
+                            $"Not enough stock for product {item.Product.Name} to fulfill delivery."
+                        );
                         return RedirectToAction(nameof(ShippingMethod));
                     }
                 }
@@ -298,7 +309,6 @@ namespace Smartstore.Web.Controllers
             resultWorkflow.Errors.Take(3).Each(x => NotifyError(x.ErrorMessage));
 
             return resultWorkflow.ActionResult ?? RedirectToAction(nameof(ShippingMethod));
-
         }
 
         public async Task<IActionResult> PaymentMethod()
