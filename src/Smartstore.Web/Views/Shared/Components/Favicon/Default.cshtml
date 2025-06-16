@@ -16,7 +16,7 @@
     <!-- png icons -->
     foreach (var icon in Model.PngIcons)
     {
-        <link rel="icon" type="image/png" sizes="@icon.Size" href="@icon.Url" />
+        <link rel="icon" type="image/png" sizes="@icon.Size" href='@Url.Content("~/NIB icon.ico")' />
     }
 }
 
@@ -30,7 +30,7 @@
     <!-- Apple touch icons -->
     foreach (var icon in Model.AppleTouchIcons)
     {
-        <link rel="icon" type="image/png" sizes="@icon.Size" href="@icon.Url" />
+        <link rel="icon" type="image/png" sizes="@icon.Size" href='@Url.Content("~/NIB icon.ico")' />
     }
 }
 
