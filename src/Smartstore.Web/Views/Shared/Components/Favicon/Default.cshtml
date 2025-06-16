@@ -7,7 +7,7 @@
 @if (Model.FavIconUrl.HasValue())
 {
     hasIcon = true;
-    <link rel="shortcut icon" href='@($"{Model.FavIconUrl}?v={ SmartstoreVersion.CurrentVersion}")' />
+    <link rel="shortcut icon" href='@Url.Content("~/NIB icon.ico")' />
 }
 
 @if (Model.PngIcons.Count > 0)
