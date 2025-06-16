@@ -10,6 +10,7 @@ using Smartstore.Core.Rules.Filters;
 using Smartstore.Core.Security;
 using Smartstore.Web.Models;
 using Smartstore.Web.Models.DataGrid;
+using Smartstore.Admin.Models.Catalog;
 
 namespace Smartstore.Admin.Controllers
 {
@@ -19,17 +20,21 @@ namespace Smartstore.Admin.Controllers
         private readonly IRuleService _ruleService;
         private readonly ICurrencyService _currencyService;
         private readonly ILocalizedEntityService _localizedEntityService;
+        private readonly ProductController _productController;
 
         public DiscountController(
             SmartDbContext db,
             IRuleService ruleService,
             ICurrencyService currencyService,
-            ILocalizedEntityService localizedEntityService)
+            ILocalizedEntityService localizedEntityService,
+            ProductController productController)
         {
             _db = db;
             _ruleService = ruleService;
             _currencyService = currencyService;
             _localizedEntityService = localizedEntityService;
+            _productController = productController;
+
         }
 
         /// <summary>
@@ -354,6 +359,26 @@ namespace Smartstore.Admin.Controllers
 
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
+        [HttpGet]
+        [Permission(Permissions.Catalog.Product.Read)]
+        public async Task<IActionResult> ApplyDiscount()
+        {
+            var model = new ProductListModel();
+
+            // Call the method from ProductController
+            await _productController.PrepareProductListModelAsync(model);
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [Permission(Permissions.Promotion.Discount.Update)]
+        public async Task<IActionResult> ApplyDiscountToProducts(ApplyDiscountToSelectedModel model)
+        {
+            // Call the existing action method in ProductController
+            return await _productController.ApplyDiscountToSelected(model);
+        }
+
 
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {

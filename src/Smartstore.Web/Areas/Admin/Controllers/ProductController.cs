@@ -2179,7 +2179,7 @@ namespace Smartstore.Admin.Controllers
 
         #region Utilities
 
-        private async Task PrepareProductListModelAsync(ProductListModel model)
+        public async Task PrepareProductListModelAsync(ProductListModel model)
         {
             model.DisplayProductPictures = _adminAreaSettings.DisplayProductPictures;
             model.IsSingleStoreMode = Services.StoreContext.IsSingleStoreMode();

@@ -345,6 +345,16 @@
                 area="Admin"
             />
             <siteMapNode
+                id="bulk discounts"
+                icon="bi:percent"
+                title="Bulk Discounts"
+                resKey="Admin.Promotions.Discounts"
+                permissionNames="promotion.discount"
+                controller="Discount"
+                action="ApplyDiscount"
+                area="Admin"
+            />
+            <siteMapNode
                 id="cart-rules"
                 icon="bi:funnel"
                 title="Cart rules"
