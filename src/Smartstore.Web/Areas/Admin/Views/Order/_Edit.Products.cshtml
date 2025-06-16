@@ -39,6 +39,13 @@
                     <th style="width: 25%;">
                         @T("Admin.Orders.Products.ProductName")
                     </th>
+
+                      <!-- New Store Column -->
+                   <!-- In the table header - Only show if any items have StorePickupId -->
+<th sm-if="Model.Items.Any(x => x.StorePickupId.HasValue && x.StorePickupId.Value > 0)" style="width: 15%;">
+   Store
+</th>
+
                     <th sm-if="Model.HasDownloadableProducts" style="width: 10%;">
                         @T("Admin.Orders.Products.Download")
                     </th>
@@ -144,6 +151,16 @@
                                 </div>
                             </div>
                         </td>
+
+                             <!-- New Store Name Cell -->
+                        <!-- In the table row - Only show for items with StorePickupId -->
+<td sm-if="item.StorePickupId.HasValue && item.StorePickupId.Value > 0" class="align-top">
+    <div class="text-truncate" title="@item.StoreName">
+        @item.StoreName
+    </div>
+</td>
+
+
                         <td sm-if="Model.HasDownloadableProducts" class="align-top text-center">
                             <div sm-if="item.IsDownload">
                                 <div>
