@@ -2725,8 +2725,32 @@ namespace Smartstore.Admin.Controllers
                 ).ToDictionarySafe(x => x.InitialOrderId, x => x.Id);
             }
 
+            // Check if current user is a merchant
+            var currentUser = _workContext.CurrentCustomer;
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id &&
+                m.CustomerRole.SystemName == "Merchant");
+
+            // Get merchant's product IDs if user is a merchant
+            List<int> merchantProductIds = null;
+            if (isMerchant)
+            {
+                merchantProductIds = await _db.GenericAttributes
+                    .Where(a => 
+                        a.KeyGroup == "Product" &&
+                        a.Key == "CreatedByUserId" && 
+                        a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+            }
+
             foreach (var item in order.OrderItems)
             {
+                // Skip items that don't belong to the merchant
+                if (isMerchant && (item.ProductId == 0 || !merchantProductIds.Contains(item.ProductId)))
+                {
+                    continue;
+                }
                 var product = item.Product;
                 await _productAttributeMaterializer.MergeWithCombinationAsync(
                     product,
