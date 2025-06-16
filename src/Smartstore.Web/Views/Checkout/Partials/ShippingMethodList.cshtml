@@ -108,7 +108,7 @@ else
                                 {
                                     <option value="@store.Name"
                                             data-store-id="@store.Id"
-                                            selected="@(item.StoreId == store.Id ? "selected" : null)">
+                                           >
                                         @store.Name
                                     </option>
                                 }
@@ -674,3 +674,4 @@ $(document).ready(function () {
     $('input[name="shippingoption"]').on('change', updateOrderTotalsUI);
 });
 </script>
+<script src="~/js/storePickupPersistence.js"></script>

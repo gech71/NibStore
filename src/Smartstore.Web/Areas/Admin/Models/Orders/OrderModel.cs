@@ -219,6 +219,12 @@ namespace Smartstore.Admin.Models.Orders
             public int ProductId { get; set; }
             public bool IsProductSoftDeleted { get; set; }
             public string ProductName { get; set; }
+             public int? StorePickupId { get; set; }
+
+// StoreName is already there:
+[StringLength(400)]
+public string StoreName { get; set; } = string.Empty;
+
             public string Sku { get; set; }
             public ProductType ProductType { get; set; }
             public string ProductTypeName { get; set; }

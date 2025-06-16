@@ -2761,6 +2761,8 @@ namespace Smartstore.Admin.Controllers
                 model.IsProductSoftDeleted = product.Deleted;
                 model.ProductName = product.GetLocalized(x => x.Name);
                 model.Sku = item.Sku.NullEmpty() ?? product.Sku;
+                 // ADD THIS LINE - get StoreName directly from OrderItem
+                model.StoreName = item.StoreName;
                 model.ProductType = product.ProductType;
                 model.ProductTypeName = product.GetProductTypeLabel(Services.Localization);
                 model.ProductTypeLabelHint = product.ProductTypeLabelHint;
