@@ -344,10 +344,10 @@
                 action="ManageDiscounts"
                 area="Admin"
             />
-            <siteMapNode
+           <siteMapNode
                 id="bulk-products"
-                icon="bi:boxes"
-                title="Bulk Products Discount"
+                icon="bi:tag"
+                title="Bulk Apply Discount"
                 resKey="Admin.Promotions.Discounts.BulkProductsDiscount"
                 permissionNames="promotion.discount"
                 url="~/Admin/Discount/ApplyDiscount?discountId=1"

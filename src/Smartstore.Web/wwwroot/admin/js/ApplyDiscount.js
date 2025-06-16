@@ -1,95 +1,95 @@
-$(function () {
-    var isSubmitting = false;
+(function ($) {
+    // 1. Wait for both document ready AND grid initialization
+    $(document).ready(function() {
+        // 2. Use Smartstore's event system to ensure grid is ready
+        Smartstore.global.event.publish('grid.initialized', function (grid) {
+            if (grid.element.is("#products-grid")) {
+                initGridHandlers(grid);
+            }
+        });
 
-    function updateApplyButtonState() {
-        var anyChecked = $('.product-checkbox:checked').length > 0;
-        $('#apply-discount-btn').prop('disabled', !anyChecked);
+        // 3. Fallback: Check periodically if grid exists
+        const checkGridInterval = setInterval(() => {
+            const grid = $("#products-grid").data("kendoGrid");
+            if (grid) {
+                clearInterval(checkGridInterval);
+                initGridHandlers(grid);
+            }
+        }, 200);
+    });
+
+    function initGridHandlers(grid) {
+        console.log("Grid initialized, setting up handlers...");
+
+        function updateApplyButtonState() {
+            const selected = grid.selectedKeyNames();
+            $("#btn-apply-discount").prop("disabled", selected.length === 0);
+        }
+
+        // Bind to grid events
+        grid.bind("change", updateApplyButtonState);
+        grid.bind("dataBound", updateApplyButtonState);
+        
+        // Initial update
+        updateApplyButtonState();
     }
 
-    $('#select-all').on('change', function () {
-        $('.product-checkbox').prop('checked', $(this).is(':checked'));
-        updateApplyButtonState();
-    });
+    // 4. Make functions globally available (for button clicks)
+    window.openDiscountModal = function() {
+        const grid = $("#products-grid").data("kendoGrid");
+        if (!grid) {
+            console.error("Grid not found in openDiscountModal!");
+            return;
+        }
+        
+        const selected = grid.selectedKeyNames();
+        if (!selected.length) {
+            alert("Please select at least one product.");
+            return;
+        }
+        $('#apply-discount-modal').modal('show');
+    };
 
-    $('.product-checkbox').on('change', function () {
-        var allChecked = $('.product-checkbox:checked').length === $('.product-checkbox').length;
-        $('#select-all').prop('checked', allChecked);
-        updateApplyButtonState();
-    });
-
-    $('#apply-discount-btn').on('click', function (e) {
-        e.preventDefault();
-
-        var grid = $("#products-grid").data("datagrid");
-        var selectedRows = grid.getSelectedRows();
-
-        if (!selectedRows.length) {
-            const noProductsMsg = $('#no-products-msg').data('msg') || "No products selected.";
-            Smartstore.showToast('error', noProductsMsg);
+    window.applySelectedDiscount = function() {
+        const grid = $("#products-grid").data("kendoGrid");
+        if (!grid) {
+            console.error("Grid not found in applySelectedDiscount!");
             return;
         }
 
-        var selectedIds = selectedRows.map(x => x.Id).join(',');
-        $('#selected-product-ids').val(selectedIds);
+        const selected = grid.selectedKeyNames();
+        const discountId = $("#discountSelect").val();
 
-        $('#discount-popup-overlay, #discount-popup-dialog').show();
-    });
+        if (!selected.length) {
+            alert("Please select at least one product.");
+            return;
+        }
 
-    $('#discount-popup-overlay, #close-discount-popup').on('click', function () {
-        $('#discount-popup-overlay, #discount-popup-dialog').hide();
-    });
-
-    function loadAvailableDiscounts() {
-        $.get('@Url.Action("GetAvailableDiscounts")', function (data) {
-            var select = $('#DiscountId').empty().append('<option value="">-- @T("Admin.Common.Select") --</option>');
-            $.each(data, function (i, item) {
-                select.append(`<option value="${item.id}">${item.name}</option>`);
-            });
-        });
-    }
-
-    $('#discount-form').on('submit', function (e) {
-        e.preventDefault();
-
-        if (isSubmitting) return;
-        isSubmitting = true;
-
-        var $form = $(this);
-        var url = $form.attr('action');
-        var data = $form.serialize();
+        const $button = $('#apply-discount-modal .btn-primary');
+        $button.prop('disabled', true).text('Applying...');
 
         $.ajax({
-            url: url,
+            url: '@Url.Action("ApplyDiscountToProducts", "Discount")',
             type: 'POST',
-            data: data,
-            success: function (response) {
+            data: {
+                productIds: selected,
+                discountId: discountId
+            },
+            success: function(response) {
                 if (response.success) {
-                    Smartstore.showToast('success', response.message);
-                    $('#discount-popup-overlay, #discount-popup-dialog').hide();
-                    window.location.reload();
+                    alert("Discount applied successfully!");
+                    grid.dataSource.read(); // Refresh grid
                 } else {
-                    Smartstore.showToast('error', response.message);
+                    alert(response.message || "Error applying discount.");
                 }
             },
-            error: function () {
-                const errorMsg = $('#error-msg').data('msg') || "An error occurred.";
-                Smartstore.showToast('error', errorMsg);
+            error: function() {
+                alert("AJAX request failed.");
             },
-            complete: function () {
-                isSubmitting = false;
+            complete: function() {
+                $button.prop('disabled', false).text('Apply Discount');
+                $('#apply-discount-modal').modal('hide');
             }
         });
-    });
-
-    // Optional: Close popup on ESC key
-    $(document).on('keydown', function (e) {
-        if (e.key === "Escape") {
-            $('#discount-popup-overlay, #discount-popup-dialog').hide();
-        }
-    });
-
-    // Load available discounts on page load
-    loadAvailableDiscounts();
-
-    updateApplyButtonState();
-});
+    };
+})(jQuery);

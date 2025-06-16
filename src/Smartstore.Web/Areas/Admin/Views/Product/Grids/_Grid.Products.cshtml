@@ -3,6 +3,9 @@
 @{
     var parentModel = ViewData["Parent"] as ProductListModel;
 }
+@{
+    var isForDiscount = ViewContext.RouteData.Values["controller"]?.ToString() == "Discount";
+}
 
 <datagrid id="products-grid"
           version="3"
@@ -10,8 +13,10 @@
           allow-row-selection="true"
           allow-edit="true"
           preserve-grid-state="true" preserve-command-state="true"
-          allow-column-reordering="true">
-    <datasource read="@Url.Action("ProductList")" delete="@Url.Action("ProductDelete")" update="@Url.Action("ProductUpdate")" />
+          allow-column-reordering="true"
+          selectable="true">
+          
+    <datasource read="@Url.Action("ProductList", "Product")" delete="@Url.Action("ProductDelete")" update="@Url.Action("ProductUpdate")" />
     <paging position="Bottom" page-index="1" show-size-chooser="true" />
     <sorting allow-unsort="true" allow-multisort="false"></sorting>
     <toolbar>
@@ -36,7 +41,21 @@
         <zone name="datagrid_toolbar_alpha"></zone>
         <toolbar-group class="omega"></toolbar-group>
         <zone name="datagrid_toolbar_omega"></zone>
+        @if (isForDiscount)
+        {
+            <toolbar-group>
+                <button id="btn-apply-discount" type="button"
+                        class="btn btn-success no-anims btn-flat"
+                        onclick="openDiscountModal()" disabled>
+                    <i class="fa fa-tag"></i>
+                    <span>Apply Discount</span>
+                </button>
+            </toolbar-group>
+        }
+
+
         <toolbar-group>
+
             <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button" class="btn btn-danger no-anims btn-flat">
                 <i class="far fa-trash-can"></i>
                 <span>@T("Admin.Common.Delete.Selected")</span>
@@ -44,7 +63,7 @@
         </toolbar-group>
     </toolbar>
     <search-panel>
-        <partial name="Grids/_Grid.Products.Search" model="parentModel" />
+        <partial name="~/Areas/Admin/Views/Product/Grids/_Grid.Products.Search.cshtml" model="parentModel" />
     </search-panel>
     <columns>
         @if (parentModel.DisplayProductPictures)
@@ -104,7 +123,7 @@
     </row-commands>
 </datagrid>
 
-<partial name="_CopyProductDialog" model="null" />
+<partial name="~/Areas/Admin/Views/Product/_CopyProductDialog.cshtml" model="null" />
 
 <script sm-target-zone="scripts" data-origin="products-grid">
     $(function () {

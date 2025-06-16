@@ -1,18 +1,32 @@
 @using Smartstore.Admin.Models.Catalog
 @model ProductListModel
+
 @{
-    Layout = "_AdminLayout";
-    ViewData["Title"] = "Apply Discount to Products";
+    ViewBag.Title = "Apply Discount to Products";
 }
 
-<div class="content-header">
-    <h1>@ViewData["Title"]</h1>
+<div class="section-header">
+    <div class="title">
+        <i class="fa fa-tag"></i>
+        Apply Discount to Products
+    </div>
 </div>
 
-@await Html.PartialAsync("~/Areas/Admin/Views/Product/Grids/_Grid.Products.cshtml", new ProductOverviewModel(), new ViewDataDictionary(ViewData) { ["Parent"] = Model })
+@{
+    var gridViewData = new ViewDataDictionary(this.ViewData);
+    gridViewData["Parent"] = Model;
+}
+
+<partial name="~/Areas/Admin/Views/Product/Grids/_Grid.Products.cshtml" model="null" view-data="gridViewData" />
+
+
+
 
 <!-- Apply Discount Modal -->
-<div class="modal fade" id="apply-discount-modal" tabindex="-1" role="dialog" aria-labelledby="discountModalLabel" aria-hidden="true">
+<div class="modal fade" id="apply-discount-modal" 
+     tabindex="-1" 
+     role="dialog"
+     data-apply-url="@Url.Action("ApplyDiscountToProducts", "Discount")">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -38,40 +52,15 @@
     </div>
 </div>
 
+<script src="~/admin/js/kendo.grid.js" asp-append-version="true"></script>
+<script src="~/admin/js/ApplyDiscount.js" asp-append-version="true"></script>
+
+<!-- 3. Add debug logging if needed -->
 <script>
-    function getSelectedProductIds() {
-        return $("#products-grid").data("kendoGrid").selectedKeyNames();
-    }
-
-    function applySelectedDiscount() {
-        const discountId = $("#discountSelect").val();
-        const productIds = getSelectedProductIds();
-
-        if (!productIds.length) {
-            alert("Please select at least one product.");
-            return;
-        }
-
-        $.ajax({
-            url: '@Url.Action("ApplyDiscountToProducts", "Discount")',
-            method: 'POST',
-            traditional: true,
-            data: { discountId: discountId, productIds: productIds },
-            success: function (response) {
-                if (response.success) {
-                    alert("Discount applied successfully!");
-                    $('#apply-discount-modal').modal('hide');
-                } else {
-                    alert("Failed to apply discount.");
-                }
-            },
-            error: function () {
-                alert("Error while applying discount.");
-            }
+    $(function() {
+        console.log("Document ready, checking for grid...");
+        Smartstore.global.event.subscribe('grid.initialized', function(grid) {
+            console.log("Grid initialized:", grid.element.attr("id"));
         });
-    }
+    });
 </script>
-
-<button class="btn btn-success mt-3" data-toggle="modal" data-target="#apply-discount-modal">
-    Apply Discount to Selected Products
-</button>

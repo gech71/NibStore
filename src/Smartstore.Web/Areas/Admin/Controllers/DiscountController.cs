@@ -374,49 +374,44 @@ namespace Smartstore.Admin.Controllers
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
 
-       [HttpGet]
-[Permission(Permissions.Promotion.Discount.Read)]
-public async Task<IActionResult> ApplyDiscount()
-{
-    var model = new ProductListModel();
-    await _productController.PrepareProductListModelAsync(model);
 
-    return View("ApplyDiscount", model);
-}
+        
+        [Permission(Permissions.Catalog.Product.Read)]
+        public async Task<IActionResult> ApplyDiscount()
+        {
+            var model = new ProductListModel();
 
-[HttpPost]
-[Permission(Permissions.Promotion.Discount.Read)]
-public async Task<IActionResult> ProductList(GridCommand command, ProductListModel model)
-{
-    return await _productController.ProductList(command, model);
-}
+            // Call the method from ProductController
+            await _productController.PrepareProductListModelAsync(model);
 
-[HttpPost]
-[Permission(Permissions.Promotion.Discount.Update)]
-public async Task<IActionResult> ApplyDiscountToProducts(int[] productIds, int discountId)
-{
-    if (productIds == null || productIds.Length == 0)
-        return Json(new { success = false, message = "No products selected." });
+            return View(model);
+        }
 
-    var discount = await _db.Discounts.FindByIdAsync(discountId);
-    if (discount == null)
-        return Json(new { success = false, message = "Discount not found." });
+        [HttpPost]
+        [Permission(Permissions.Promotion.Discount.Update)]
+        public async Task<IActionResult> ApplyDiscountToProducts(int[] productIds, int discountId)
+        {
+            if (productIds == null || productIds.Length == 0)
+                return Json(new { success = false, message = "No products selected." });
 
-    var products = await _db.Products
-        .Include(p => p.AppliedDiscounts)
-        .Where(p => productIds.Contains(p.Id))
-        .ToListAsync();
+            var discount = await _db.Discounts.FindByIdAsync(discountId);
+            if (discount == null)
+                return Json(new { success = false, message = "Discount not found." });
 
-    foreach (var product in products)
-    {
-        if (!product.AppliedDiscounts.Any(d => d.Id == discount.Id))
-            product.AppliedDiscounts.Add(discount);
-    }
+            var products = await _db.Products.Take(10).ToListAsync();
 
-    await _db.SaveChangesAsync();
-    return Json(new { success = true });
-}
+            foreach (var product in products)
+            {
+                if (!product.AppliedDiscounts.Any(d => d.Id == discountId))
+                {
+                    product.AppliedDiscounts.Add(discount);
+                }
+            }
 
+            await _db.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {
             foreach (var localized in model.Locales)
