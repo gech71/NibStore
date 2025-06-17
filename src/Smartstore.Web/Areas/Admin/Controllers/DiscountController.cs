@@ -1,4 +1,4 @@
-﻿using System.Linq.Dynamic.Core;
+﻿﻿using System.Linq.Dynamic.Core;
 using Smartstore.Admin.Models.Discounts;
 using Smartstore.ComponentModel;
 using Smartstore.Core.Catalog.Discounts;
@@ -12,6 +12,7 @@ using Smartstore.Web.Models;
 using Smartstore.Web.Models.DataGrid;
 using Smartstore.Admin.Models.Catalog;
 
+
 namespace Smartstore.Admin.Controllers
 {
     public class DiscountController : AdminController
@@ -21,6 +22,7 @@ namespace Smartstore.Admin.Controllers
         private readonly ICurrencyService _currencyService;
         private readonly ILocalizedEntityService _localizedEntityService;
         private readonly ProductController _productController;
+
 
         public DiscountController(
             SmartDbContext db,
@@ -34,7 +36,6 @@ namespace Smartstore.Admin.Controllers
             _currencyService = currencyService;
             _localizedEntityService = localizedEntityService;
             _productController = productController;
-
         }
 
         /// <summary>
@@ -360,7 +361,7 @@ namespace Smartstore.Admin.Controllers
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
         [HttpGet]
-        [Permission(Permissions.Catalog.Product.Read)]
+        [Permission(Permissions.Promotion.Discount.Read)]
         public async Task<IActionResult> ApplyDiscount()
         {
             var model = new ProductListModel();
@@ -377,6 +378,33 @@ namespace Smartstore.Admin.Controllers
         {
             // Call the existing action method in ProductController
             return await _productController.ApplyDiscountToSelected(model);
+        }
+        [HttpGet]
+        public IActionResult ProductsWithDiscounts()
+        {
+            // Prepare data as needed, here we just pass the DiscountListModel (if needed)
+            var model = new DiscountListModel();
+
+            return View(model);
+        }
+        [HttpGet]
+        [Permission(Permissions.Promotion.Discount.Read)]
+        public async Task<IActionResult> ManageDiscountTabs()
+        {
+            var discount = new DiscountModel();
+            var productList = new ProductListModel();
+            var productsWithDiscounts = new DiscountListModel(); 
+
+            await _productController.PrepareProductListModelAsync(productList); 
+
+            var model = new CombinedDiscountTabsViewModel
+            {
+                Discount = discount,
+                ProductList = productList,
+                ProductsWithDiscounts = productsWithDiscounts
+            };
+
+            return View(model);  
         }
 
 

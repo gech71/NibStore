@@ -344,6 +344,16 @@
                 action="List"
                 area="Admin"
             />
+             <siteMapNode
+                id="bulk discounts"
+                icon="bi:percent"
+                title="Bulk Discounts"
+                resKey="Admin.Promotions.Discounts"
+                permissionNames="promotion.discount"
+                controller="Discount"
+                action="ManageDiscountTabs"
+                area="Admin"
+            />
             <siteMapNode
                 id="bulk discounts"
                 icon="bi:percent"
@@ -351,7 +361,7 @@
                 resKey="Admin.Promotions.Discounts"
                 permissionNames="promotion.discount"
                 controller="Discount"
-                action="ApplyDiscount"
+                action="ProductsWithDiscounts"
                 area="Admin"
             />
             <siteMapNode

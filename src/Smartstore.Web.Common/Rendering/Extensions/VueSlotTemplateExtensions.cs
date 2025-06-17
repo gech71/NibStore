@@ -43,6 +43,19 @@ namespace Smartstore.Web.Rendering
 
             return builder;
         }
+        /// <summary>
+        /// Renders labeled product name for discounts grid.
+        /// </summary>
+        public static IHtmlContent LabeledProductWithDiscountName(this IHtmlHelper _)
+        {
+            return _.LabeledProductName(
+                typeNameExpression: "item.row.ProductTypeName",
+                typeLabelHintExpression: "item.row.ProductTypeLabelHint",
+                urlExpression: "item.row.ProductEditUrl",
+                valueExpression: "item.row.ProductName"
+            );
+        }
+
 
         /// <summary>
         /// Renders a labeled order number for grids including a link to the edit page. Not intended to be used outside of grids.

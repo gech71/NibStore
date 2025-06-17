@@ -2,6 +2,11 @@
 
 @{
     var parentModel = ViewData["Parent"] as DiscountListModel;
+
+    var showProductColumn = ViewData["ShowProductColumn"] as bool? ?? false;
+    var hideDiscountType = ViewData["HideDiscountType"] as bool? ?? false;
+    var hideNumberOfRules = ViewData["HideNumberOfRules"] as bool? ?? false;
+    var hideCouponCode = ViewData["HideCouponCode"] as bool? ?? false;
 }
 
 <datagrid id="discounts-grid"
@@ -41,18 +46,42 @@
     </search-panel>
     <columns>
         <column for="Id" halign="center" visible="false" type="string" />
+
+        @* Optional Product Column *@
+        @if (showProductColumn)
+        {
+            <column for="Name" width="3fr" hideable="false">
+                <display-template>
+                    @Html.LabeledProductWithDiscountName()
+                </display-template>
+            </column>
+        }
+
         <column for="Name" hideable="false">
             <display-template>
                 <div class="text-truncate"><a :href="item.row.EditUrl" class="text-truncate">{{ item.value }}</a></div>
             </display-template>
         </column>
-        <column for="DiscountTypeName" entity-member="DiscountTypeId" readonly="true" />
-        <column for="NumberOfRules" halign="center" readonly="true" sortable="false" format="{0:N0}" />
+
+        @if (!hideDiscountType)
+        {
+            <column for="DiscountTypeName" entity-member="DiscountTypeId" readonly="true" />
+        }
+
+        @if (!hideNumberOfRules)
+        {
+            <column for="NumberOfRules" halign="center" readonly="true" sortable="false" format="{0:N0}" />
+        }
+
         <column for="StartDate" entity-member="StartDateUtc" />
         <column for="EndDate" entity-member="EndDateUtc" />
         <column for="UsePercentage" halign="center" />
         <column for="FormattedDiscountPercentage" entity-member="DiscountPercentage" width="auto" halign="center" readonly="true" />
         <column for="FormattedDiscountAmount" entity-member="DiscountAmount" width="auto" halign="center" readonly="true" />
-        <column for="RequiresCouponCode" halign="center" />
+
+        @if (!hideCouponCode)
+        {
+            <column for="RequiresCouponCode" halign="center" />
+        }
     </columns>
 </datagrid>
