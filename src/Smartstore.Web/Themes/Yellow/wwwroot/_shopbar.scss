@@ -296,4 +296,7 @@
     .show .menubar-link {
         background-color: $header-inverse-hover-bg;
     }
+}.shopbar-section,
+.menubar-section {
+    border-bottom: none !important;
 }
