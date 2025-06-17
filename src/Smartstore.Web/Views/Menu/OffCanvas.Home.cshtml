@@ -54,7 +54,7 @@
                 <select class="form-control form-control-sm skin"></select>
             </div>
             <div id="ocm-theme-selector" class="col">
-                <div class="theme-selector-wrapper d-flex align-items-center justify-content-center">
+                <div class="theme-selector-wrapper d-flex align-items-center">
                     <span class="theme-label mr-2">@T("Theme")</span>
                     @await Component.InvokeAsync("StoreThemeSelector")
                 </div>
@@ -66,10 +66,26 @@
 <style>
 .theme-selector-wrapper {
     padding: 0.5rem;
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1000;
 }
 
 .theme-label {
     font-size: 0.875rem;
     color: var(--gray-600);
+}
+
+/* Ensure the theme selector stays visible over submenus */
+.offcanvas-menu-body {
+    position: relative;
+}
+
+/* Add some spacing at the bottom to prevent content from being hidden behind the theme selector */
+.offcanvas-menu-body::after {
+    content: '';
+    display: block;
+    height: 4rem;
 }
 </style>
