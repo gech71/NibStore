@@ -37,6 +37,14 @@
                 @Html.Raw(T("ShoppingCart.Mini.AddedItemToCart", $"<strong>{currentItem.ProductName.Value.Truncate(50, "…")}</strong>"))
             </span>
         </div>
+        <script>
+            setTimeout(function() {
+                var alert = document.querySelector('.offcanvas-cart-body .alert-success');
+                if (alert) {
+                    $(alert).fadeOut(300, function() { $(this).remove(); });
+                }
+            }, 3000);
+        </script>
 
         <div class="offcanvas-cart-items">
             @foreach (var item in Model.Items)
