@@ -37,7 +37,7 @@
         // When to switch to an inline ZoomPane. This can be a boolean or
         // an integer. If `true`, the ZoomPane will always be inline,
         // if `false`, it will switch to inline when `windowWidth <= inlinePane`
-        inlinePane: 768,
+        inlinePane: true,
         // If `true`, touch events will trigger the zoom, like mouse events.
         handleTouch: true,
         // If present (and a function), this will be called

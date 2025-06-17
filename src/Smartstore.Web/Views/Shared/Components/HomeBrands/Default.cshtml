@@ -8,7 +8,7 @@
     </div>
 
     <div class="artlist-carousel block-body pt-3">
-        <div class="artlist artlist-grid artlist-6-cols artlist-boxed">
+        <div class="artlist artlist-grid artlist-6-cols artlist-boxed" data-autoplay="true" data-autoplay-speed="5000">
             @foreach (var item in Model.Brands)
             {
                 var url = Url.RouteUrl("Manufacturer", new { SeName = item.SeName });
@@ -48,6 +48,8 @@
                 speed: 300,
                 slidesToShow: 6,
                 slidesToScroll: 1,
+                autoplay: true,
+                autoplaySpeed: 5000,
                 responsive: [
                     {
                         breakpoint: 1024,
