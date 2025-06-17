@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using FluentValidation;
+using Microsoft.AspNetCore.Identity;
 using Smartstore.Core.Checkout.Tax;
 using Smartstore.Core.Identity;
 using Smartstore.Core.Localization;
@@ -143,15 +144,27 @@ namespace Smartstore.Web.Models.Customers
             Localizer T,
             CustomerSettings customerSettings,
             TaxSettings taxSettings
+            // Removed UserManager<Customer> and async uniqueness checks
         )
         {
-            /*RuleFor(x => x.Email).NotEmpty().EmailAddressStrict();
-
-            //form fields
-            if (customerSettings.FirstNameRequired)
+            // Username validation (if enabled)
+            if (customerSettings.CustomerLoginType != CustomerLoginType.Email)
             {
-                RuleFor(x => x.FirstName).NotEmpty();
-            }*/
+                RuleFor(x => x.Username)
+                    .NotEmpty().WithMessage(T("*Username is required"));
+                    // Removed async uniqueness check
+            }
+
+            // Phone validation (if enabled/required)
+            if (customerSettings.PhoneEnabled)
+            {
+                RuleFor(x => x.Phone)
+                    .NotEmpty().When(_ => customerSettings.PhoneRequired)
+                    .WithMessage(T("*Phone is required"))
+                    .Matches(@"^(?:\+251|0)?9\d{8}$")
+                    .WithMessage(T("*Invalid phone number format"));
+                    // Removed async uniqueness check
+            }
 
             RuleFor(x => x.FirstName).ValidPersonName(T);
 
