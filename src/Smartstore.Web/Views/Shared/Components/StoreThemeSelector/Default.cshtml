@@ -12,15 +12,11 @@
     var isYellow = currentTheme?.Name == yellowTheme?.Name;
 }
 
-<form id="store-theme-selector" sm-ajax method="post" asp-action="ChangeTheme" asp-controller="Common" sm-oncomplete="onStoreThemeChangedRequestCompleted">
-    <input type="hidden" name="themeName" id="themeNameInput" value="@currentTheme?.Name" />
-
-    <div class="theme-toggle" data-toggle="tooltip" data-placement="top" title="Switch to @(isYellow ? (brownTheme?.Title ?? "Brown") : (yellowTheme?.Title ?? "Yellow")) mode">
-        <div class="toggle-slider @(isYellow ? "toggle-brown" : "toggle-yellow")">
-            <div class="toggle-knob"></div>
-        </div>
+<div class="theme-toggle" data-toggle="tooltip" data-placement="top" title="Switch to @(isYellow ? (brownTheme?.Title ?? "Brown") : (yellowTheme?.Title ?? "Yellow")) mode">
+    <div class="toggle-slider @(isYellow ? "toggle-brown" : "toggle-yellow")">
+        <div class="toggle-knob"></div>
     </div>
-</form>
+</div>
 
 <style>
 /* Smaller size toggle */
@@ -60,17 +56,17 @@
     position: absolute;
     top: 3px;
     left: 3px;
-    transition: left 0.3s ease;
+    transition: transform 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Shift knob to right if yellow is active */
 .toggle-brown .toggle-knob {
-    left: 3px;
+    transform: translateX(0);
 }
 
 .toggle-yellow .toggle-knob {
-    left: 27px;
+    transform: translateX(24px);
 }
 </style>
 
@@ -84,6 +80,7 @@
         // Use event delegation for all theme toggles
         $(document).on('click', '.theme-toggle', function (e) {
             e.preventDefault();
+            e.stopPropagation();
             
             const $toggle = $(this);
             const $slider = $toggle.find('.toggle-slider');
@@ -91,22 +88,45 @@
             const newTheme = isCurrentlyYellow ? '@brownTheme?.Name' : '@yellowTheme?.Name';
             const newMode = isCurrentlyYellow ? '@brownTheme?.Title' : '@yellowTheme?.Title';
 
+            // Disable click during transition
+            $toggle.css('pointer-events', 'none');
+
             // Update tooltip text
             $toggle.attr('data-original-title', 'Switch to ' + newMode + ' mode').tooltip('show');
 
             // Toggle slider background class
             $slider.toggleClass('toggle-yellow toggle-brown');
 
-            // Update hidden input and submit
-            $('#themeNameInput').val(newTheme);
-            $('#store-theme-selector').submit();
+            // Submit theme change via AJAX
+            $.ajax({
+                url: '@Url.Action("ChangeTheme", "Common")',
+                type: 'POST',
+                data: { themeName: newTheme },
+                success: function() {
+                    // Store the new theme state in localStorage
+                    localStorage.setItem('currentTheme', newTheme);
+                    
+                    // Reload page after successful theme change
+                    window.location.reload();
+                },
+                error: function() {
+                    // Revert toggle state on error
+                    $slider.toggleClass('toggle-yellow toggle-brown');
+                    // Re-enable click after error
+                    $toggle.css('pointer-events', 'auto');
+                }
+            });
         });
 
         // Initialize tooltips for all theme toggles
         $('.theme-toggle').tooltip();
-    }
 
-    function onStoreThemeChangedRequestCompleted() {
-        location.reload();
+        // Sync theme state on page load
+        const storedTheme = localStorage.getItem('currentTheme');
+        if (storedTheme) {
+            const isStoredYellow = storedTheme === '@yellowTheme?.Name';
+            $('.theme-toggle .toggle-slider').removeClass('toggle-yellow toggle-brown')
+                .addClass(isStoredYellow ? 'toggle-yellow' : 'toggle-brown');
+        }
     }
 </script>
