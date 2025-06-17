@@ -12,8 +12,8 @@
     var isYellow = currentTheme?.Name == yellowTheme?.Name;
 }
 
-<div class="theme-toggle" data-toggle="tooltip" data-placement="top" title="Switch to @(isYellow ? (brownTheme?.Title ?? "Brown") : (yellowTheme?.Title ?? "Yellow")) mode">
-    <div class="toggle-slider @(isYellow ? "toggle-brown" : "toggle-yellow")">
+<div class="theme-toggle @(isYellow ? "toggle-yellow" : "toggle-brown")" data-toggle="tooltip" data-placement="top" title="Switch to @(isYellow ? (brownTheme?.Title ?? "Brown") : (yellowTheme?.Title ?? "Yellow")) mode">
+    <div class="toggle-slider">
         <div class="toggle-knob"></div>
     </div>
 </div>
@@ -26,6 +26,17 @@
     border-radius: 24px;
     cursor: pointer;
     position: relative;
+    transition: background-color 0.3s ease;
+}
+
+/* If current theme is yellow, toggle background should be brown */
+.theme-toggle.toggle-yellow {
+    background-color: #7B4A1E;
+}
+
+/* If current theme is brown, toggle background should be yellow */
+.theme-toggle.toggle-brown {
+    background-color: #FFD600;
 }
 
 /* Opposite background based on theme */
@@ -34,17 +45,7 @@
     height: 100%;
     border-radius: 24px;
     position: relative;
-    transition: background-color 0.3s ease;
-}
-
-/* If current theme is yellow, slider background should be brown (opposite) */
-.toggle-brown {
-    background-color: #7B4A1E; /* brown */
-}
-
-/* If current theme is brown, slider background should be yellow (opposite) */
-.toggle-yellow {
-    background-color: #FFD600; /* yellow */
+    background-color: transparent;
 }
 
 /* White circular knob */
@@ -61,12 +62,12 @@
 }
 
 /* Shift knob to right if yellow is active */
-.toggle-brown .toggle-knob {
-    transform: translateX(0);
-}
-
 .toggle-yellow .toggle-knob {
     transform: translateX(24px);
+}
+
+.toggle-brown .toggle-knob {
+    transform: translateX(0);
 }
 </style>
 
@@ -83,8 +84,7 @@
             e.stopPropagation();
             
             const $toggle = $(this);
-            const $slider = $toggle.find('.toggle-slider');
-            const isCurrentlyYellow = $slider.hasClass('toggle-yellow');
+            const isCurrentlyYellow = $toggle.hasClass('toggle-yellow');
             const newTheme = isCurrentlyYellow ? '@brownTheme?.Name' : '@yellowTheme?.Name';
             const newMode = isCurrentlyYellow ? '@brownTheme?.Title' : '@yellowTheme?.Title';
 
@@ -94,8 +94,8 @@
             // Update tooltip text
             $toggle.attr('data-original-title', 'Switch to ' + newMode + ' mode').tooltip('show');
 
-            // Toggle slider background class
-            $slider.toggleClass('toggle-yellow toggle-brown');
+            // Toggle background class
+            $toggle.toggleClass('toggle-yellow toggle-brown');
 
             // Submit theme change via AJAX
             $.ajax({
@@ -111,7 +111,7 @@
                 },
                 error: function() {
                     // Revert toggle state on error
-                    $slider.toggleClass('toggle-yellow toggle-brown');
+                    $toggle.toggleClass('toggle-yellow toggle-brown');
                     // Re-enable click after error
                     $toggle.css('pointer-events', 'auto');
                 }
@@ -125,7 +125,7 @@
         const storedTheme = localStorage.getItem('currentTheme');
         if (storedTheme) {
             const isStoredYellow = storedTheme === '@yellowTheme?.Name';
-            $('.theme-toggle .toggle-slider').removeClass('toggle-yellow toggle-brown')
+            $('.theme-toggle').removeClass('toggle-yellow toggle-brown')
                 .addClass(isStoredYellow ? 'toggle-yellow' : 'toggle-brown');
         }
     }
