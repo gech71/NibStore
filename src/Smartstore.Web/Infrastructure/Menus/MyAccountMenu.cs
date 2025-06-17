@@ -104,14 +104,14 @@ namespace Smartstore.Web.Infrastructure
                     ActionName = "Info",
                     ControllerName = "Customer"
                 },
-                new MenuItem
-                {
-                    Id = "addresses",
-                    Text = T("Account.CustomerAddresses"),
-                    Icon = "fal fa-address-book",
-                    ActionName = "Addresses",
-                    ControllerName = "Customer"
-                }
+                // new MenuItem
+                // {
+                //     Id = "addresses",
+                //     Text = T("Account.CustomerAddresses"),
+                //     Icon = "fal fa-address-book",
+                //     ActionName = "Addresses",
+                //     ControllerName = "Customer"
+                // }
             ]);
 
             if (!_customerSettings.HideMyAccountOrders)
