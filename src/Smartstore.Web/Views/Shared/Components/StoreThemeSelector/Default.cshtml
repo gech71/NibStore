@@ -15,7 +15,7 @@
 <form id="store-theme-selector" sm-ajax method="post" asp-action="ChangeTheme" asp-controller="Common" sm-oncomplete="onStoreThemeChangedRequestCompleted">
     <input type="hidden" name="themeName" id="themeNameInput" value="@currentTheme?.Name" />
 
-    <div class="theme-toggle" id="themeToggle" data-toggle="tooltip" data-placement="top" title="Switch to @(isYellow ? (brownTheme?.Title ?? "Brown") : (yellowTheme?.Title ?? "Yellow")) mode">
+    <div class="theme-toggle" data-toggle="tooltip" data-placement="top" title="Switch to @(isYellow ? (brownTheme?.Title ?? "Brown") : (yellowTheme?.Title ?? "Yellow")) mode">
         <div class="toggle-slider @(isYellow ? "toggle-brown" : "toggle-yellow")">
             <div class="toggle-knob"></div>
         </div>
@@ -76,25 +76,35 @@
 
 <script>
     $(function () {
-        // Initialize Bootstrap tooltip
-        $('#themeToggle').tooltip();
-        $('#themeToggle').on('click', function () {
-            const isCurrentlyYellow = $(this).find('.toggle-slider').hasClass('toggle-yellow');
+        // Initialize theme selector functionality
+        initializeThemeSelector();
+    });
+
+    function initializeThemeSelector() {
+        // Use event delegation for all theme toggles
+        $(document).on('click', '.theme-toggle', function (e) {
+            e.preventDefault();
+            
+            const $toggle = $(this);
+            const $slider = $toggle.find('.toggle-slider');
+            const isCurrentlyYellow = $slider.hasClass('toggle-yellow');
             const newTheme = isCurrentlyYellow ? '@brownTheme?.Name' : '@yellowTheme?.Name';
             const newMode = isCurrentlyYellow ? '@brownTheme?.Title' : '@yellowTheme?.Title';
 
-            // Update tooltip text to reflect the next mode
-            $(this).attr('data-original-title', 'Switch to ' + newMode + ' mode').tooltip('show');
+            // Update tooltip text
+            $toggle.attr('data-original-title', 'Switch to ' + newMode + ' mode').tooltip('show');
 
             // Toggle slider background class
-            const slider = $(this).find('.toggle-slider');
-            slider.toggleClass('toggle-yellow toggle-brown');
+            $slider.toggleClass('toggle-yellow toggle-brown');
 
             // Update hidden input and submit
             $('#themeNameInput').val(newTheme);
             $('#store-theme-selector').submit();
         });
-    });
+
+        // Initialize tooltips for all theme toggles
+        $('.theme-toggle').tooltip();
+    }
 
     function onStoreThemeChangedRequestCompleted() {
         location.reload();
