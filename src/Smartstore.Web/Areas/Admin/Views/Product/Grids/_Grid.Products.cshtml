@@ -130,15 +130,15 @@
 
 <div id="apply-discount-window" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1060; background: white; padding: 20px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 500px; max-width: 90%;">
     <div style="position: relative;">
-        <button type="button" class="close" style="position: absolute; right: 10px; top: 5px;" onclick="$('#apply-discount-window').hide();">&times;</button>
+        <button type="button" class="close" style="position: absolute; right: 10px; top: 5px;"  onclick="location.reload();""></button>
         <div class="form-group" style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px;">@T("Admin.Promotions.Discounts")</label>
+            <label style="display: block; margin-bottom: 25px;">@T("Admin.Promotions.Discounts")</label>
             <select id="discount-id" name="discountId" class="form-control" style="width: 100%;">
                 <option value="0">@T("Admin.Common.PleaseSelect")</option>
             </select>
         </div>
         <div style="text-align: right; margin-top: 20px;">
-            <button type="button" class="btn btn-secondary" onclick="$('#apply-discount-window').hide();">@T("Common.Cancel")</button>
+        <button type="button" class="btn btn-secondary" onclick="location.reload();">@T("Common.Cancel")</button>
             <button type="button" id="apply-discount" class="btn btn-primary">@T("Common.Apply")</button>
         </div>
     </div>
@@ -253,9 +253,8 @@
                 contentType: 'application/json',
                 dataType: 'json',
                 success: function (response) {
-                    console.log('Response received:', response);
                     if (response && response.success) {
-                        displayNotification(response.message || 'Discount applied successfully', 'success');
+                        displayNotification(response.message );
                         // Refresh the grid by triggering the Smartstore grid's refresh
                         var $grid = $('#products-grid');
                         var dataGrid = $grid.data('datagrid');
