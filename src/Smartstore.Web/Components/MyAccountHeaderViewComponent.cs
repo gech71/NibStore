@@ -16,7 +16,12 @@ namespace Smartstore.Web.Components
                 CustomerName = customerName,
                 Avatar = await customer.MapAsync(customerName, true, true),
                 CustomerSince = customer.CreatedOnUtc.ToString("MMM yyyy"),
-                RewardPoints = customer.GetRewardPointsBalance()
+                RewardPoints = customer.GetRewardPointsBalance(),
+                ContactInfo = new CustomerContactInfoModel
+                {
+                    Username = customer.Username,
+                    Phone = customer.Phone // <-- Use the property, not GetPhoneNumber()
+                }
             };
 
             return View(model);

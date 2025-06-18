@@ -8,7 +8,7 @@
     </div>
     <div class="col align-self-center text-truncate pr-4 pr-md-1">
         <div class="my-account-username fwm text-truncate">
-            @Model.CustomerName
+            @Model.ContactInfo?.Username
         </div>
         <div class="my-account-info small hstack flex-wrap justify-content-start justify-content-md-center justify-content-xl-start" style="row-gap: 3px; column-gap: 6px">
             <span class="text-muted">@T("Account.CustomerSince", Model.CustomerSince)</span>
