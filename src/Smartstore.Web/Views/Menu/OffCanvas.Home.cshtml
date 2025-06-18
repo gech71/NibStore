@@ -45,8 +45,8 @@
         <div class="tab-pane fade" id="ocm-service" role="tabpanel"></div>
     </div>
 
-    <div sm-if="allowNavigation" class="offcanvas-menu-footer d-none">
-        <div class="row xs-gutters justify-content-around">
+    <div sm-if="allowNavigation" class="offcanvas-menu-footer">
+        <div class="row xs-gutters justify-content-around align-items-center">
             <div id="ocm-currency-selector" class="col d-none">
                 <select class="form-control form-control-sm skin w-100"></select>
             </div>
@@ -54,8 +54,38 @@
                 <select class="form-control form-control-sm skin"></select>
             </div>
             <div id="ocm-theme-selector" class="col">
-                @await Component.InvokeAsync("StoreThemeSelector")
+                <div class="theme-selector-wrapper d-flex align-items-center">
+                    <span class="theme-label mr-2">@T("Theme")</span>
+                    @await Component.InvokeAsync("StoreThemeSelector")
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.theme-selector-wrapper {
+    padding: 0.5rem;
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1000;
+}
+
+.theme-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+/* Ensure the theme selector stays visible over submenus */
+.offcanvas-menu-body {
+    position: relative;
+}
+
+/* Add some spacing at the bottom to prevent content from being hidden behind the theme selector */
+.offcanvas-menu-body::after {
+    content: '';
+    display: block;
+    height: 4rem;
+}
+</style>

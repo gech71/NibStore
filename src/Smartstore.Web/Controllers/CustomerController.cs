@@ -159,6 +159,43 @@ namespace Smartstore.Web.Controllers
                 );
             }
 
+            // Username uniqueness check
+            if (
+                ModelState.IsValid
+                && _customerSettings.CustomerLoginType != CustomerLoginType.Email
+                && _customerSettings.AllowUsersToChangeUsernames
+                && !model.Username.IsEmpty()
+                && !model.Username.EqualsNoCase(customer.Username)
+            )
+            {
+                var exists = await _db.Customers
+                    .IgnoreQueryFilters()
+                    .Where(u => u.Username == model.Username && u.Id != customer.Id)
+                    .AnyAsync();
+                if (exists)
+                {
+                    ModelState.AddModelError(nameof(model.Username), T("Account.CheckUsernameAvailability.NotAvailable"));
+                }
+            }
+
+            // Phone uniqueness check (if enabled)
+            if (
+                ModelState.IsValid
+                && _customerSettings.PhoneEnabled
+                && !model.Phone.IsEmpty()
+                && !model.Phone.EqualsNoCase(customer.Phone)
+            )
+            {
+                var exists = await _db.Customers
+                    .IgnoreQueryFilters()
+                    .Where(u => u.Phone == model.Phone && u.Id != customer.Id)
+                    .AnyAsync();
+                if (exists)
+                {
+                    ModelState.AddModelError(nameof(model.Phone), "*Phone number is already registered");
+                }
+            }
+
             // INFO: update email and username requires SaveChangesAttribute to be set to 'false'.
             var newEmail = model.Email.TrimSafe();
             var newUsername = model.Username.TrimSafe();
@@ -296,7 +333,7 @@ namespace Smartstore.Web.Controllers
                     }
                     if (_customerSettings.PhoneEnabled)
                     {
-                        customer.GenericAttributes.Phone = model.Phone;
+                        customer.Phone = model.Phone;
                     }
                     if (_customerSettings.FaxEnabled)
                     {
@@ -331,6 +368,8 @@ namespace Smartstore.Web.Controllers
                         await Services.EventPublisher.PublishAsync(
                             new ModelBoundEvent(model, customer, Request.Form)
                         );
+
+                        NotifySuccess(T("Customer Info is Updated"));
 
                         return RedirectToAction(nameof(Info));
                     }
@@ -1149,7 +1188,7 @@ namespace Smartstore.Web.Controllers
                 model.ZipPostalCode = customer.GenericAttributes.ZipPostalCode;
                 model.CountryId = Convert.ToInt32(customer.GenericAttributes.CountryId);
                 model.StateProvinceId = Convert.ToInt32(customer.GenericAttributes.StateProvinceId);
-                model.Phone = customer.GenericAttributes.Phone;
+                model.Phone = customer.Phone;
                 model.Fax = customer.GenericAttributes.Fax;
                 model.Newsletter = newsletterSubscription != null && newsletterSubscription.Active;
             }
