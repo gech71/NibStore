@@ -3,7 +3,9 @@
 @{
     var parentModel = ViewData["Parent"] as ProductListModel;
 }
-
+   @{
+    var controllerName = ViewContext.RouteData.Values["controller"]?.ToString();
+}
 <datagrid id="products-grid"
           version="3"
           allow-resize="true"
@@ -11,7 +13,7 @@
           allow-edit="true"
           preserve-grid-state="true" preserve-command-state="true"
           allow-column-reordering="true">
-    <datasource read="@Url.Action("ProductList")" delete="@Url.Action("ProductDelete")" update="@Url.Action("ProductUpdate")" />
+    <datasource read="@Url.Action("ProductList", "Product")" delete="@Url.Action("ProductDelete")" update="@Url.Action("ProductUpdate")" />
     <paging position="Bottom" page-index="1" show-size-chooser="true" />
     <sorting allow-unsort="true" allow-multisort="false"></sorting>
     <toolbar>
@@ -20,35 +22,50 @@
                 <i class="fa fa-fw fa-filter"></i>
             </button>
         </toolbar-group>
-        <toolbar-group>
-            <a asp-action="Create" class="btn btn-primary btn-flat no-anims mr-auto">
-                <i class="fa fa-plus"></i>
-                <span>@T("Admin.Common.AddNew")...</span>
-            </a>
-            <button datagrid-action="DataGridToolAction.SaveChanges" type="button" class="btn btn-warning no-anims btn-flat">
-                <i class="fa fa-check"></i>
-                <span>@T("Admin.Common.SaveChanges")</span>
-            </button>
-            <button datagrid-action="DataGridToolAction.CancelEdit" type="button" class="btn btn-light btn-flat mr-auto">
-                <span>@T("Common.Cancel")</span>
-            </button>
-        </toolbar-group>
+     
+
+        @if (controllerName != "Discount")
+        {
+            <toolbar-group>
+                <a asp-action="Create" class="btn btn-primary btn-flat no-anims mr-auto">
+                    <i class="fa fa-plus"></i>
+                    <span>@T("Admin.Common.AddNew")...</span>
+                </a>
+                <button datagrid-action="DataGridToolAction.SaveChanges" type="button" class="btn btn-warning no-anims btn-flat">
+                    <i class="fa fa-check"></i>
+                    <span>@T("Admin.Common.SaveChanges")</span>
+                </button>
+                <button datagrid-action="DataGridToolAction.CancelEdit" type="button" class="btn btn-light btn-flat mr-auto">
+                    <span>@T("Common.Cancel")</span>
+                </button>
+            </toolbar-group>
+        }
+
         <zone name="datagrid_toolbar_alpha"></zone>
         <toolbar-group class="omega"></toolbar-group>
         <zone name="datagrid_toolbar_omega"></zone>
-        <toolbar-group>
-            <button type="button" class="btn btn-secondary no-anims btn-flat" id="apply-discount-selected" data-url="@Url.Action("ApplyDiscountToSelected", "Product")">
-                <i class="fa fa-tags"></i>
-                <span>@T("Admin.Catalog.Products.ApplyDiscount")</span>
-            </button>
-            <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button" class="btn btn-danger no-anims btn-flat">
-                <i class="far fa-trash-can"></i>
-                <span>@T("Admin.Common.Delete.Selected")</span>
-            </button>
-        </toolbar-group>
+        @if (controllerName == "Discount")
+        {
+            <toolbar-group>
+                <button type="button" class="btn btn-secondary no-anims btn-flat" id="apply-discount-selected" data-url="@Url.Action("ApplyDiscountToProducts", "Discount")">
+                    <i class="fa fa-tags"></i>
+                    <span>@T("Admin.Catalog.Products.ApplyDiscount")</span>
+                </button>
+            </toolbar-group>
+        }
+        @if(controllerName != "Discount")
+        {
+            <toolbar-group>
+                <button datagrid-action="DataGridToolAction.DeleteSelectedRows" type="button" class="btn btn-danger no-anims btn-flat">
+                    <i class="far fa-trash-can"></i>
+                    <span>@T("Admin.Common.Delete.Selected")</span>
+                </button>
+            </toolbar-group>
+        }
+
     </toolbar>
     <search-panel>
-        <partial name="Grids/_Grid.Products.Search" model="parentModel" />
+        <partial name="~/Areas/Admin/Views/Product/Grids/_Grid.Products.Search.cshtml" model="parentModel" />
     </search-panel>
     <columns>
         @if (parentModel.DisplayProductPictures)
@@ -108,20 +125,20 @@
     </row-commands>
 </datagrid>
 
-<partial name="_CopyProductDialog" model="null" />
+<partial name="~/Areas/Admin/Views/Product/_CopyProductDialog.cshtml" model="null" />
+
 
 <div id="apply-discount-window" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1060; background: white; padding: 20px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 500px; max-width: 90%;">
     <div style="position: relative;">
-        <button type="button" class="close" style="position: absolute; right: 10px; top: 5px;" onclick="$('#apply-discount-window').hide();">&times;</button>
-        <h4 style="margin-top: 0; padding-right: 20px;">@T("Admin.Catalog.Products.ApplyDiscount")</h4>
+        <button type="button" class="close" style="position: absolute; right: 10px; top: 5px;"  onclick="location.reload();""></button>
         <div class="form-group" style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px;">@T("Admin.Promotions.Discounts")</label>
+            <label style="display: block; margin-bottom: 25px;">@T("Admin.Promotions.Discounts")</label>
             <select id="discount-id" name="discountId" class="form-control" style="width: 100%;">
                 <option value="0">@T("Admin.Common.PleaseSelect")</option>
             </select>
         </div>
         <div style="text-align: right; margin-top: 20px;">
-            <button type="button" class="btn btn-secondary" onclick="$('#apply-discount-window').hide();">@T("Common.Cancel")</button>
+        <button type="button" class="btn btn-secondary" onclick="location.reload();">@T("Common.Cancel")</button>
             <button type="button" id="apply-discount" class="btn btn-primary">@T("Common.Apply")</button>
         </div>
     </div>
@@ -156,37 +173,36 @@
             });
         }
         
-        // Function to show the modal
         function showDiscountModal() {
             var grid = $('#products-grid').parent().data('datagrid');
             var selectedIds = grid.selectedRowKeys;
-            
+
             if (!selectedIds || selectedIds.length === 0) {
-                alert(resources['Admin.Common.NoItemsSelected']);
+                displayNotification(resources['Admin.Common.NoItemsSelected'], 'warning');
                 return false;
             }
-            
+
             var $dropdown = $('#discount-id');
             $dropdown.empty().append($('<option/>').val('0').text(resources['Admin.Common.PleaseSelectDiscount']));
-            
+
             // Show modal and backdrop
             $('#apply-discount-window, #modal-backdrop').show();
-            
+
             // Load discounts
             loadDiscounts()
                 .done(function(data) {
-                    // Populate dropdown
                     data.forEach(function(item) {
                         $dropdown.append($('<option/>').val(item.id).text(item.text));
                     });
                 })
                 .fail(function() {
-                    alert(resources['Admin.Common.Error']);
+                    displayNotification(resources['Admin.Common.Error'], 'error');
                     $('#apply-discount-window, #modal-backdrop').hide();
                 });
-            
+
             return false;
         }
+
         
         // Handle apply discount button click
         $(document).on('click', '#apply-discount-selected', function (e) {
@@ -224,12 +240,9 @@
             
             // Get the URL from the button's data attribute
             var url = $('#apply-discount-selected').data('url');
-            
-            // Log the data being sent for debugging
-            console.log('Sending request to:', url);
-            console.log('Selected IDs:', selectedIds);
-            console.log('Discount ID:', discountId);
-            
+            console.log("Selected IDs:", selectedIds);
+            console.log("Discount ID:", discountId);
+
             $.ajax({
                 url: url,
                 type: 'POST',
@@ -240,9 +253,8 @@
                 contentType: 'application/json',
                 dataType: 'json',
                 success: function (response) {
-                    console.log('Response received:', response);
                     if (response && response.success) {
-                        displayNotification(response.message || 'Discount applied successfully', 'success');
+                        displayNotification(response.message );
                         // Refresh the grid by triggering the Smartstore grid's refresh
                         var $grid = $('#products-grid');
                         var dataGrid = $grid.data('datagrid');
@@ -275,4 +287,5 @@
             $('#discount-id').empty().append($('<option/>').val('0').text(resources['Admin.Common.PleaseSelectDiscount']));
         });
     });
+    
 </script>

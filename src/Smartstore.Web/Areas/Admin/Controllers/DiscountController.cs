@@ -1,4 +1,4 @@
-﻿using System.Linq.Dynamic.Core;
+﻿﻿using System.Linq.Dynamic.Core;
 using Smartstore.Admin.Models.Discounts;
 using Smartstore.ComponentModel;
 using Smartstore.Core.Catalog.Discounts;
@@ -10,6 +10,8 @@ using Smartstore.Core.Rules.Filters;
 using Smartstore.Core.Security;
 using Smartstore.Web.Models;
 using Smartstore.Web.Models.DataGrid;
+using Smartstore.Admin.Models.Catalog;
+
 
 namespace Smartstore.Admin.Controllers
 {
@@ -19,17 +21,21 @@ namespace Smartstore.Admin.Controllers
         private readonly IRuleService _ruleService;
         private readonly ICurrencyService _currencyService;
         private readonly ILocalizedEntityService _localizedEntityService;
+        private readonly ProductController _productController;
+
 
         public DiscountController(
             SmartDbContext db,
             IRuleService ruleService,
             ICurrencyService currencyService,
-            ILocalizedEntityService localizedEntityService)
+            ILocalizedEntityService localizedEntityService,
+            ProductController productController)
         {
             _db = db;
             _ruleService = ruleService;
             _currencyService = currencyService;
             _localizedEntityService = localizedEntityService;
+            _productController = productController;
         }
 
         /// <summary>
@@ -354,6 +360,44 @@ namespace Smartstore.Admin.Controllers
 
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
+        [HttpGet]
+        [Permission(Permissions.Catalog.Product.Read)]
+        public async Task<IActionResult> ApplyDiscount()
+        {
+            var model = new ProductListModel();
+
+            // Call the method from ProductController
+            await _productController.PrepareProductListModelAsync(model);
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [Permission(Permissions.Catalog.Product.Update)]      
+        public async Task<IActionResult> ApplyDiscountToProducts([FromBody]ApplyDiscountToSelectedModel model)
+        {
+            // Call the existing action method in ProductController
+            return await _productController.ApplyDiscountToSelected(model);
+        }
+
+        [HttpGet]
+        [Permission(Permissions.Promotion.Discount.Read)]
+        public async Task<IActionResult> ManageDiscountTabs()
+        {
+            var discountList = new DiscountListModel();
+            var productList = new ProductListModel();
+
+            await _productController.PrepareProductListModelAsync(productList); 
+
+            var model = new CombinedDiscountTabsViewModel
+            {
+                DiscountList = discountList,
+                ProductList = productList,
+            };
+
+            return View(model);  
+        }
+
 
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {

@@ -1,0 +1,21 @@
+@using Smartstore.Admin.Models.Catalog
+@model ProductListModel
+
+@{
+    ViewBag.Title = "Apply Discount to Products";
+}
+
+<div class="section-header">
+    <div class="title">
+        <i class="fa fa-tag"></i>
+        Apply Discount to Products
+    </div>
+</div>
+
+@{
+    var gridViewData = new ViewDataDictionary(this.ViewData);
+    gridViewData["Parent"] = Model;
+}
+
+@await Html.PartialAsync("~/Areas/Admin/Views/Product/Grids/_Grid.Products.cshtml", null, gridViewData)
+
