@@ -46,19 +46,28 @@
     </div>
 
     <div sm-if="allowNavigation" class="offcanvas-menu-footer">
-        <div class="row xs-gutters justify-content-around align-items-center">
-            <div id="ocm-currency-selector" class="col d-none">
+        <div class="row xs-gutters justify-content-between align-items-center">
+            <div id="ocm-currency-selector" class="col-auto d-none">
                 <select class="form-control form-control-sm skin w-100"></select>
             </div>
-            <div id="ocm-language-selector" class="col d-none">
+            <div id="ocm-language-selector" class="col-auto d-none">
                 <select class="form-control form-control-sm skin"></select>
             </div>
-            <div id="ocm-theme-selector" class="col">
-                <div class="theme-selector-wrapper d-flex align-items-center">
-                    <span class="theme-label mr-2">@T("Theme")</span>
+            <div class="col-auto d-flex align-items-center">
+                <i class="fal fa-paint-brush mr-2" style="color: var(--gray-600); font-size: 0.9rem;"></i>
+                <div id="ocm-theme-selector" class="theme-selector-wrapper">
                     @await Component.InvokeAsync("StoreThemeSelector")
                 </div>
             </div>
+            @if (WorkContext.CurrentCustomer.IsRegistered())
+            {
+                <div class="col-auto">
+                    <a asp-route="Logout" class="btn btn-link btn-sm d-flex align-items-center" rel="nofollow" style="color: #7B4A1E;">
+                        <i class="fal fa-right-from-bracket"></i>
+                        <span class="ml-2">@T("Account.Logout")</span>
+                    </a>
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -66,15 +75,8 @@
 <style>
 .theme-selector-wrapper {
     padding: 0.5rem;
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
+    position: relative;
     z-index: 1000;
-}
-
-.theme-label {
-    font-size: 0.875rem;
-    color: var(--gray-600);
 }
 
 /* Ensure the theme selector stays visible over submenus */
@@ -87,5 +89,36 @@
     content: '';
     display: block;
     height: 4rem;
+}
+
+/* Style for the logout button */
+.btn-link {
+    color: #7B4A1E;
+    text-decoration: none;
+    padding: 0.5rem;
+    font-weight: normal;
+    transition: color 0.2s ease;
+}
+
+.btn-link:hover {
+    color: #5a3615;
+    text-decoration: none;
+}
+
+/* Adjust theme toggle size */
+.theme-toggle {
+    width: 40px !important;
+    height: 20px !important;
+}
+
+.theme-toggle .toggle-knob {
+    width: 16px !important;
+    height: 16px !important;
+    top: 2px !important;
+    left: 2px !important;
+}
+
+.toggle-yellow .toggle-knob {
+    transform: translateX(20px) !important;
 }
 </style>
