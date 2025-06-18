@@ -11,5 +11,8 @@
         /// </summary>
         public string CustomerEmail { get; set; }
         public CustomerAvatarModel Avatar { get; set; } = new();
+
+        // Add this property
+        public CustomerContactInfoModel ContactInfo { get; set; }
     }
 }
