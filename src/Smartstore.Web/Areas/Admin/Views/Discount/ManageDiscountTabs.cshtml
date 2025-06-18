@@ -3,6 +3,17 @@
     Layout = "_AdminLayout";
 }
 
+@{
+    var discountGridViewData = new ViewDataDictionary(ViewData)
+    {
+        ["Parent"] = Model.DiscountList,
+    };
+    var productListGridViewData = new ViewDataDictionary(ViewData)
+    {
+        ["Parent"] = Model.ProductList
+    };
+   
+}
 <ul class="nav nav-tabs mb-3" id="discountTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list" type="button" role="tab">Discount List</button>
@@ -10,19 +21,53 @@
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="apply-tab" data-bs-toggle="tab" data-bs-target="#apply" type="button" role="tab">Apply Discount</button>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="withdiscounts-tab" data-bs-toggle="tab" data-bs-target="#withdiscounts" type="button" role="tab">Products With Discounts</button>
-    </li>
+   
 </ul>
 
-<div class="tab-content border p-3" id="discountTabsContent">
+<div class="tab-content  p-3" id="discountTabsContent">
     <div class="tab-pane fade show active" id="list" role="tabpanel" aria-labelledby="list-tab">
-        @Html.Partial("_Grid.Discounts", Model.Discount)
+        @await Html.PartialAsync("_Grid.Discounts", null, discountGridViewData)
     </div>
     <div class="tab-pane fade" id="apply" role="tabpanel" aria-labelledby="apply-tab">
-        @Html.Partial("_Grid.Products", Model.ProductList)
+        @await Html.PartialAsync("~/Areas/Admin/Views/Product/Grids/_Grid.Products.cshtml", null, productListGridViewData)
     </div>
-    <div class="tab-pane fade" id="withdiscounts" role="tabpanel" aria-labelledby="withdiscounts-tab">
-        @Html.Partial("_Grid.ProductsWithDiscounts", Model.ProductsWithDiscounts)
-    </div>
+   
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+}
+
+<style>
+    /* Default appearance */
+    .nav-tabs .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #1c484c;
+        font-weight: 500;
+        margin-right: 10px;
+    }
+
+    /* Hover state for better UX */
+    .nav-tabs .nav-link:hover {
+        border-bottom: 3px solid #ccc;
+        background-color: transparent;
+    }
+
+    /* Active tab underline */
+    .nav-tabs .nav-link.active {
+        border-bottom: 3px solid #1c484c;
+        background-color: transparent;
+        color: #1c484c;
+    }
+
+    /* Optional: remove default nav-tabs bottom border */
+    .nav-tabs {
+        border-bottom: none;
+    }
+
+    /* Optional: content area padding only */
+    .tab-content {
+        padding: 16px 0;
+    }
+</style>

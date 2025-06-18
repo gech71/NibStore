@@ -361,7 +361,7 @@ namespace Smartstore.Admin.Controllers
             ViewBag.PrimaryStoreCurrencyCode = _currencyService.PrimaryCurrency.CurrencyCode;
         }
         [HttpGet]
-        [Permission(Permissions.Promotion.Discount.Read)]
+        [Permission(Permissions.Catalog.Product.Read)]
         public async Task<IActionResult> ApplyDiscount()
         {
             var model = new ProductListModel();
@@ -373,35 +373,26 @@ namespace Smartstore.Admin.Controllers
         }
 
         [HttpPost]
-        [Permission(Permissions.Promotion.Discount.Update)]
-        public async Task<IActionResult> ApplyDiscountToProducts(ApplyDiscountToSelectedModel model)
+        [Permission(Permissions.Catalog.Product.Update)]      
+        public async Task<IActionResult> ApplyDiscountToProducts([FromBody]ApplyDiscountToSelectedModel model)
         {
             // Call the existing action method in ProductController
             return await _productController.ApplyDiscountToSelected(model);
         }
-        [HttpGet]
-        public IActionResult ProductsWithDiscounts()
-        {
-            // Prepare data as needed, here we just pass the DiscountListModel (if needed)
-            var model = new DiscountListModel();
 
-            return View(model);
-        }
         [HttpGet]
         [Permission(Permissions.Promotion.Discount.Read)]
         public async Task<IActionResult> ManageDiscountTabs()
         {
-            var discount = new DiscountModel();
+            var discountList = new DiscountListModel();
             var productList = new ProductListModel();
-            var productsWithDiscounts = new DiscountListModel(); 
 
             await _productController.PrepareProductListModelAsync(productList); 
 
             var model = new CombinedDiscountTabsViewModel
             {
-                Discount = discount,
+                DiscountList = discountList,
                 ProductList = productList,
-                ProductsWithDiscounts = productsWithDiscounts
             };
 
             return View(model);  
