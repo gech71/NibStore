@@ -112,6 +112,20 @@
         </div>
     }
 
+    @*Logout*@
+    @if (Model.IsAuthenticated)
+    {
+        <div class="shopbar-tool d-none d-lg-block" id="shopbar-logout">
+            <a asp-route="Logout" class="shopbar-button" rel="nofollow">
+                <span class="shopbar-button-icon">
+                    <i class="fal fa-right-from-bracket"></i>
+                </span>
+                <span class="shopbar-button-label">
+                    @T("Account.Logout")
+                </span>
+            </a>
+        </div>
+    }
     <zone name="shopbar_tools_after" preview-style="max-width: 106px"></zone>
 </div>
 
@@ -135,3 +149,41 @@
     @*TODO: (mh) (core) This is problematic!!! Scripts are there before widget was rendered thus they won't become initialized correctly*@
     <script src="~/js/public.offcanvas-cart.js" asp-append-version="true"></script>
 </widget>
+
+<style>
+.shopbar-tool {
+    display: flex;
+    align-items: center;
+}
+
+.shopbar-button {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    color: var(--gray-600);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.shopbar-button:hover {
+    color: var(--gray-800);
+    text-decoration: none;
+}
+
+.shopbar-button-icon {
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.shopbar-button-label {
+    font-size: 0.9rem;
+}
+
+#shopbar-theme {
+    margin-right: 0.5rem;
+}
+
+#shopbar-logout {
+    margin-left: 0.5rem;
+}
+</style>
