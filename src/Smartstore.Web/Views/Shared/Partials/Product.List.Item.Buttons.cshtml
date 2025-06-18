@@ -10,7 +10,7 @@
     string artDetailUrl = ViewBag.ArtDetailUrl;
 
     bool isGuest = !User.Identity.IsAuthenticated;
-    bool anonymousCheckoutAllowed = true; // Adjust this according to your logic
+    bool anonymousCheckoutAllowed = true;
 
     string checkoutUrl = (anonymousCheckoutAllowed && isGuest)
         ? Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })
@@ -18,7 +18,6 @@
 
     string antiForgeryToken = "";
 
-    // Render Anti-Forgery token value for AJAX calls (if token is generated in layout/form)
     var antiforgery = Context.RequestServices.GetService(typeof(Microsoft.AspNetCore.Antiforgery.IAntiforgery)) as Microsoft.AspNetCore.Antiforgery.IAntiforgery;
     if (antiforgery != null)
     {
@@ -110,10 +109,9 @@
     }
 }
 
-<!-- Hidden form for productId and quantity -->
+<!-- Hidden form -->
 <form id="pd-form" method="post" style="display:none;">
     <input type="hidden" name="productId" value="@Model.Id" />
-    <label for="quantity" class="sr-only">Quantity</label>
     <input type="number" id="quantity" name="quantity" value="1" min="1" />
     @Html.AntiForgeryToken()
 </form>
@@ -140,54 +138,11 @@
             @{ RenderBuyNowButton(false); }
         </div>
     }
-    @* @if (!price.DisableWishlistButton && list.WishlistEnabled)
-    {
-        <a data-href="@Url.Action("AddProductSimple", "ShoppingCart", new { productId = Model.Id, shoppingCartTypeId = (int)ShoppingCartType.Wishlist, area = "" })"
-           href="#"
-           class="btn btn-secondary btn-lg art-btn col ajax-cart-link add-to-wishlist-button"
-           title="@T("Categories.Wishlist")"
-           data-toggle="tooltip" data-placement="bottom"
-           rel="nofollow"
-           data-type="wishlist"
-           data-action="add">
-            <i class="fal fa-heart"></i>
-        </a>
-    }
-    else if (isLinesMode)
-    {
-        <span class="art-btn-spacer col"></span>
-    }
-    @if (list.CompareEnabled)
-    {
-        <a data-href="@Url.Action("AddProductToCompare", "Catalog", new { id = Model.Id, area = "" })"
-           href="#"
-           class="btn btn-secondary btn-lg art-btn col ajax-cart-link add-to-compare-list-button"
-           title="@T("Categories.Compare")"
-           data-toggle="tooltip"
-           data-placement="bottom"
-           rel="nofollow"
-           data-type="compare"
-           data-action="add">
-            <i class="fa fa-retweet"></i>
-        </a>
-    }
-    else if (isLinesMode)
-    {
-        <span class="art-btn-spacer col"></span>
-    }
-
-    <a href="@Model.DetailUrl"
-       class="btn btn-secondary btn-lg art-btn col product-details-button"
-       title="@T("Products.Details")"
-       data-toggle="tooltip"
-       data-placement="bottom">
-        <i class="fa fa-info"></i>
-    </a>
-</div> *@
+</div>
 
 <style>
 .btn-brown {
-    background-color: #8B4513 !important; /* or any brown shade you prefer */
+    background-color: #8B4513 !important;
     border-color: #8B4513 !important;
     color: #fff !important;
 }
@@ -197,50 +152,14 @@
     border-color: #6b3310 !important;
     color: #fff !important;
 }
-
 .btn, .art-btn {
     border-radius: 15px !important;
 }
 </style>
 
 <script>
-window.isRegistered = @(WorkContext.CurrentCustomer.IsRegistered().ToString().ToLower());
-window.loginUrl = '@Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })';
-
-function buyNow(url) {
-    // Debug: check what isRegistered is
-    // console.log("isRegistered:", window.isRegistered);
-
-    if (!window.isRegistered) {
-        window.location.href = window.loginUrl;
-        return;
-    }
-    // First, clear the cart
-    fetch('/ShoppingCart/ClearCart', {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(() => {
-        // Now add the product
-        return fetch(url, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.redirect) {
-            window.location.href = data.redirect;
-        } else if (data.success) {
-            window.location.href = '/checkout'; // or use your checkout route
-        } else {
-            alert(data.message || 'Could not add product to cart.');
-        }
-    })
-    .catch(() => alert('An error occurred.'));
-}
+    window.isRegistered = @(WorkContext.CurrentCustomer.IsRegistered().ToString().ToLower());
+    window.loginUrl = '@Url.RouteUrl("Login", new { checkoutAsGuest = true, returnUrl = Url.RouteUrl("Checkout") })';
 </script>
+    <script src="~/js/buy-now.js"></script>
+
