@@ -1,0 +1,39 @@
+@model ProductDiscountViewModel
+
+<datagrid id="product-discounts-grid"
+          allow-resize="true"
+          allow-row-selection="true"
+          preserve-grid-state="true" preserve-command-state="true"
+          allow-column-reordering="true">
+    <datasource read="@Url.Action("ProductDiscountList")" />
+    <paging position="Bottom" page-index="1" show-size-chooser="true" />
+    <sorting allow-unsort="true" allow-multisort="false">
+        <sort by="ProductName" />
+    </sorting>
+    <toolbar>
+        <toolbar-group>
+            <button datagrid-action="DataGridToolAction.ToggleSearchPanel" type="button" class="btn btn-light btn-icon">
+                <i class="fa fa-fw fa-filter"></i>
+            </button>
+        </toolbar-group>
+        <toolbar-group class="omega"></toolbar-group>
+        <toolbar-group>
+            <button id="remove-discount-btn" type="button" class="btn btn-danger no-anims btn-flat">
+                <i class="fa fa-minus"></i>
+                <span>@T("Admin.Promotions.Discounts.RemoveDiscount")</span>
+            </button>
+        </toolbar-group>
+    </toolbar>
+    <search-panel>
+        <textbox for="DiscountName" placeholder="@T("Admin.Promotions.Discounts.Fields.Name")" />
+    </search-panel>
+    <columns>
+        <column for="ProductName" />
+        <column for="DiscountName" />
+        <column for="Price" />
+        <column for="DiscountPercentage" />
+        <column for="DiscountAmount" />
+        <column for="StartDateUtc" />
+        <column for="EndDateUtc" />
+    </columns>
+</datagrid> 
