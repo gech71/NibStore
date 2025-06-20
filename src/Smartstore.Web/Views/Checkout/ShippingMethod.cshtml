@@ -29,16 +29,22 @@
   
     @* @await Component.InvokeAsync("CheckoutCart") *@
 
-    <div class="row cart-container">
-        <div class="col-lg-7 col-xl-8">
+    <div class="order-summary-content">
+    <div class="row flex-wrap-reverse flex-md-nowrap">
+        <div class="col-12 col-md-7 col-lg-7 col-xl-8 mb-3 mb-md-0">
             <partial name="ShippingMethodList" />
+             @* @await Component.InvokeAsync("CheckoutCart") *@
+              <partial name="CheckoutOrderTotals" />
         </div>
-        
-         @await Component.InvokeAsync("CheckoutCart")
-        <div class="col-lg-5 col-xl-4">
-            <partial name="CheckoutOrderTotals" />
+       @await Component.InvokeAsync("CheckoutCart")
+      
+        <div class="col-12 col-md-5 col-lg-5 col-xl-4">
+            @* @await Component.InvokeAsync("CheckoutCart") *@
+            @* <partial name="CheckoutOrderTotals" /> *@
         </div>
     </div>
+</div>
+
 </div>
             <zone name="checkout_shipping_method_bottom" />
             
@@ -55,6 +61,7 @@
     border: 1px solid #ccc;
     border-radius: 4px;
 }
+
 </style>
 
 <script sm-target-zone="scripts" data-origin="shipping-method">
