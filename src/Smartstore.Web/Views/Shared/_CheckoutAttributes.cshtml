@@ -1,1 +1,10 @@
-C:/Users/Tadele.Mesfin/TadeNuha/NibStore/src/Smartstore.Web/Views/ShoppingCart/Partials/_CheckoutAttributes.cshtml
+@using Smartstore.Web.Models.Cart;
+
+@model IList<ShoppingCartModel.CheckoutAttributeModel>
+
+<div sm-if="Model.Count > 0" class="cart-checkout-attributes">
+	@foreach (var attribute in Model)
+	{
+		<partial name="ChoiceTemplates/Choice" model="attribute" />
+	}
+</div>
