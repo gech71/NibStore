@@ -133,7 +133,13 @@ function initializeShippingMethods() {
         });
     }
 
+    let suppressNextInput = false;
+
     function handleAddressInput(e) {
+        if (suppressNextInput) {
+            suppressNextInput = false;
+            return;
+        }
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             if (e.target.value.length > 3) {
@@ -160,13 +166,21 @@ function initializeShippingMethods() {
     }
 
     function showAddressSuggestions(addresses) {
-        if (!addressSuggestions) return;
-        
+        console.log('[showAddressSuggestions] called:', addresses);
+        if (!addressSuggestions) {
+            return;
+        }
         addressSuggestions.innerHTML = '';
         addresses.slice(0, 5).forEach(addr => {
             const item = document.createElement('div');
             item.className = 'dropdown-item';
             item.textContent = addr.display_name;
+            item.addEventListener('mousedown', () => {
+                suppressNextInput = true;
+            });
+            item.addEventListener('touchstart', () => {
+                suppressNextInput = true;
+            });
             item.addEventListener('click', () => {
                 const lat = parseFloat(addr.lat);
                 const lng = parseFloat(addr.lon);
@@ -177,7 +191,6 @@ function initializeShippingMethods() {
             });
             addressSuggestions.appendChild(item);
         });
-        
         addressSuggestions.style.display = 'block';
     }
 
