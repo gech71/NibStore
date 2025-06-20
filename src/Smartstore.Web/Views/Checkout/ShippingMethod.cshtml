@@ -25,17 +25,21 @@
 
             <zone name="checkout_shipping_method_top" />
 
-            <div class="order-summary-content">
-                <div class="row cart-container">
-                    <div class="col-lg-7 col-xl-8">
-                        <partial name="ShippingMethodList" />
-                    </div>
-                    <div class="col-lg-5 col-xl-4">
-                        <partial name="CheckoutOrderTotals" />
-                    </div>
-                </div>
-            </div>
+           <div class="order-summary-content">
+  
+    @* @await Component.InvokeAsync("CheckoutCart") *@
 
+    <div class="row cart-container">
+        <div class="col-lg-7 col-xl-8">
+            <partial name="ShippingMethodList" />
+        </div>
+        
+         @await Component.InvokeAsync("CheckoutCart")
+        <div class="col-lg-5 col-xl-4">
+            <partial name="CheckoutOrderTotals" />
+        </div>
+    </div>
+</div>
             <zone name="checkout_shipping_method_bottom" />
             
         </form>
