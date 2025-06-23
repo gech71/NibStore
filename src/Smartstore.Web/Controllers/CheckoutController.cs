@@ -399,9 +399,7 @@ namespace Smartstore.Web.Controllers
                 return result.ActionResult;
             }
 
-            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(
-                context
-            );
+            var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(context);
 
             // Add these lines to ensure ByGround fields are populated
             model.OrderReviewData.ByGroundAddress =
@@ -417,29 +415,32 @@ namespace Smartstore.Web.Controllers
         [HttpPost, ActionName(CheckoutActionNames.Confirm)]
         public async Task<IActionResult> ConfirmOrder()
         {
-            var result = await _checkoutWorkflow.CompleteAsync(await CreateCheckoutContext());
+            var context = await CreateCheckoutContext();
+            var result = await _checkoutWorkflow.CompleteAsync(context);
 
             if (result.Errors.Length > 0)
             {
-                var context = await CreateCheckoutContext();
-                var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(
-                    context
-                );
-
-                // Add these lines here as well
-                model.OrderReviewData.ByGroundAddress =
-                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
-                model.OrderReviewData.ByGroundLatitude =
-                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
-                model.OrderReviewData.ByGroundLongitude =
-                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
-
+                var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(context);
                 result.Errors.Each(x => model.Warnings.Add(x.ErrorMessage));
-
                 return View(model);
             }
 
-            return result.ActionResult ?? RedirectToAction(nameof(Confirm));
+            // Fetch the most recent order for the current customer
+            var customer = context.Cart.Customer;
+            var storeId = _storeContext.CurrentStore.Id;
+            var order = await _db.Orders
+                .Where(x => x.CustomerId == customer.Id && x.StoreId == storeId)
+                .OrderByDescending(x => x.CreatedOnUtc)
+                .FirstOrDefaultAsync();
+
+            if (order == null)
+            {
+                TempData["ErrorMessage"] = "Order could not be found after creation.";
+                return RedirectToAction("Confirm");
+            }
+
+            // Redirect to ArifPay payment with the real order ID and total
+            return RedirectToAction("StartPayment", "ArifPay", new { amount = order.OrderTotal, orderId = order.Id });
         }
 
         public async Task<IActionResult> Completed()
