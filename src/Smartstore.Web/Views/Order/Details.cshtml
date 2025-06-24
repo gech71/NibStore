@@ -1,5 +1,8 @@
 ﻿﻿@using Smartstore.Web.Models.Orders;
 @using Smartstore.Core.Catalog.Products;
+@using System.Linq
+@using Smartstore.Core.Data;
+@inject SmartDbContext db
 
 @model OrderDetailsModel
 
@@ -10,6 +13,35 @@
     var bundleItemThumbSize = Math.Min(Model.BundleThumbSize, 60);
     var hasOrderDetails1 = Model.BillingAddress != null || (Model.IsShippable && Model.ShippingAddress != null);
     var hasOrderDetails2 = Model.PaymentMethod.HasValue() || Model.IsShippable || Model.VatNumber.HasValue();
+
+    // Load creator information from GenericAttributes
+    var productIds = Model.Items.Select(x => x.ProductId).Distinct().ToList();
+    var creatorAttributes = db.GenericAttributes
+        .Where(x => productIds.Contains(x.EntityId))
+        .Where(x => x.KeyGroup == "Product" && x.Key == "CreatedByUserId")
+        .OrderBy(x => x.Id)
+        .ToList();
+
+    var creatorUserIds = creatorAttributes
+        .Select(x => Convert.ToInt32(x.Value))
+        .Where(x => x > 0)
+        .Distinct()
+        .ToList();
+
+    var creatorNames = new Dictionary<int, string>();
+    if (creatorUserIds.Any())
+    {
+        var customers = db.Customers
+            .Where(x => creatorUserIds.Contains(x.Id))
+            .OrderBy(x => x.Id)
+            .Select(x => new { x.Id, Name = x.Username })
+            .ToList();
+            
+        creatorNames = customers.ToDictionary(x => x.Id, x => x.Name);
+    }
+
+    var productCreatorMap = creatorAttributes
+        .ToDictionary(x => x.EntityId, x => Convert.ToInt32(x.Value));
 
     @* async Task RenderAddress(AddressModel address)
     {
@@ -303,35 +335,56 @@
         <zone name="orderdetails_page_beforeproducts" />
 
         <div sm-if="Model.Items.Count > 0" id="order-items" class="row cart-container">
-
-            @* Order Items *@
             <div class="col-lg-7 col-xl-8">
-                <div id="cart-items" class="cart">
-                    <div class="cart-body">
-                        @foreach (var item in Model.Items)
-                        {
-                            if (item.ProductType == ProductType.BundledProduct)
-                            {
-                                await SimpleProduct(item);
+               <div id="cart-items" class="cart">
+    <div class="cart-body">
+        @foreach (var creatorGroup in Model.Items
+            .GroupBy(x => productCreatorMap.TryGetValue(x.ProductId, out var creatorId) ? creatorId : 0))
+        {
+            var creatorId = creatorGroup.Key;
+            var creatorName = creatorId > 0 ? 
+                (creatorNames.TryGetValue(creatorId, out var name) ? name : $"Creator #{creatorId}") : 
+                "System";
 
-                                if (item.BundleItems != null)
+            <div class="creator-group" data-creator-id="@creatorId">
+                <div class="creator-header">
+                    <div class="creator-header-content">
+                        <i class="fa fa-user"></i>
+                        <span>Creator: @creatorName</span>
+                    </div>
+                    <button type="button" class="creator-confirm-btn" onclick="confirmCreatorGroup(this, @creatorId)">
+                        Confirm Order
+                    </button>
+                </div>
+                
+                <div class="creator-products">
+                    @foreach (var item in creatorGroup)
+                    {
+                        if (item.ProductType == ProductType.BundledProduct)
+                        {
+                            await SimpleProduct(item);
+
+                            if (item.BundleItems != null)
+                            {
+                                var bundleItems = item.BundleItems.OrderBy(x => x.DisplayOrder).ToArray();
+                                for (var i = 0; i < bundleItems.Length; i++)
                                 {
-                                    var bundleItems = item.BundleItems.OrderBy(x => x.DisplayOrder).ToArray();
-                                    for (var i = 0; i < bundleItems.Length; i++)
-                                    {
-                                        await BundleProduct(bundleItems[i], item, i);
-                                    }
+                                    await BundleProduct(bundleItems[i], item, i);
                                 }
                             }
-                            else
-                            {
-                                await SimpleProduct(item);
-                            }
                         }
-                    </div>
+                        else
+                        {
+                            await SimpleProduct(item);
+                        }
+                    }
                 </div>
             </div>
-            @* Order summary *@
+        }
+    </div>
+</div>
+            </div>
+
             <div class="col-lg-5 col-xl-4">
                 <div class="cart-footer">
                     <div class="row">
@@ -433,7 +486,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <zone name="orderdetails_page_afterproducts" />
@@ -522,3 +574,78 @@
     </div>
 </div>
 
+<style>
+    .creator-group {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 0;
+        margin-bottom: 25px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .creator-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 15px 20px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        color: #495057;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .creator-header-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .creator-header i {
+        color: #6c757d;
+        font-size: 1.2rem;
+    }
+    
+    .creator-products {
+        padding: 15px 20px;
+    }
+    
+    .creator-confirm-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .creator-confirm-btn:hover {
+        background-color: #218838;
+    }
+    
+    .creator-confirm-btn.confirmed {
+        background-color: #6c757d;
+        cursor: default;
+    }
+    
+    .creator-group + .creator-group {
+        margin-top: 30px;
+    }
+    
+    .creator-group .cart-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+</style>
+<script src="~/js/order-details.js">
+    
+
+     
+</script>
