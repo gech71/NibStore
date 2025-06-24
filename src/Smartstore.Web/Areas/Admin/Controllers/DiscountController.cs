@@ -449,6 +449,27 @@ public async Task<IActionResult> GetDiscountsForProduct(int productId)
 
     return Json(discounts);
 }
+[HttpGet]
+public async Task<IActionResult> GetCommonDiscountsForProducts(int[] productIds)
+{
+    if (productIds == null || productIds.Length == 0)
+        return Json(Array.Empty<object>());
+
+    // Get common discounts across all selected products
+    var discounts = await _db.Products
+        .Where(x => productIds.Contains(x.Id))
+        .SelectMany(x => x.AppliedDiscounts)
+        .GroupBy(x => x.Id)
+        .Where(g => g.Count() == productIds.Length) // Only discounts that appear in all products
+        .Select(g => new 
+        {
+            discountId = g.Key,
+            discountName = g.First().Name
+        })
+        .ToListAsync();
+
+    return Json(discounts);
+}
 [HttpPost]
 [Permission(Permissions.Catalog.Product.Update)]
 public async Task<IActionResult> RemoveDiscountFromProduct([FromBody] RemoveDiscountFromSelectedModel model)
@@ -461,7 +482,7 @@ public async Task<IActionResult> RemoveDiscountFromProduct([FromBody] RemoveDisc
 
     if (model.SelectedIds == null || !model.SelectedIds.Any())
     {
-        return Json(new { success = false, message = "No product selected" });
+        return Json(new { success = false, message = "No products selected" });
     }
 
     if (model.DiscountId == 0)
@@ -471,36 +492,63 @@ public async Task<IActionResult> RemoveDiscountFromProduct([FromBody] RemoveDisc
 
     try
     {
-        // 2. Get product with discounts
-        var productId = model.SelectedIds.First();
-        var product = await _db.Products
+        // 2. Get all selected products with their discounts
+        var products = await _db.Products
             .Include(p => p.AppliedDiscounts)
-            .FirstOrDefaultAsync(p => p.Id == productId);
+            .Where(p => model.SelectedIds.Contains(p.Id))
+            .ToListAsync();
 
-        if (product == null)
+        if (!products.Any())
         {
-            return Json(new { success = false, message = $"Product with ID {productId} not found" });
+            return Json(new { success = false, message = "No matching products found" });
         }
 
-        // 3. Find and remove discount
-        var discount = product.AppliedDiscounts.FirstOrDefault(d => d.Id == model.DiscountId);
-        if (discount == null)
+        // 3. Track affected products for response
+        var affectedProducts = new List<int>();
+        var discountNotFoundProducts = new List<int>();
+
+        foreach (var product in products)
+        {
+            var discount = product.AppliedDiscounts.FirstOrDefault(d => d.Id == model.DiscountId);
+            if (discount != null)
+            {
+                product.AppliedDiscounts.Remove(discount);
+                affectedProducts.Add(product.Id);
+            }
+            else
+            {
+                discountNotFoundProducts.Add(product.Id);
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        // 4. Prepare response message
+        string message;
+        if (affectedProducts.Count == model.SelectedIds.Count())
+        {
+            message = "Discount removed successfully from all selected products";
+        }
+        else if (affectedProducts.Count > 0)
+        {
+            message = $"Discount removed from {affectedProducts.Count()} products. " +
+                    $"Not applied to {discountNotFoundProducts.Count()} products.";
+        }
+        else
         {
             return Json(new { 
                 success = false, 
-                message = $"Discount with ID {model.DiscountId} not found on product {productId}" 
+                message = $"The selected discount was not found on any of the {products.Count} products"
             });
         }
 
-        product.AppliedDiscounts.Remove(discount);
-        await _db.SaveChangesAsync();
-
-        // 4. Return success
+        // 5. Return success
         return Json(new { 
             success = true, 
-            message = "Discount removed successfully",
-            productId = product.Id,
-            discountId = discount.Id
+            message,
+            affectedProducts,
+            discountNotFoundProducts,
+            discountId = model.DiscountId
         });
     }
     catch (Exception ex)
@@ -513,7 +561,6 @@ public async Task<IActionResult> RemoveDiscountFromProduct([FromBody] RemoveDisc
         });
     }
 }
-
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {
             foreach (var localized in model.Locales)
