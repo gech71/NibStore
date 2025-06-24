@@ -1,27 +1,7 @@
 @model ProductDiscountViewModel
 
-<div id="remove-discount-modal" class="modal" style="display:none;">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@T("Admin.Promotions.Discounts.RemoveDiscount")</h5>
-                <button type="button" class="btn-close" onclick="$('#remove-discount-modal').hide();"></button>
-            </div>
-            <div class="modal-body">
-                <select id="discount-select" class="form-control">
-                    <option value="">@T("Admin.Common.PleaseSelect")</option>
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="$('#remove-discount-modal').hide();">@T("Common.Cancel")</button>
-                <button class="btn btn-danger" id="confirm-remove">@T("Admin.Common.Delete")</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <datagrid id="product-discounts-grid"
-          key="ProductId"
+          key-member="ProductId"
           allow-resize="true"
           allow-row-selection="true"
           preserve-grid-state="true" 
@@ -58,7 +38,25 @@
         <column for="EndDateUtc" />
     </columns>
 </datagrid>
-
+<div id="remove-discount-modal" class="modal" style="display:none;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@T("Admin.Promotions.Discounts.RemoveDiscount")</h5>
+                <button type="button" class="btn-close" onclick="$('#remove-discount-modal').hide();"></button>
+            </div>
+            <div class="modal-body">
+                <select id="discount-select" class="form-control">
+                    <option value="">@T("Admin.Common.PleaseSelect")</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="$('#remove-discount-modal').hide();">@T("Common.Cancel")</button>
+                <button class="btn btn-danger" id="confirm-remove">@T("Admin.Common.Delete")</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
 $(function() {
     var resources = {
@@ -72,17 +70,6 @@ $(function() {
     var $grid = $('#product-discounts-grid').parent().data('datagrid');
     var $modal = $('#remove-discount-modal');
 
-    // Load discounts for selected products
-    function loadDiscountsForProducts(productIds) {
-        return $.ajax({
-            url: '@Url.Action("GetCommonDiscountsForProducts", "Discount")',
-            type: 'GET',
-            data: { productIds: productIds },
-            traditional: true
-        });
-    }
-
-    // Show remove discount modal
     $('#remove-discount-btn').on('click', function() {
         var selectedIds = $grid.selectedRowKeys;
         
@@ -91,31 +78,43 @@ $(function() {
             return;
         }
 
-        loadDiscountsForProducts(selectedIds)
-            .done(function(data) {
-                var $select = $('#discount-select');
-                $select.empty();
+        // Convert IDs to numbers if needed
+        selectedIds = selectedIds.map(id => parseInt(id));
+
+        var discountPromises = selectedIds.map(function(productId) {
+            return $.get('@Url.Action("GetDiscountsForProduct", "Discount")', { productId: productId });
+        });
+
+        Promise.all(discountPromises)
+            .then(function(allDiscounts) {
+                var combinedDiscounts = [];
+                var discountIds = new Set();
                 
-                if (data.length === 0) {
-                    $select.append($('<option/>').val('').text(resources.NoDiscounts));
-                } else {
-                    $select.append($('<option/>').val('').text(resources.PleaseSelect));
-                    $.each(data, function(i, item) {
-                        $select.append($('<option/>').val(item.discountId).text(item.discountName));
-                    });
-                }
-                
+                allDiscounts.forEach(function(productDiscounts) {
+                    if (productDiscounts && productDiscounts.length) {
+                        productDiscounts.forEach(function(discount) {
+                            if (!discountIds.has(discount.discountId)) {
+                                discountIds.add(discount.discountId);
+                                combinedDiscounts.push(discount);
+                            }
+                        });
+                    }
+                });
+
+                populateDiscountSelect(combinedDiscounts);
                 $modal.show();
             })
-            .fail(function() {
+            .catch(function(error) {
+                console.error("Error fetching discounts:", error);
                 displayNotification(resources.Error, 'error');
             });
     });
 
-    // Handle remove discount confirmation
+    // ... rest of your existing functions ...
+
     $('#confirm-remove').on('click', function() {
-        var discountId = $('#discount-select').val();
-        var selectedIds = $grid.selectedRowKeys;
+        var discountId = parseInt($('#discount-select').val());
+        var selectedIds = $grid.selectedRowKeys.map(id => parseInt(id));
         
         if (!discountId) {
             displayNotification(resources.PleaseSelect, 'warning');
@@ -131,9 +130,12 @@ $(function() {
         $btn.prop('disabled', true);
         
         $.ajax({
-            url: '@Url.Action("RemoveDiscountFromProducts", "Discount")',
+            url: '@Url.Action("RemoveDiscountFromSelectedProducts", "Discount")',
             type: 'POST',
             contentType: 'application/json',
+            headers: {
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
             data: JSON.stringify({
                 selectedIds: selectedIds,
                 discountId: discountId
@@ -147,8 +149,9 @@ $(function() {
                     displayNotification(response.message || resources.Error, 'error');
                 }
             },
-            error: function() {
-                displayNotification(resources.Error, 'error');
+            error: function(xhr, status, error) {
+                console.error("Remove error:", status, error, xhr.responseText);
+                displayNotification(resources.Error + ": " + (xhr.responseJSON?.message || error), 'error');
             },
             complete: function() {
                 $btn.prop('disabled', false);
