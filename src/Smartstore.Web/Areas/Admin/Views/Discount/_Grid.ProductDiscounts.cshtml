@@ -1,12 +1,14 @@
 @model ProductDiscountViewModel
 
 <datagrid id="product-discounts-grid"
+          key="ProductId"
+          allow-multi-selection="true"
           allow-resize="true"
           allow-row-selection="true"
           preserve-grid-state="true" preserve-command-state="true"
           allow-column-reordering="true">
-    <datasource read="@Url.Action("ProductDiscountList")" />
-    <paging position="Bottom" page-index="1" show-size-chooser="true" />
+    <datasource read="@Url.Action("ProductDiscountList", "Discount")" />
+
     <sorting allow-unsort="true" allow-multisort="false">
         <sort by="ProductName" />
     </sorting>
@@ -24,9 +26,9 @@
             </button>
         </toolbar-group>
     </toolbar>
-    <search-panel>
+    @* <search-panel>
         <textbox for="DiscountName" placeholder="@T("Admin.Promotions.Discounts.Fields.Name")" />
-    </search-panel>
+    </search-panel> *@
     <columns>
         <column for="ProductName" />
         <column for="DiscountName" />
@@ -37,3 +39,97 @@
         <column for="EndDateUtc" />
     </columns>
 </datagrid> 
+<div id="remove-discount-modal" class="modal" tabindex="-1" style="display:none;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@T("Admin.Promotions.Discounts.RemoveDiscount")</h5>
+                <button type="button" class="btn-close" onclick="$('#remove-discount-modal').hide();"></button>
+            </div>
+            <div class="modal-body">
+                <select id="discount-select" class="form-control">
+                    <option value="">@T("Admin.Common.PleaseSelect")</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="$('#remove-discount-modal').hide();">@T("Common.Cancel")</button>
+                <button class="btn btn-danger" id="confirm-remove">@T("Admin.Common.Delete")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(function () {
+    const $grid = $('#product-discounts-grid').parent().data('datagrid');
+
+    $('#remove-discount-btn').on('click', function () {
+        const selectedRows = $grid.getSelectedRows();
+        
+        if (!selectedRows || selectedRows.length === 0) {
+            alert("@T("Admin.Common.NoItemsSelected")");
+            return;
+        }
+        
+        // For single selection, take the first selected row
+        const selectedRow = selectedRows[0];
+        const productId = selectedRow.data.ProductId;
+
+        $.get('@Url.Action("GetDiscountsForProduct", "Discount")', { productId }, function (data) {
+            const $select = $('#discount-select');
+            $select.empty();
+
+            if (data.length === 0) {
+                $select.append(`<option value="">@T("Admin.Catalog.Products.NoDiscounts")</option>`);
+            } else {
+                $select.append(`<option value="">@T("Admin.Common.PleaseSelect")</option>`);
+                data.forEach(d => {
+                    $select.append(`<option value="${d.discountId}">${d.discountName}</option>`);
+                });
+                $('#remove-discount-modal').modal('show');
+            }
+        }).fail(function () {
+            alert("@T("Admin.Common.Error")");
+        });
+    });
+
+    $('#confirm-remove').on('click', function () {
+        const selectedRows = $grid.getSelectedRows();
+        
+        if (!selectedRows || selectedRows.length === 0) {
+            alert("@T("Admin.Common.NoItemsSelected")");
+            return;
+        }
+        
+        const selectedRow = selectedRows[0];
+        const productId = selectedRow.data.ProductId;
+        Console.log("Selected Product ID:", productId);
+        const discountId = $('#discount-select').val();
+
+        if (!discountId) {
+            alert("@T("Admin.Common.PleaseSelect")");
+            return;
+        }
+
+        $.ajax({
+            url: '@Url.Action("RemoveDiscountFromProduct", "Discount")',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ selectedIds: [productId], discountId }),
+            success: function (response) {
+                if (response.success) {
+                    $('#remove-discount-modal').modal('hide');
+                    alert(response.message || "@T("Admin.Common.ChangesSaved")");
+                    $grid.ajaxRequest(); // Refresh grid
+                } else {
+                    alert(response.message || "@T("Admin.Common.Error")");
+                }
+            },
+            error: function () {
+                alert("@T("Admin.Common.Error")");
+            }
+        });
+    });
+});
+
+</script>

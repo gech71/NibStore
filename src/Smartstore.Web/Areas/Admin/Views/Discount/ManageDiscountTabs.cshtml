@@ -14,7 +14,7 @@
     };
     var productDiscountGridViewData = new ViewDataDictionary(ViewData)
     {
-        ["Parent"] = Model.ProductDiscountList
+        ["Parent"] = Model.ProductDiscounts
     };
    
 }
@@ -39,7 +39,7 @@
         @await Html.PartialAsync("~/Areas/Admin/Views/Product/Grids/_Grid.Products.cshtml", null, productListGridViewData)
     </div>
     <div class="tab-pane fade" id="remove" role="tabpanel" aria-labelledby="remove-tab">
-        @await Html.PartialAsync("~/Areas/Admin/Views/Discount/_Grid.ProductDiscounts.cshtml", null, productListGridViewData)
+        @await Html.PartialAsync("~/Areas/Admin/Views/Discount/_Grid.ProductDiscounts.cshtml", null, productDiscountGridViewData)
     </div>
    
 </div>

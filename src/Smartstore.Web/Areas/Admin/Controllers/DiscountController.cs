@@ -381,96 +381,139 @@ namespace Smartstore.Admin.Controllers
         }
 
         [HttpGet]
-        [Permission(Permissions.Promotion.Discount.Read)]
-        public async Task<IActionResult> ManageDiscountTabs()
+[Permission(Permissions.Promotion.Discount.Read)]
+public async Task<IActionResult> ManageDiscountTabs()
+{
+    var discountList = new DiscountListModel();
+    var productList = new ProductListModel();
+    await _productController.PrepareProductListModelAsync(productList);
+
+    var model = new CombinedDiscountTabsViewModel
+    {
+        DiscountList = discountList,
+        ProductList = productList,
+    };
+
+    return View(model);
+}
+
+[HttpGet, HttpPost]
+[Permission(Permissions.Promotion.Discount.Read)]
+public async Task<IActionResult> ProductDiscountList(string discountName = null)
+{
+    var query = _db.Products
+        .Include(p => p.AppliedDiscounts)
+        .Where(p => p.AppliedDiscounts.Any());
+
+    if (!string.IsNullOrEmpty(discountName))
+    {
+        query = query.Where(p => p.AppliedDiscounts.Any(d => d.Name.Contains(discountName)));
+    }
+
+    var list = await query
+        .SelectMany(p => p.AppliedDiscounts.Select(d => new ProductDiscountViewModel
         {
-            var discountList = new DiscountListModel();
-            var productList = new ProductListModel();
+            ProductId = p.Id,
+            ProductName = p.Name,
+            Price = p.Price,
+            DiscountId = d.Id,
+            DiscountName = d.Name,
+            DiscountPercentage = d.DiscountPercentage,
+            DiscountAmount = d.DiscountAmount,
+            StartDateUtc = d.StartDateUtc,
+            EndDateUtc = d.EndDateUtc
+        }))
+        .ToListAsync();
 
-            await _productController.PrepareProductListModelAsync(productList); 
+    return Json(new GridModel<ProductDiscountViewModel>
+    {
+        Rows = list,
+        Total = list.Count
+    });
+}
 
-            var model = new CombinedDiscountTabsViewModel
-            {
-                DiscountList = discountList,
-                ProductList = productList,
-            };
-
-            return View(model);  
-        }
-
-        // List action for the grid
         [HttpGet]
-        [Permission(Permissions.Promotion.Discount.Read)]
-        public async Task<IActionResult> ProductDiscountList(string discountName = null)
+public async Task<IActionResult> GetDiscountsForProduct(int productId)
+{
+    var product = await _db.Products
+        .Include(p => p.AppliedDiscounts)
+        .FirstOrDefaultAsync(p => p.Id == productId);
+
+    if (product == null)
+        return NotFound();
+
+    var discounts = product.AppliedDiscounts.Select(d => new {
+        discountId = d.Id,
+        discountName = d.Name
+    });
+
+    return Json(discounts);
+}
+[HttpPost]
+[Permission(Permissions.Catalog.Product.Update)]
+public async Task<IActionResult> RemoveDiscountFromProduct([FromBody] RemoveDiscountFromSelectedModel model)
+{
+    // 1. Validate model
+    if (model == null)
+    {
+        return Json(new { success = false, message = "Invalid request data" });
+    }
+
+    if (model.SelectedIds == null || !model.SelectedIds.Any())
+    {
+        return Json(new { success = false, message = "No product selected" });
+    }
+
+    if (model.DiscountId == 0)
+    {
+        return Json(new { success = false, message = "No discount selected" });
+    }
+
+    try
+    {
+        // 2. Get product with discounts
+        var productId = model.SelectedIds.First();
+        var product = await _db.Products
+            .Include(p => p.AppliedDiscounts)
+            .FirstOrDefaultAsync(p => p.Id == productId);
+
+        if (product == null)
         {
-            var query = _db.Products
-                .Include(p => p.AppliedDiscounts)
-                .Where(p => p.AppliedDiscounts.Any());
-
-            if (!string.IsNullOrEmpty(discountName))
-            {
-                query = query.Where(p => p.AppliedDiscounts.Any(d => d.Name.Contains(discountName)));
-            }
-
-            var list = await query
-                .SelectMany(p => p.AppliedDiscounts.Select(d => new ProductDiscountViewModel
-                {
-                    ProductId = p.Id,
-                    ProductName = p.Name,
-                    Price = p.Price,
-                    DiscountId = d.Id,
-                    DiscountName = d.Name,
-                    DiscountPercentage = d.DiscountPercentage,
-                    DiscountAmount = d.DiscountAmount,
-                    StartDateUtc = d.StartDateUtc,
-                    EndDateUtc = d.EndDateUtc
-                }))
-                .ToListAsync();
-
-            return Json(new { Rows = list, Total = list.Count });
+            return Json(new { success = false, message = $"Product with ID {productId} not found" });
         }
 
-        // Remove discount from selected products
-        [HttpPost]
-        [Permission(Permissions.Promotion.Discount.Update)]
-        public async Task<IActionResult> RemoveDiscountFromProducts([FromBody] ApplyDiscountToSelectedModel model)
+        // 3. Find and remove discount
+        var discount = product.AppliedDiscounts.FirstOrDefault(d => d.Id == model.DiscountId);
+        if (discount == null)
         {
-            if (model == null || model.SelectedIds == null || !model.SelectedIds.Any() || model.DiscountId <= 0)
-            {
-                return Json(new { success = false, message = T("Admin.Common.NoItemsSelected").Value });
-            }
-
-            var discount = await _db.Discounts.FindByIdAsync(model.DiscountId);
-            if (discount == null)
-            {
-                return Json(new { success = false, message = T("Admin.Common.Discount.NotFound").Value });
-            }
-
-            var products = await _db.Products
-                .Include(x => x.AppliedDiscounts)
-                .Where(x => model.SelectedIds.Contains(x.Id))
-                .ToListAsync();
-
-            int count = 0;
-            foreach (var product in products)
-            {
-                if (product.AppliedDiscounts.Any(x => x.Id == model.DiscountId))
-                {
-                    product.AppliedDiscounts.Remove(discount);
-
-                    // Optionally, reset special price if it matches the discount
-                    product.SpecialPrice = null;
-                    product.SpecialPriceStartDateTimeUtc = null;
-                    product.SpecialPriceEndDateTimeUtc = null;
-
-                    count++;
-                }
-            }
-
-            await _db.SaveChangesAsync();
-
-            return Json(new { success = true, message = T("Admin.Catalog.Products.Discounts.RemovedFromProducts", count).Value });
+            return Json(new { 
+                success = false, 
+                message = $"Discount with ID {model.DiscountId} not found on product {productId}" 
+            });
         }
+
+        product.AppliedDiscounts.Remove(discount);
+        await _db.SaveChangesAsync();
+
+        // 4. Return success
+        return Json(new { 
+            success = true, 
+            message = "Discount removed successfully",
+            productId = product.Id,
+            discountId = discount.Id
+        });
+    }
+    catch (Exception ex)
+    {
+        // Log the error here
+        return Json(new { 
+            success = false, 
+            message = "An error occurred while removing the discount",
+            error = ex.Message 
+        });
+    }
+}
+
         private async Task ApplyLocales(DiscountModel model, Discount discount)
         {
             foreach (var localized in model.Locales)
