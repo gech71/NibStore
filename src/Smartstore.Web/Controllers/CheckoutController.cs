@@ -217,7 +217,18 @@ namespace Smartstore.Web.Controllers
         }
 
         public async Task<IActionResult> ShippingMethod()
-        {
+        {  // In your controller action for the view:
+    var userAgent = Request.Headers["User-Agent"].ToString();
+    bool isMobile = userAgent.Contains("Mobi") || userAgent.Contains("Android") || userAgent.Contains("iPhone");
+
+    ViewData["IsMobile"] = isMobile;
+       // Single detection point using client hints (modern) with user agent fallback
+        // bool isMobileView = Request.Headers.ContainsKey("Sec-CH-UA-Mobile") 
+        //     ? Request.Headers["Sec-CH-UA-Mobile"].ToString() == "?1"
+        //     : Request.Headers["User-Agent"].ToString().Contains("Mobi", StringComparison.OrdinalIgnoreCase);
+
+        // ViewData["IsMobileView"] = isMobileView;
+
             var context = await CreateCheckoutContext();
             // Ensure dummy shipping address before processing
             await EnsureDummyShipAddressAsync(context.Cart.Customer);
@@ -236,6 +247,7 @@ namespace Smartstore.Web.Controllers
 
             return View(result.ViewPath, model);
         }
+
 
         [HttpPost, ActionName(CheckoutActionNames.ShippingMethod)]
         [FormValueRequired("nextstep")]

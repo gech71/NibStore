@@ -9,28 +9,66 @@
 
     var pickupMethod = Model.ShippingMethods.FirstOrDefault(sm => (sm.Name ?? "").ToLowerInvariant().Contains("store pickup"));
     var pickupMethodId = pickupMethod?.ShippingMethodId ?? 0;
+    var isMobile = ViewData["IsMobile"] as bool? ?? false;
 }
 
-<widget target-zone="order_progress">
+@if (isMobile)
+{
+    @* ----------- MOBILE VERSION ----------- *@
+
+    @* Paste your exact MOBILE Razor layout here *@
+  <widget target-zone="order_progress">
     @await Component.InvokeAsync("CheckoutProgress", new { action = Model.ActionName })
 </widget>
 
-<div class="page shipping-method-page">
-    <div class="page-title">
-        <h1 class="h3">@T("Checkout.SelectShippingMethod")</h1>
+
+    <div class="page shipping-method-page">
+        <div class="page-title">
+            <h1 class="h3">@T("Checkout.SelectShippingMethod")</h1>
+        </div>
+        <div class="page-body checkout-data">
+            <form asp-action="ShippingMethod" asp-controller="Checkout" method="post">
+                <div id="validationSummary" class="alert alert-danger d-none mb-3"></div>
+
+                <zone name="checkout_shipping_method_top" />
+
+                <div class="order-summary-content">
+                    <div class="row flex-wrap-reverse flex-md-nowrap">
+                        <div class="col-12 col-md-7 col-lg-7 col-xl-8 mb-3 mr-0 mb-md-0">
+                           <partial name="ShippingMethodList" />
+                           @await Component.InvokeAsync("CheckoutCart")
+                            <partial name="CheckoutOrderTotals" />
+                        </div>
+                        
+                         @* @await Component.InvokeAsync("CheckoutCart") *@
+                    </div>
+                </div>
+
+                <zone name="checkout_shipping_method_bottom" />
+            </form>
+        </div>
     </div>
-    <div class="page-body checkout-data">
-        <form asp-action="ShippingMethod" asp-controller="Checkout" method="post">
-            <div id="validationSummary" class="alert alert-danger d-none mb-3"></div>
+}
+else
+{
+    @* ----------- DESKTOP VERSION ----------- *@
+    @* Paste your exact DESKTOP Razor layout here *@
+    <widget target-zone="order_progress">
+    @await Component.InvokeAsync("CheckoutProgress", new { action = Model.ActionName })
+</widget>
 
-            <zone name="checkout_shipping_method_top" />
+    <div class="page shipping-method-page">
+        <div class="page-title">
+            <h1 class="h3">@T("Checkout.SelectShippingMethod")</h1>
+        </div>
+        <div class="page-body checkout-data">
+            <form asp-action="ShippingMethod" asp-controller="Checkout" method="post">
+                <div id="validationSummary" class="alert alert-danger d-none mb-3"></div>
 
-           <div class="order-summary-content">
-  
-    @* @await Component.InvokeAsync("CheckoutCart") *@
+                <zone name="checkout_shipping_method_top" />
 
-    <div class="order-summary-content">
-    <div class="row flex-wrap-reverse flex-md-nowrap">
+                <div class="order-summary-content">
+                    <div class="row flex-wrap-reverse flex-md-nowrap">
         <div class="col-12 col-md-7 col-lg-7 col-xl-8 mb-3 mb-md-0">
             <partial name="ShippingMethodList" />
              @* @await Component.InvokeAsync("CheckoutCart") *@
@@ -43,129 +81,154 @@
             @* <partial name="CheckoutOrderTotals" /> *@
         </div>
     </div>
-</div>
+                </div>
 
-</div>
-            <zone name="checkout_shipping_method_bottom" />
-            
-        </form>
+                <zone name="checkout_shipping_method_bottom" />
+            </form>
+        </div>
     </div>
-</div>
+}
 
 <style>
     .store-select {
-    width: 100%;
-    max-width: 240px;
-    padding: 6px 10px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
+        width: 100%;
+        max-width: 240px;
+        padding: 6px 10px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
 </style>
 
+
+
+
+<!-- ✅ Shared scripts -->
 <script sm-target-zone="scripts" data-origin="shipping-method">
-    
-$(function () {
+    $(function () {
 
-    $('input[name="ByGroundAddress"]').val('');
-    $('input[name="ByGroundLatitude"]').val('');
-    $('input[name="ByGroundLongitude"]').val('');
-    
-    const storePickupMethodId = @pickupMethodId;
 
-    function isStorePickupSelected() {
-        return $(`input[name="shippingoption"][data-shippingmethodid="${storePickupMethodId}"]`).is(':checked');
-    }
 
-    function validateStoreSelections() {
-        let isValid = true;
-        $('.store-select').each(function () {
-            if (!$(this).val()) {
-                isValid = false;
-                return false; // exit each loop
+        $('input[name="ByGroundAddress"]').val('');
+        $('input[name="ByGroundLatitude"]').val('');
+        $('input[name="ByGroundLongitude"]').val('');
+
+        const storePickupMethodId = @pickupMethodId;
+
+               // Viewport change detection
+        let currentViewport = window.innerWidth < 768 ? 'mobile' : 'desktop';
+        let resizeTimer;
+        
+        function handleViewportChange() {
+            const newViewport = window.innerWidth < 768 ? 'mobile' : 'desktop';
+            
+            if (newViewport !== currentViewport) {
+                currentViewport = newViewport;
+                
+                // Only refresh if crossing the breakpoint significantly
+                if (Math.abs(window.innerWidth - 768) > 50) {
+                    // Use sessionStorage to track if we've already refreshed
+                    if (!sessionStorage.getItem('viewportRefreshed')) {
+                        sessionStorage.setItem('viewportRefreshed', 'true');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 300);
+                    }
+                }
             }
+        }
+        
+        // Set up debounced resize handler
+        $(window).on('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(handleViewportChange, 250);
         });
-        return isValid;
-    }
+        
+        // Clean up sessionStorage on page unload
+        $(window).on('beforeunload', function() {
+            sessionStorage.removeItem('viewportRefreshed');
+        });
 
-    function validateNoStoreStockItems() {
-        return $('.no-store-no-stock').length === 0;
-    }
+        function isStorePickupSelected() {
+            return $(`input[name="shippingoption"][data-shippingmethodid="${storePickupMethodId}"]`).is(':checked');
+        }
 
-    function validateShippingMethodSelections() {
-        const validationSummary = $('#validationSummary');
-        validationSummary.addClass('d-none').empty();
+        function validateStoreSelections() {
+            let isValid = true;
+            $('.store-select').each(function () {
+                if (!$(this).val()) {
+                    isValid = false;
+                    return false;
+                }
+            });
+            return isValid;
+        }
 
-        if (!isStorePickupSelected()) {
-            // If NOT store pickup, no need to validate store selection or stock
+        function validateNoStoreStockItems() {
+            return $('.no-store-no-stock').length === 0;
+        }
+
+        function validateShippingMethodSelections() {
+            const validationSummary = $('#validationSummary');
+            validationSummary.addClass('d-none').empty();
+
+            if (!isStorePickupSelected()) return true;
+
+            if (!validateNoStoreStockItems()) {
+                validationSummary.removeClass('d-none').append(
+                    `<div>Some items have no available stores with sufficient stock. Please remove them before continuing your order.</div>`
+                );
+                $('html, body').animate({ scrollTop: validationSummary.offset().top - 20 }, 400);
+                return false;
+            }
+
+            if (!validateStoreSelections()) {
+                validationSummary.removeClass('d-none').append(
+                    `<div>Please select a store for all items before proceeding.</div>`
+                );
+                $('html, body').animate({ scrollTop: validationSummary.offset().top - 20 }, 400);
+                return false;
+            }
+
             return true;
         }
 
-        // For store pickup selected, validate all
-        if (!validateNoStoreStockItems()) {
-            validationSummary.removeClass('d-none').append(
-                `<div>Some items have no available stores with sufficient stock. Please remove them before continuing your order.</div>`
-            );
-            $('html, body').animate({ scrollTop: validationSummary.offset().top - 20 }, 400);
+        $('.checkout-data .opt-radio').on('change', function () {
+            $('.checkout-data .opt-list-item').removeClass('active');
+            $(this).closest('.opt-list-item').addClass("active");
+            $('#validationSummary').addClass('d-none').empty();
+        });
+
+        $('.shipping-method-next-step-button').on('click', function () {
+            if (!validateShippingMethodSelections()) return false;
+            $('#nextstep').trigger('click');
             return false;
-        }
+        });
 
-        if (!validateStoreSelections()) {
-            validationSummary.removeClass('d-none').append(
-                `<div>Please select a store for all items before proceeding.</div>`
-            );
-            $('html, body').animate({ scrollTop: validationSummary.offset().top - 20 }, 400);
-            return false;
-        }
+        $(document).on('click', '.remove-item-x', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-        return true;
-    }
+            const $parentDiv = $(this).closest('.no-store-no-stock');
+            const itemId = $parentDiv.data('item-id');
 
-    // Highlight selected shipping method on change
-    $('.checkout-data .opt-radio').on('change', function () {
-        $('.checkout-data .opt-list-item').removeClass('active');
-        $(this).closest('.opt-list-item').addClass("active");
+            if (!itemId) return;
 
-        $('#validationSummary').addClass('d-none').empty();
-    });
-
-    // Handle next step button click
-    $('.shipping-method-next-step-button').on('click', function () {
-        if (!validateShippingMethodSelections()) {
-            return false;
-        }
-        $('#nextstep').trigger('click');
-        return false;
-    });
-
-    // Remove items with no stock from store on remove click
-    $(document).on('click', '.remove-item-x', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const $parentDiv = $(this).closest('.no-store-no-stock');
-        const itemId = $parentDiv.data('item-id');
-
-        if (!itemId) return;
-
-        $.ajax({
-            url: '/ShoppingCart/RemoveCartItem',
-            method: 'POST',
-            data: { itemId: itemId },
-            success: function (response) {
-                if (response.success) {
-                    $parentDiv.closest('.product-item').remove();
-                    // Optionally update totals or revalidate here
-                } else {
-                    alert(response.message || 'Failed to remove the item.');
+            $.ajax({
+                url: '/ShoppingCart/RemoveCartItem',
+                method: 'POST',
+                data: { itemId: itemId },
+                success: function (response) {
+                    if (response.success) {
+                        $parentDiv.closest('.product-item').remove();
+                    } else {
+                        alert(response.message || 'Failed to remove the item.');
+                    }
+                },
+                error: function () {
+                    alert('Server error occurred while removing the item.');
                 }
-            },
-            error: function () {
-                alert('Server error occurred while removing the item.');
-            }
+            });
         });
     });
-});
 </script>
-
