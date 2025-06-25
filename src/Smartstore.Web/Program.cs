@@ -1,4 +1,5 @@
-﻿global using System;
+﻿global using Smartstore.Web;
+global using System;
 global using System.Collections.Generic;
 global using System.IO;
 global using System.Linq;
@@ -108,7 +109,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(engineStarter.ConfigureContain
 
 builder.Services.AddScoped<IMerchantStoreService, MerchantStoreService>();
 builder.Services.AddScoped<IStoreProductService, StoreProductService>();
-
+builder.Services.Configure<ArifPaySettings>(configuration.GetSection("ArifPay"));
 
 // Build the application
 var app = builder.Build();
