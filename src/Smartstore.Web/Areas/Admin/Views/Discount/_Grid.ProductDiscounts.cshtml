@@ -51,14 +51,15 @@
                 </select>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="$('#remove-discount-modal').hide();">@T("Common.Cancel")</button>
-                <button class="btn btn-danger" id="confirm-remove">@T("Admin.Common.Delete")</button>
+                <button class="btn btn-secondary" onclick="location.reload();">@T("Common.Cancel")</button>
+                <button class="btn btn-danger"  id="confirm-remove">@T("Admin.Common.Delete") </button>
             </div>
         </div>
     </div>
 </div>
 <script>
 $(function() {
+    // Localization resources
     var resources = {
         NoItemsSelected: '@T("Admin.Common.NoItemsSelected")',
         PleaseSelect: '@T("Admin.Common.PleaseSelect")',
@@ -67,10 +68,28 @@ $(function() {
         NoDiscounts: '@T("Admin.Catalog.Products.NoDiscounts")'
     };
 
-    var $grid = $('#product-discounts-grid').parent().data('datagrid');
-    var $modal = $('#remove-discount-modal');
+    // Function to populate discount select dropdown
+    function populateDiscountSelect(discounts) {
+        var $select = $('#discount-select');
+        $select.empty();
+        
+        if (!discounts || discounts.length === 0) {
+            $select.append($('<option/>').val('').text(resources.NoDiscounts));
+        } else {
+            $select.append($('<option/>').val('').text(resources.PleaseSelect));
+            // Sort discounts alphabetically
+            discounts.sort(function(a, b) {
+                return a.discountName.localeCompare(b.discountName);
+            });
+            $.each(discounts, function(i, item) {
+                $select.append($('<option/>').val(item.discountId).text(item.discountName));
+            });
+        }
+    }
 
+    // Show remove discount modal
     $('#remove-discount-btn').on('click', function() {
+        var $grid = $('#product-discounts-grid').parent().data('datagrid');
         var selectedIds = $grid.selectedRowKeys;
         
         if (!selectedIds || selectedIds.length === 0) {
@@ -78,43 +97,36 @@ $(function() {
             return;
         }
 
-        // Convert IDs to numbers if needed
-        selectedIds = selectedIds.map(id => parseInt(id));
+        var firstProductId = selectedIds[0];
+        console.log("Fetching discounts for product ID:", firstProductId);
 
-        var discountPromises = selectedIds.map(function(productId) {
-            return $.get('@Url.Action("GetDiscountsForProduct", "Discount")', { productId: productId });
-        });
+        $.ajax({
+            url: '@Url.Action("GetDiscountsForProduct", "Discount")',
+            type: 'GET',
+            data: { productId: firstProductId },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    console.log("Received discounts:", response.data);
+                    populateDiscountSelect(response.data);
+                    $('#remove-discount-modal').show();
 
-        Promise.all(discountPromises)
-            .then(function(allDiscounts) {
-                var combinedDiscounts = [];
-                var discountIds = new Set();
-                
-                allDiscounts.forEach(function(productDiscounts) {
-                    if (productDiscounts && productDiscounts.length) {
-                        productDiscounts.forEach(function(discount) {
-                            if (!discountIds.has(discount.discountId)) {
-                                discountIds.add(discount.discountId);
-                                combinedDiscounts.push(discount);
-                            }
-                        });
-                    }
-                });
-
-                populateDiscountSelect(combinedDiscounts);
-                $modal.show();
-            })
-            .catch(function(error) {
-                console.error("Error fetching discounts:", error);
+                } else {
+                    displayNotification(response.message || resources.Error, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", status, error);
                 displayNotification(resources.Error, 'error');
-            });
+            }
+        });
     });
 
-    // ... rest of your existing functions ...
-
+    // Handle remove discount confirmation
     $('#confirm-remove').on('click', function() {
-        var discountId = parseInt($('#discount-select').val());
-        var selectedIds = $grid.selectedRowKeys.map(id => parseInt(id));
+        var discountId = $('#discount-select').val();
+        var $grid = $('#product-discounts-grid').parent().data('datagrid');
+        var selectedIds = $grid.selectedRowKeys;
         
         if (!discountId) {
             displayNotification(resources.PleaseSelect, 'warning');
@@ -133,25 +145,22 @@ $(function() {
             url: '@Url.Action("RemoveDiscountFromSelectedProducts", "Discount")',
             type: 'POST',
             contentType: 'application/json',
-            headers: {
-                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-            },
-            data: JSON.stringify({
+            data: JSON.stringify({ 
                 selectedIds: selectedIds,
                 discountId: discountId
             }),
             success: function(response) {
                 if (response.success) {
                     displayNotification(response.message || resources.ChangesSaved);
-                    $grid.ajaxRequest();
-                    $modal.hide();
+                    $grid.read(); // Refresh grid
+                    $('#remove-discount-modal').hide();
                 } else {
                     displayNotification(response.message || resources.Error, 'error');
                 }
             },
             error: function(xhr, status, error) {
-                console.error("Remove error:", status, error, xhr.responseText);
-                displayNotification(resources.Error + ": " + (xhr.responseJSON?.message || error), 'error');
+                console.error("Error removing discount:", status, error);
+                displayNotification(resources.Error, 'error');
             },
             complete: function() {
                 $btn.prop('disabled', false);
