@@ -413,15 +413,17 @@ namespace Smartstore.Web.Controllers
 
             var model = await MapperFactory.MapAsync<CheckoutContext, CheckoutConfirmModel>(
                 context
-            );
-
-            // Add these lines to ensure ByGround fields are populated
-            model.OrderReviewData.ByGroundAddress =
-                context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
-            model.OrderReviewData.ByGroundLatitude =
-                context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
-            model.OrderReviewData.ByGroundLongitude =
-                context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
+            );//need only this line to get the model
+            if (model?.OrderReviewData?.IsShippable == true
+                 && context?.Cart?.Customer?.GenericAttributes != null)
+            {
+                model.OrderReviewData.ByGroundAddress =
+                      context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+                model.OrderReviewData.ByGroundLatitude =
+                       context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
+                model.OrderReviewData.ByGroundLongitude =
+                       context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
+            }
 
             return View(result.ViewPath, model);
         }
@@ -439,13 +441,16 @@ namespace Smartstore.Web.Controllers
                 );
 
                 // Add these lines here as well
-                model.OrderReviewData.ByGroundAddress =
-                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
-                model.OrderReviewData.ByGroundLatitude =
-                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
-                model.OrderReviewData.ByGroundLongitude =
-                    context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
-
+//                 if (model.OrderReviewData != null && model.OrderReviewData.IsShippable
+//     && context?.Cart?.Customer?.GenericAttributes != null)
+// {
+//     model.OrderReviewData.ByGroundAddress =
+//         context.Cart.Customer.GenericAttributes.Get<string>("ByGroundAddress");
+//     model.OrderReviewData.ByGroundLatitude =
+//         context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLatitude");
+//     model.OrderReviewData.ByGroundLongitude =
+//         context.Cart.Customer.GenericAttributes.Get<string>("ByGroundLongitude");
+// }
                 result.Errors.Each(x => model.Warnings.Add(x.ErrorMessage));
 
                 return View(model);
