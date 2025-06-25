@@ -411,30 +411,31 @@ public async Task<IActionResult> ProductDiscountList(GridCommand command, string
         query = query.Where(p => p.AppliedDiscounts.Any(d => d.Name.Contains(discountName)));
     }
 
-    // ❗ Important: Group discounts for each product into a single row
-    var data = await query
-        .Select(p => new ProductDiscountViewModel
+    var data = query
+        .SelectMany(p => p.AppliedDiscounts.Select(d => new ProductDiscountViewModel
         {
             ProductId = p.Id,
             ProductName = p.Name,
             Price = p.Price,
-            DiscountName = string.Join(", ", p.AppliedDiscounts.Select(d => d.Name)),
-            DiscountPercentage = p.AppliedDiscounts.FirstOrDefault().DiscountPercentage,
-            DiscountAmount = p.AppliedDiscounts.FirstOrDefault().DiscountAmount,
-            StartDateUtc = p.AppliedDiscounts.FirstOrDefault().StartDateUtc,
-            EndDateUtc = p.AppliedDiscounts.FirstOrDefault().EndDateUtc
-        })
+            DiscountId = d.Id,
+            DiscountName = d.Name,
+            DiscountPercentage = d.DiscountPercentage,
+            DiscountAmount = d.DiscountAmount,
+            StartDateUtc = d.StartDateUtc,
+            EndDateUtc = d.EndDateUtc
+        }));
+
+    var paged = await data
         .ApplyGridCommand(command)
         .ToPagedList(command)
         .LoadAsync();
 
     return Json(new GridModel<ProductDiscountViewModel>
     {
-        Rows = data,
-        Total = data.TotalCount
+        Rows = paged,
+        Total = paged.TotalCount
     });
 }
-
         [HttpGet]
         public async Task<IActionResult> GetDiscountsForProduct(int productId)
         {

@@ -7,17 +7,16 @@
           preserve-grid-state="true" 
           preserve-command-state="true"
           allow-column-reordering="true">
-    
     <datasource 
         read="@Url.Action("ProductDiscountList", "Discount")"
-        additional-data="function() { return { discountName: $('#discountName').val() }; }" />
-
+        additional-data="function() { return { discountName: $('[name=discountName]').val() }; }" />
+    
     <paging position="Bottom" page-index="1" show-size-chooser="true" />
 
     <sorting allow-unsort="true" allow-multisort="false">
         <sort by="ProductName" />
     </sorting>
-
+    
     <toolbar>
         <toolbar-group>
             <button datagrid-action="DataGridToolAction.ToggleSearchPanel" type="button" class="btn btn-light btn-icon">
@@ -34,18 +33,14 @@
     </toolbar>
 
     <search-panel>
-        <form id="searchForm">
+        <form>
             <div class="form-group">
-                <label for="discountName">@T("Admin.Promotions.Discounts.Fields.Name")</label>
-                <input id="discountName" name="discountName" type="text" class="form-control" />
+                <label>Discount Name</label>
+                <input name="discountName" type="text" class="form-control" value="@Request.Query["discountName"]" />
             </div>
-            <button type="button" class="btn btn-primary" onclick="Datagrid.getById('product-discounts-grid').load();">
-                @T("Admin.Common.Search")
-            </button>
         </form>
     </search-panel>
-
-
+    
     <columns>
         <column for="ProductName" />
         <column for="DiscountName" />
@@ -56,7 +51,6 @@
         <column for="EndDateUtc" />
     </columns>
 </datagrid>
-
 <div id="remove-discount-modal" class="modal" style="display:none;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
