@@ -7,12 +7,17 @@
           preserve-grid-state="true" 
           preserve-command-state="true"
           allow-column-reordering="true">
-    <datasource read="@Url.Action("ProductDiscountList", "Discount")" />
     
+    <datasource 
+        read="@Url.Action("ProductDiscountList", "Discount")"
+        additional-data="function() { return { discountName: $('#discountName').val() }; }" />
+
+    <paging position="Bottom" page-index="1" show-size-chooser="true" />
+
     <sorting allow-unsort="true" allow-multisort="false">
         <sort by="ProductName" />
     </sorting>
-    
+
     <toolbar>
         <toolbar-group>
             <button datagrid-action="DataGridToolAction.ToggleSearchPanel" type="button" class="btn btn-light btn-icon">
@@ -27,7 +32,20 @@
             </button>
         </toolbar-group>
     </toolbar>
-    
+
+    <search-panel>
+        <form id="searchForm">
+            <div class="form-group">
+                <label for="discountName">@T("Admin.Promotions.Discounts.Fields.Name")</label>
+                <input id="discountName" name="discountName" type="text" class="form-control" />
+            </div>
+            <button type="button" class="btn btn-primary" onclick="Datagrid.getById('product-discounts-grid').load();">
+                @T("Admin.Common.Search")
+            </button>
+        </form>
+    </search-panel>
+
+
     <columns>
         <column for="ProductName" />
         <column for="DiscountName" />
@@ -38,6 +56,7 @@
         <column for="EndDateUtc" />
     </columns>
 </datagrid>
+
 <div id="remove-discount-modal" class="modal" style="display:none;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -52,7 +71,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="location.reload();">@T("Common.Cancel")</button>
-                <button class="btn btn-danger"  id="confirm-remove">@T("Admin.Common.Delete") </button>
+                <button class="btn btn-danger"  id="confirm-remove">@T("Admin.Common.RemoveDiscount") </button>
             </div>
         </div>
     </div>
@@ -98,7 +117,6 @@ $(function() {
         }
 
         var firstProductId = selectedIds[0];
-        console.log("Fetching discounts for product ID:", firstProductId);
 
         $.ajax({
             url: '@Url.Action("GetDiscountsForProduct", "Discount")',
@@ -107,7 +125,6 @@ $(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    console.log("Received discounts:", response.data);
                     populateDiscountSelect(response.data);
                     $('#remove-discount-modal').show();
 

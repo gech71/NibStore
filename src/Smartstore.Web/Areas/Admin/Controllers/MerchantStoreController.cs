@@ -191,7 +191,7 @@ namespace Smartstore.Admin.Controllers
                 // Handle map/location specific data
                 merchantStore.Latitude = model.Latitude;
                 merchantStore.Longitude = model.Longitude;
-                merchantStore.Address = model.Address; // Make sure this is mapped
+                merchantStore.Address = model.Address; 
 
                 await _merchantStoreService.UpdateMerchantStoreAsync(merchantStore);
 
