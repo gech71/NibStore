@@ -383,7 +383,7 @@ namespace Smartstore.Admin.Controllers
 
         [HttpGet]
         [Permission(Permissions.Promotion.Discount.Read)]
-        public async Task<IActionResult> ManageDiscountTabs()
+        public async Task<IActionResult> ManageDiscount()
         {
             var discountList = new DiscountListModel();
             var productList = new ProductListModel();
