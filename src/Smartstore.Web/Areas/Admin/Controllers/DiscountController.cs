@@ -399,43 +399,47 @@ namespace Smartstore.Admin.Controllers
         }
 
         [HttpGet, HttpPost]
-[Permission(Permissions.Promotion.Discount.Read)]
-public async Task<IActionResult> ProductDiscountList(GridCommand command, string discountName = null)
-{
-    var query = _db.Products
-        .Include(p => p.AppliedDiscounts)
-        .Where(p => p.AppliedDiscounts.Any());
-
-    if (!string.IsNullOrEmpty(discountName))
-    {
-        query = query.Where(p => p.AppliedDiscounts.Any(d => d.Name.Contains(discountName)));
-    }
-
-    var data = query
-        .SelectMany(p => p.AppliedDiscounts.Select(d => new ProductDiscountViewModel
+        [Permission(Permissions.Promotion.Discount.Read)]
+        public async Task<IActionResult> ProductDiscountList(GridCommand command, string discountName = null, string productName = null)
         {
-            ProductId = p.Id,
-            ProductName = p.Name,
-            Price = p.Price,
-            DiscountId = d.Id,
-            DiscountName = d.Name,
-            DiscountPercentage = d.DiscountPercentage,
-            DiscountAmount = d.DiscountAmount,
-            StartDateUtc = d.StartDateUtc,
-            EndDateUtc = d.EndDateUtc
-        }));
+            var query = _db.Products
+                .Include(p => p.AppliedDiscounts)
+                .Where(p => p.AppliedDiscounts.Any());
 
-    var paged = await data
-        .ApplyGridCommand(command)
-        .ToPagedList(command)
-        .LoadAsync();
+            if (!string.IsNullOrEmpty(discountName))
+            {
+                query = query.Where(p => p.AppliedDiscounts.Any(d => d.Name.Contains(discountName)));
+            }
 
-    return Json(new GridModel<ProductDiscountViewModel>
-    {
-        Rows = paged,
-        Total = paged.TotalCount
-    });
-}
+            if (!string.IsNullOrEmpty(productName))
+            {
+                query = query.Where(p => p.Name.Contains(productName));
+            }
+
+            var data = await query
+                .Select(p => new ProductDiscountViewModel
+                {
+                    ProductId = p.Id,
+                    ProductName = p.Name,
+                    Price = p.Price,
+                    DiscountName = string.Join(", ", p.AppliedDiscounts.Select(d => d.Name)),
+                    DiscountPercentage = p.AppliedDiscounts.FirstOrDefault().DiscountPercentage,
+                    DiscountAmount = p.AppliedDiscounts.FirstOrDefault().DiscountAmount,
+                    StartDateUtc = p.AppliedDiscounts.FirstOrDefault().StartDateUtc,
+                    EndDateUtc = p.AppliedDiscounts.FirstOrDefault().EndDateUtc
+                })
+                .ApplyGridCommand(command)
+                .ToPagedList(command)
+                .LoadAsync();
+
+            return Json(new GridModel<ProductDiscountViewModel>
+            {
+                Rows = data,
+                Total = data.TotalCount
+            });
+        }
+
+
         [HttpGet]
         public async Task<IActionResult> GetDiscountsForProduct(int productId)
         {

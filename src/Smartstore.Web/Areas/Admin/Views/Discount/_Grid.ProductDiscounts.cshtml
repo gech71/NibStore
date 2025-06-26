@@ -8,8 +8,14 @@
           preserve-command-state="true"
           allow-column-reordering="true">
     <datasource 
-        read="@Url.Action("ProductDiscountList", "Discount")"
-        additional-data="function() { return { discountName: $('[name=discountName]').val() }; }" />
+    read="@Url.Action("ProductDiscountList", "Discount")"
+    additional-data="function() {
+        return {
+            discountName: $('[name=discountName]').val(),
+            productName: $('[name=productName]').val()
+        };
+    }" />
+    
     
     <paging position="Bottom" page-index="1" show-size-chooser="true" />
 
@@ -33,14 +39,8 @@
     </toolbar>
 
     <search-panel>
-        <form>
-            <div class="form-group">
-                <label>Discount Name</label>
-                <input name="discountName" type="text" class="form-control" value="@Request.Query["discountName"]" />
-            </div>
-        </form>
+        <partial name="_Grid.ProductDiscounts.Search" />
     </search-panel>
-    
     <columns>
         <column for="ProductName" />
         <column for="DiscountName" />
