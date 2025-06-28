@@ -1,0 +1,10 @@
+@model ProductDiscountViewModel
+<div class="form-group">
+    <smart-label asp-for="DiscountName" />
+    <editor asp-for="DiscountName" asp-template="SearchExpression" />
+</div>
+
+<div class="form-group">
+    <smart-label asp-for="ProductName" />
+    <editor asp-for="ProductName" asp-template="SearchExpression" />
+</div>

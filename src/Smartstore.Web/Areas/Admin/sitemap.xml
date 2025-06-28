@@ -341,7 +341,7 @@
                 resKey="Admin.Promotions.Discounts"
                 permissionNames="promotion.discount"
                 controller="Discount"
-                action="ManageDiscountTabs"
+                action="ManageDiscount"
                 area="Admin"
             />
             <siteMapNode
