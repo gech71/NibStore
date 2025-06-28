@@ -78,7 +78,7 @@ namespace Smartstore.Admin.Controllers
 
         public IActionResult Index()
         {
-            return RedirectToAction(nameof(List));
+            return RedirectToAction(nameof(ManageDiscount));
         }
 
         [Permission(Permissions.Promotion.Discount.Read)]

@@ -128,14 +128,21 @@
 <partial name="~/Areas/Admin/Views/Product/_CopyProductDialog.cshtml" model="null" />
 
 
-<div id="apply-discount-window" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1060; background: white; padding: 20px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 500px; max-width: 90%;">
-    <div style="position: relative;">
+<div id="apply-discount-window" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1060; background: white; padding: 20px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 500px; max-width: 90%; max-height: 80vh; overflow: hidden;">
+    <div style="position: relative; max-height: calc(80vh - 40px); overflow: hidden;">
         <button type="button" class="close" onclick="$('#apply-discount-window, #modal-backdrop').hide();" style="position: absolute; right: 10px; top: 5px;"  ></button>
         <div class="form-group" style="margin-bottom: 15px;">
             <label style="display: block; margin-bottom: 25px;">@T("Admin.Promotions.Discounts")</label>
-            <select id="discount-id" name="discountId" class="form-control" style="width: 100%;">
-                <option value="0">@T("Admin.Common.PleaseSelect")</option>
-            </select>
+            <div class="dropdown-container" style="position: relative; width: 100%;">
+                <button type="button" id="discount-dropdown-btn" class="form-control text-left" style="background: white; border: 1px solid #ced4da; padding: 8px 12px; width: 100%; text-align: left; position: relative;">
+                    <span id="discount-selected-text">@T("Admin.Common.PleaseSelect")</span>
+                    <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">▼</span>
+                </button>
+                <div id="discount-dropdown-list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ced4da; border-top: none; max-height: 200px; overflow-y: auto; z-index: 1070; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div class="dropdown-item" data-value="0" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0;">@T("Admin.Common.PleaseSelect")</div>
+                </div>
+                <input type="hidden" id="discount-id" name="discountId" value="0" />
+            </div>
         </div>
         <div style="text-align: right; margin-top: 20px;">
             <button type="button" class="btn btn-secondary" onclick="$('#apply-discount-window, #modal-backdrop').hide();">@T("Common.Cancel")</button>
