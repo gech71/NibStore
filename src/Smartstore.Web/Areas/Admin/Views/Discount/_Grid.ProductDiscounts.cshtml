@@ -64,7 +64,7 @@
                 </select>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="location.reload();">@T("Common.Cancel")</button>
+                <button class="btn btn-secondary"  onclick="$('#remove-discount-modal').hide();">@T("Common.Cancel")</button>
                 <button class="btn btn-danger"  id="confirm-remove">@T("Admin.Common.RemoveDiscount") </button>
             </div>
         </div>
@@ -162,7 +162,7 @@ $(function() {
             }),
             success: function(response) {
                 if (response.success) {
-                    displayNotification(response.message || resources.ChangesSaved);
+                    displayNotification(response.message || resources.ChangesSaved, 'success');
                     $grid.read(); // Refresh grid
                     $('#remove-discount-modal').hide();
                 } else {

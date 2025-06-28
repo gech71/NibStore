@@ -23,6 +23,8 @@ namespace Smartstore.Admin.Controllers
         private readonly ICurrencyService _currencyService;
         private readonly ILocalizedEntityService _localizedEntityService;
         private readonly ProductController _productController;
+        private readonly IWorkContext _workContext;
+
 
 
         public DiscountController(
@@ -30,13 +32,15 @@ namespace Smartstore.Admin.Controllers
             IRuleService ruleService,
             ICurrencyService currencyService,
             ILocalizedEntityService localizedEntityService,
-            ProductController productController)
+            ProductController productController,
+            IWorkContext workContext)
         {
             _db = db;
             _ruleService = ruleService;
             _currencyService = currencyService;
             _localizedEntityService = localizedEntityService;
             _productController = productController;
+            _workContext = workContext;
         }
 
         /// <summary>
@@ -399,21 +403,53 @@ namespace Smartstore.Admin.Controllers
         }
 
         [HttpGet, HttpPost]
-        [Permission(Permissions.Promotion.Discount.Read)]
+        [Permission(Permissions.Catalog.Product.Read)]
         public async Task<IActionResult> ProductDiscountList(GridCommand command, string discountName = null, string productName = null)
         {
+            var currentUser = _workContext.CurrentCustomer;
+
+            // Check if the current user is a Merchant
+            var isMerchant = await _db.CustomerRoleMappings.AnyAsync(m =>
+                m.CustomerId == currentUser.Id &&
+                m.CustomerRole.SystemName == "Merchant"
+            );
+
             var query = _db.Products
                 .Include(p => p.AppliedDiscounts)
                 .Where(p => p.AppliedDiscounts.Any());
 
+            // Apply discount name filter (matches any of the applied discounts)
             if (!string.IsNullOrEmpty(discountName))
             {
-                query = query.Where(p => p.AppliedDiscounts.Any(d => d.Name.Contains(discountName)));
+                query = query.Where(p =>
+                    p.AppliedDiscounts.Any(d => d.Name.Contains(discountName)));
             }
 
+            // Apply product name filter
             if (!string.IsNullOrEmpty(productName))
             {
                 query = query.Where(p => p.Name.Contains(productName));
+            }
+
+            // Restrict to merchant-owned products if user is a merchant
+            if (isMerchant)
+            {
+                var merchantProductIds = await _db.GenericAttributes
+                    .Where(a =>
+                        a.KeyGroup == "Product" &&
+                        a.Key == "CreatedByUserId" &&
+                        a.Value == currentUser.Id.ToString())
+                    .Select(a => a.EntityId)
+                    .ToListAsync();
+
+                if (!merchantProductIds.Any())
+                {
+                    query = query.Where(p => false); // No results for merchant with no products
+                }
+                else
+                {
+                    query = query.Where(p => merchantProductIds.Contains(p.Id));
+                }
             }
 
             var data = await query
@@ -438,7 +474,6 @@ namespace Smartstore.Admin.Controllers
                 Total = data.TotalCount
             });
         }
-
 
         [HttpGet]
         public async Task<IActionResult> GetDiscountsForProduct(int productId)

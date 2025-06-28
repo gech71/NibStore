@@ -20733,7 +20733,13 @@ within the observation window, additional requests may be denied, even if type-s
   <LocaleResource Name="Admin.Catalog.Products.ApplyDiscount">
 	<Value>Apply Discount</Value>
   </LocaleResource>
-	<LocaleResource Name="Admin.Catalog.Products.Discounts.AppliedToProducts">	
-		<Value>Discount applied to the selected product/s</Value>
-	</LocaleResource>
+  <LocaleResource Name="Admin.Catalog.Products.Discounts.AppliedToProducts">	
+	<Value>Discount applied to the selected product/s.</Value>
+  </LocaleResource>
+  <LocaleResource Name="Admin.Promotions.Discounts.RemoveDiscount">
+	<Value>Remove Discount</Value>	
+  </LocaleResource>
+  <LocaleResource Name="Admin.Common.RemoveDiscount">	
+	<Value>Remove</Value>
+  </LocaleResource>
 </Language>
