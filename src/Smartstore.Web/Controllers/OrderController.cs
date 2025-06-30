@@ -81,6 +81,7 @@ namespace Smartstore.Web.Controllers
             model.ByGroundAddress = order.ByGroundAddress;
             model.ByGroundLatitude = order.ByGroundLatitude;
             model.ByGroundLongitude = order.ByGroundLongitude;
+            model.OrderPin = order.OrderPin;
 
             return View(model);
         }

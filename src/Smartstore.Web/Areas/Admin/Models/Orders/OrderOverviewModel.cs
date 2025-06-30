@@ -130,5 +130,8 @@ namespace Smartstore.Admin.Models.Orders
 
         public string EditUrl { get; set; }
         public string CustomerEditUrl { get; set; }
+
+        [LocalizedDisplay("*OrderPin")]
+        public string OrderPin { get; set; }
     }
 }

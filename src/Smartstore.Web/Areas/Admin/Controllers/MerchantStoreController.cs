@@ -225,5 +225,23 @@ namespace Smartstore.Admin.Controllers
             }
             return Json(new { success = true });
         }
+
+        [HttpGet]
+        [Permission(Permissions.Catalog.MerchantStore.Read)]
+        public async Task<IActionResult> GetAddress(int id)
+        {
+            var merchantStore = await _merchantStoreService.GetMerchantStoreByIdAsync(id);
+            if (merchantStore == null)
+            {
+                return NotFound(new { message = "Merchant store not found." });
+            }
+
+            return Json(new
+            {
+                address = merchantStore.Address,
+                latitude = merchantStore.Latitude,
+                longitude = merchantStore.Longitude
+            });
+        }
     }
 }

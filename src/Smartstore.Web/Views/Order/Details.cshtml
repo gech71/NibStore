@@ -72,6 +72,17 @@
                             <div class="pickup-store-info">
                                 <span class="fw-semibold">Store:</span>
                                 <span>@item.SelectedStoreName</span>
+                                <button type="button" class="btn btn-link btn-sm p-0 ms-2"
+                                        onclick="getMerchantStoreAddress('@item.PickupStoreId')"
+                                        aria-label="Get store address for @item.SelectedStoreName">
+                                    <i class="fa fa-map-marker-alt"></i> Get Address
+                                </button>
+                                <span id="store-address-@item.PickupStoreId" class="ms-2 text-muted"></span>
+                                <div id="gmap-btn-container-@item.PickupStoreId" style="display:none;">
+                                    <button id="open-gmap-@item.PickupStoreId" class="btn btn-outline-primary btn-sm mt-2" type="button">
+                                        Open in Google Maps
+                                    </button>
+                                </div>
                             </div>
                         }
 
@@ -227,6 +238,23 @@
             <div class="col-6 col-sm-auto pb-3">
                 <h5 class="text-muted">@T("Order.OrderTotal")</h5>
                 <div class="text-success-emphasis fwm">@Model.OrderTotal</div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-6 col-sm-auto pb-3">
+                @if (!string.IsNullOrEmpty(Model.OrderPin))
+                {
+                    <div class="alert alert-info mb-0">
+                        <span style="font-size:1.25rem;">
+                            <strong>Order PIN:</strong>
+                            <span class="text-danger" style="text-decoration:underline;">@Model.OrderPin</span>
+                        </span>
+                        <div class="mt-1 text-muted" style="font-size:1rem;">
+                            Please use this PIN for order pickup or delivery confirmation.
+                        </div>
+                    </div>
+                }
             </div>
         </div>
 
@@ -521,4 +549,54 @@
         <zone name="orderdetails_page_bottom" />
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function getMerchantStoreAddress(storeId) {
+            if (!storeId || storeId == 0) return;
+            var addressSpan = document.getElementById('store-address-' + storeId);
+
+            // Toggle: If address is visible, hide and clear
+            var gmapBtnContainer = document.getElementById('gmap-btn-container-' + storeId);
+            if (addressSpan && addressSpan.innerText && addressSpan.innerText !== "Loading...") {
+                addressSpan.innerText = "";
+                if (gmapBtnContainer) gmapBtnContainer.style.display = "none";
+                return;
+            }
+
+            addressSpan.innerText = "Loading...";
+            fetch('/Admin/MerchantStore/GetAddress/' + storeId)
+                .then(response => response.ok ? response.json() : Promise.reject(new Error("Network error")))
+                .then(data => {
+                    if (data && data.address) {
+                        let text = data.address;
+                        if (data.latitude && data.longitude) {
+                            text += ` (Lat: ${data.latitude}, Lng: ${data.longitude})`;
+                            // Show Google Maps button
+                            var gmapBtn = document.getElementById('open-gmap-' + storeId);
+                            if (gmapBtn && gmapBtnContainer) {
+                                gmapBtnContainer.style.display = "block";
+                                gmapBtn.onclick = function() {
+                                    window.open(`https://www.google.com/maps?q=${data.latitude},${data.longitude}`, '_blank');
+                                };
+                            }
+                        } else if (gmapBtnContainer) {
+                            gmapBtnContainer.style.display = "none";
+                        }
+                        addressSpan.innerText = text;
+                    } else {
+                        addressSpan.innerText = "Address not found";
+                        if (gmapBtnContainer) gmapBtnContainer.style.display = "none";
+                    }
+                })
+                .catch(error => {
+                    addressSpan.innerText = "Failed to load address: " + (error.message || "Unknown error");
+                    if (gmapBtnContainer) gmapBtnContainer.style.display = "none";
+                });
+        }
+    </script>
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 

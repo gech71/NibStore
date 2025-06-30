@@ -34,6 +34,7 @@ namespace Smartstore.Web.Models.Orders
         public string ByGroundAddress { get; set; }
         public string ByGroundLatitude { get; set; }
         public string ByGroundLongitude { get; set; }
+        public string OrderPin { get; set; }
         public DateTime SavedDate { get; set; } = DateTime.UtcNow;
         
         
