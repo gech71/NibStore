@@ -31,6 +31,18 @@
                     <span>@T("Checkout.OrderNumber"):</span>
                     <a asp-action="Details" asp-controller="Order" asp-route-id="@Model.OrderId" rel="nofollow"><strong>@Model.OrderNumber</strong></a>
                 </p>
+                @if (!string.IsNullOrEmpty(Model.OrderPin))
+                {
+                    <div class="alert alert-info mb-0">
+                        <span style="font-size:1.25rem;">
+                            <strong>Order PIN:</strong>
+                            <span class="text-danger" style="text-decoration:underline;">@Model.OrderPin</span>
+                        </span>
+                        <div class="mt-1 text-muted" style="font-size:1rem;">
+                            Please use this PIN for order pickup or delivery confirmation.
+                        </div>
+                    </div>
+                }
             </div>
 
             <!-- Save for reorder section -->

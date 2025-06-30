@@ -490,6 +490,7 @@ namespace Smartstore.Core.Checkout.Orders
         /// Gets or sets the date when the order was saved
         /// </summary>
         public DateTime? SavedDate { get; set; }
+        public string OrderPin { get; set; }
 
  /// <summary>
         /// Gets or sets the recurring order name

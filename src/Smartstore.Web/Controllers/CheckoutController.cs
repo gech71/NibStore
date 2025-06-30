@@ -412,6 +412,15 @@ namespace Smartstore.Web.Controllers
             return View(result.ViewPath, model);
         }
 
+        // Add this helper method inside your CheckoutController class:
+        private static string GeneratePinCode(int length = 6)
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude similar-looking chars
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
         [HttpPost, ActionName(CheckoutActionNames.Confirm)]
         public async Task<IActionResult> ConfirmOrder()
         {
@@ -439,6 +448,13 @@ namespace Smartstore.Web.Controllers
                 return RedirectToAction("Confirm");
             }
 
+            // --- PIN GENERATION LOGIC (alphanumeric, like coupon code) ---
+            if (order != null)
+            {
+                order.OrderPin = GeneratePinCode(6); // 6-digit alphanumeric
+                await _db.SaveChangesAsync();
+            }
+
             // Redirect to ArifPay payment with the real order ID and total
             return RedirectToAction("StartPayment", "ArifPay", new { amount = order.OrderTotal, orderId = order.Id });
         }
@@ -460,6 +476,7 @@ namespace Smartstore.Web.Controllers
                 .Orders.AsNoTracking()
                 .Include(x => x.Customer)
                 .ApplyStandardFilter(customer.Id, store.Id)
+                .OrderByDescending(x => x.CreatedOnUtc)
                 .FirstOrDefaultAsync();
 
             if (order == null || customer.Id != order.CustomerId)
@@ -482,6 +499,7 @@ namespace Smartstore.Web.Controllers
                     OrderId = order.Id,
                     OrderNumber = order.GetOrderNumber(),
                     Order = order,
+                    OrderPin = order.OrderPin
                 }
             );
         }
